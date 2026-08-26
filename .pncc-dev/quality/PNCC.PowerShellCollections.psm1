@@ -7,7 +7,11 @@ function ConvertTo-PnccCollectionView {
         [object]$InputObject
     )
 
-    [object[]]$items = @($InputObject)
+    [object[]]$items = [object[]]@()
+    if ($null -ne $InputObject) {
+        $items = [object[]]@($InputObject)
+    }
+
     [pscustomobject][ordered]@{
         SchemaVersion = 1
         Count = [int]$items.Count
