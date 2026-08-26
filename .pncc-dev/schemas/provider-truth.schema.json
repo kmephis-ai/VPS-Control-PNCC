@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PNCC Provider Truth Snapshot v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "role", "repository", "default_branch", "default_branch_head_sha", "branch", "branch_exists", "branch_head_sha", "pr", "pr_state", "checks", "observed_at"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "role": {"const": "PROVIDER_TRUTH_SNAPSHOT"},
+    "repository": {"type": "string", "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"},
+    "default_branch": {"type": "string", "minLength": 1},
+    "default_branch_head_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "branch": {"type": "string", "minLength": 1},
+    "branch_exists": {"type": "boolean"},
+    "branch_head_sha": {"type": ["string", "null"], "pattern": "^[0-9a-f]{40}$"},
+    "pr": {"type": ["integer", "null"], "minimum": 1},
+    "pr_state": {"enum": ["OPEN", "CLOSED", "MERGED", "NONE"]},
+    "checks": {"type": "object", "additionalProperties": {"enum": ["SUCCESS", "FAILURE", "PENDING", "MISSING"]}},
+    "observed_at": {"type": "string", "minLength": 1}
+  }
+}
