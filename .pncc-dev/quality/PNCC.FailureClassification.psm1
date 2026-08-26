@@ -1,6 +1,7 @@
 Set-StrictMode -Version 3.0
 
 $script:AllowedEvidenceStates = @('PASS', 'FAIL', 'UNKNOWN')
+$script:AllowedFailureClasses = @('VALIDATOR_DEFECT', 'HARNESS_DEFECT', 'ENVIRONMENT_OR_BASELINE_BLOCKER', 'PRODUCT_DEFECT')
 $script:RequiredEvidenceKeys = @(
     'SchemaVersion',
     'ValidatorSelfCheck',
@@ -19,8 +20,7 @@ function ConvertTo-PnccClassificationResult {
         [string]$Status,
 
         [AllowNull()]
-        [ValidateSet('VALIDATOR_DEFECT', 'HARNESS_DEFECT', 'ENVIRONMENT_OR_BASELINE_BLOCKER', 'PRODUCT_DEFECT')]
-        [string]$FailureClass,
+        [object]$FailureClass,
 
         [Parameter(Mandatory = $true)]
         [ValidateSet('VALIDATOR_ONLY', 'HARNESS_ONLY', 'ENVIRONMENT_OR_EVIDENCE_ONLY', 'PRODUCT_ONLY', 'NONE')]
@@ -30,6 +30,10 @@ function ConvertTo-PnccClassificationResult {
         [ValidateNotNullOrEmpty()]
         [string]$Reason
     )
+
+    if (($null -ne $FailureClass) -and ($script:AllowedFailureClasses -notcontains [string]$FailureClass)) {
+        throw 'FAILURE_CLASS_INTERNAL_INVALID'
+    }
 
     [pscustomobject][ordered]@{
         SchemaVersion      = 1
