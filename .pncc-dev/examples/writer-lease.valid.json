@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "role": "WRITER_LEASE",
+  "lease_id": "70c397e8-8c1d-4939-8dc8-59aec23bdf60",
+  "work_unit_id": "PIPE-WU-002",
+  "conflict_domain": "pipeline-durable-state",
+  "holder": "example-writer",
+  "base_sha": "58d316275a1e3398004f713223479cc420168236",
+  "branch": "agent/example",
+  "state": "ACTIVE",
+  "generation": 1,
+  "acquired_at": "2030-01-01T00:00:00Z",
+  "heartbeat_at": "2030-01-01T00:05:00Z",
+  "expires_at": "2030-01-01T01:00:00Z"
+}
