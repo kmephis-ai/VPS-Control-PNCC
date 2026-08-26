@@ -1,0 +1,22 @@
+{
+  "SchemaVersion": 1,
+  "FixtureId": "PNCC_RC14_38_SANITIZED_PUBLIC",
+  "FixturePath": "legacy/v7-rc14.38-sanitized",
+  "FixtureGitTreeSha": "2a6c0027a195e91640ec2a6e38220a9fac372368",
+  "ManifestRelativePath": "SANITIZED-SHA256.txt",
+  "ManifestEntryCount": 32,
+  "IdentitySemantics": "SANITIZED_NOT_BYTE_IDENTICAL_NOT_RUNTIME_QUALIFIED",
+  "OriginalPrivateCandidate": {
+    "Version": "v7.0.0-rc14.38",
+    "ZipSha256": "6d81137519a363ebf3d8503f33a344d8fdc75848d517cf732cb6d6d02394d727",
+    "StableDoneAtPublication": false,
+    "RuntimeQualificationAuthority": false
+  },
+  "Verification": {
+    "RequireExactGitTree": true,
+    "RequireCompleteSha256Inventory": true,
+    "AllowManifestSelfEntry": false,
+    "AllowUnlistedFixtureFiles": false,
+    "AllowPathTraversal": false
+  }
+}
