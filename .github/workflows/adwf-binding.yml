@@ -1,0 +1,51 @@
+name: adwf-binding
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  adwf-binding:
+    name: adwf-binding
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact PNCC revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: pncc
+          persist-credentials: false
+
+      - name: Checkout exact ADWF Core revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: kmephis-ai/AI-Development-Framework
+          ref: 730cab912f779bec1f3208c66eda1889f69d6f4c
+          path: adwf-core
+          persist-credentials: false
+
+      - name: Verify exact checkout identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_consumer="${{ github.event.pull_request.head.sha || github.sha }}"
+          actual_consumer="$(git -C pncc rev-parse HEAD)"
+          actual_framework="$(git -C adwf-core rev-parse HEAD)"
+          test "$actual_consumer" = "$expected_consumer"
+          test "$actual_framework" = "730cab912f779bec1f3208c66eda1889f69d6f4c"
+          test ! -e pncc/.adwf
+          echo "PNCC_SHA=$actual_consumer"
+          echo "ADWF_SHA=$actual_framework"
+
+      - name: Validate external thin consumer binding
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 adwf-core/.adwf/scripts/validate_external_consumer_binding.py --consumer-root "$GITHUB_WORKSPACE/pncc" --framework-root "$GITHUB_WORKSPACE/adwf-core"
