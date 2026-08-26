@@ -1,0 +1,35 @@
+name: pipeline-state
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pipeline-state:
+    name: pipeline-state
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Validate durable state examples
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .pncc-dev/scripts/validate_state.py --validate-examples
+
+      - name: Run durable state adversarial tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s .pncc-dev/tests -p 'test_*.py' -v
