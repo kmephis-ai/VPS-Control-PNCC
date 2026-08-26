@@ -2,7 +2,7 @@
 
 Status: Wave 2 implementation contract.
 
-Tracking: #6. Completed foundation: #19 (`PIPE-WU-003`). Active regression unit: #21 (`PIPE-WU-004`).
+Tracking: #6. Completed units: #19 (`PIPE-WU-003`), #21 (`PIPE-WU-004`). Active regression unit: #23 (`PIPE-WU-005`).
 
 ## Purpose
 
@@ -35,37 +35,37 @@ Classification precedence is fail-closed:
 4. product invariant failure may become `PRODUCT_DEFECT` / `PRODUCT_ONLY` only when all upstream evidence is PASS, product execution is proven to have started, and the product invariant failure is explicit;
 5. contradictory, unknown or insufficient evidence -> `BLOCKED_UNCLASSIFIED` / `NONE`.
 
-`PRODUCT_ONLY` means the classifier found evidence compatible with product-scope mutation. It does **not** override Work Unit scope, owner/governance authority, runtime requirements, security policy, exact-SHA identity, or candidate promotion rules.
+`PRODUCT_ONLY` does not override Work Unit scope, owner/governance authority, runtime requirements, security policy, exact-SHA identity, or candidate promotion rules.
 
 ## PowerShell 5.1 collection contract
 
 PowerShell command/pipeline results do not have stable caller cardinality by default: zero results commonly become `$null`, one result commonly becomes a scalar, and multiple results become an array. Validator code that assumes a stable array can therefore fail differently for 0/1/N results, particularly under StrictMode.
 
-`.pncc-dev/quality/PNCC.PowerShellCollections.psm1` addresses this at engineering-control-plane boundaries with `ConvertTo-PnccCollectionView`.
+`.pncc-dev/quality/PNCC.PowerShellCollections.psm1` returns one stable collection-view object with explicit `Items:Object[]`, `Count:Int32`, `IsEmpty:Boolean` and `SchemaVersion` fields. The wrapper object prevents a returned raw array from being re-enumerated and collapsed at the caller boundary.
 
-The function returns one PSCustomObject containing:
+The Pester regressions cover null, explicit empty arrays, scalar, one-element and multi-item arrays, strings, PSCustomObject values and simulated `Where-Object` pipelines yielding 0/1/N results.
 
-- `Items` — an explicit `System.Object[]`;
-- `Count` — an explicit `Int32`;
-- `IsEmpty` — an explicit Boolean;
-- `SchemaVersion` — contract identity.
+The private historical Validation Lab function that exhibited a collection-cardinality defect is not present in the sanitized public product tree. The repository therefore records the generic failure class and reusable contract rather than fabricating a direct regression against unavailable private code.
 
-The wrapper object is intentional. Returning a raw array from a PowerShell function would itself be subject to pipeline enumeration and could recreate the same 0/1/N collapse at the caller boundary.
+## Tunnel and credential safety fixture regressions
 
-### Collection regressions
+`PIPE-WU-005` treats the public `legacy/v7-rc14.38-sanitized` snapshot as a **read-only regression fixture**, not as runtime-qualified product evidence.
 
-The Pester suite verifies under StrictMode and Windows PowerShell 5.1:
+The executable regression suite checks that the fixture's explicit tunnel contract continues to encode:
 
-- `$null` -> zero items;
-- explicit empty array -> zero items;
-- scalar -> exactly one item;
-- one-element array -> exactly one item without scalar collapse inside the view;
-- multi-item arrays preserve count and order;
-- strings remain one logical item rather than character enumeration;
-- PSCustomObject remains one logical item;
-- simulated `Where-Object` pipelines yielding 0, 1 and N items all produce stable `Count` and `Items` semantics.
+- `PRIMARY_AUTO` on `127.0.0.1:1081` with automatic start/recovery authority;
+- `RESERVE_MANUAL` on `127.0.0.1:1080` with `MANUAL_ONLY` lifecycle and every automatic reserve lifecycle action forbidden;
+- no automatic failover to reserve;
+- reserve adoption does not transfer automatic lifecycle authority;
+- missing portable host-key trust and registry conflicts fail closed;
+- unknown host-key acceptance and host-key verification disable remain forbidden;
+- credential at rest is DPAPI;
+- PuTTY password transport is `-pwfile`, while literal plaintext `-pw` fallback remains forbidden;
+- temporary credential material is local, creation-time ACL protected, inheritance-disabled and restricted to current user plus SYSTEM.
 
-The private historical Validation Lab function that exhibited a collection-cardinality defect is not present in the sanitized public product tree. This repository therefore records the generic failure class and reusable contract rather than fabricating a direct regression against unavailable private code.
+The suite also checks source ordering in the sanitized tunnel manager: trusted host-key setup must occur in the manual reserve start path before password decryption and launch-argument preparation, and the launch path must construct `-pwfile` rather than a literal `-pw` argument.
+
+These are engineering regression claims only. They do not prove that a real tunnel, host key, DPAPI store, process ACL or network identity behaves correctly on a physical Windows node.
 
 ## Execution-plane boundary
 
@@ -73,4 +73,4 @@ All tests in this layer run on GitHub-hosted infrastructure. The private Windows
 
 ## Next maturity steps
 
-After collection/StrictMode regressions are post-merge verified, continue Wave 2 with the next smallest historical contract domain. Prefer deterministic product-adjacent invariants that can be validated without physical network behavior, then introduce a separate DEEP CI layer before expanding into runtime-only scenarios.
+After tunnel/credential fixture regressions are post-merge verified, reassess the next smallest deterministic contract domain from fresh repository truth. Candidates include immutable rollback/source identity and a separate DEEP CI layer before any expansion into physical runtime-only behavior.
