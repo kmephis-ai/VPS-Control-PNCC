@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "role": "SESSION_CHECKPOINT",
+  "checkpoint_id": "checkpoint-example-001",
+  "work_unit_id": "PIPE-WU-001",
+  "recorded_subject_sha": "1111111111111111111111111111111111111111",
+  "branch": "agent/example",
+  "pr": 42,
+  "provider_snapshot": {
+    "observed_head_sha": "1111111111111111111111111111111111111111",
+    "pr_state": "OPEN",
+    "checks": {
+      "repo-integrity": "SUCCESS",
+      "pipeline-state": "SUCCESS"
+    },
+    "observed_at": "2026-08-26T00:00:00Z"
+  },
+  "runtime_status": "NOT_REQUIRED",
+  "blockers": [],
+  "evidence_refs": ["evidence-example-001"],
+  "next_natural_boundary": "WAIT_FOR_PROVIDER_STATE"
+}
