@@ -37,7 +37,8 @@ function Test-PnccSha256Inventory {
     $actualFileCount = 0
 
     try {
-        $rootFull = [IO.Path]::GetFullPath($FixtureRoot).TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
+        $trimChars = [char[]]@([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
+        $rootFull = [IO.Path]::GetFullPath($FixtureRoot).TrimEnd($trimChars)
         $manifestFull = [IO.Path]::GetFullPath($ManifestPath)
     }
     catch {
@@ -83,7 +84,7 @@ function Test-PnccSha256Inventory {
             $relative.Contains(':') -or
             $segments -contains '.' -or
             $segments -contains '..') {
-            [void]$errors.Add("UNSAFE_PATH:$lineNumber:$relative")
+            [void]$errors.Add("UNSAFE_PATH:${lineNumber}:$relative")
             continue
         }
 
@@ -91,12 +92,12 @@ function Test-PnccSha256Inventory {
             $candidateFull = [IO.Path]::GetFullPath((Join-Path $rootFull ($relative.Replace('/', [IO.Path]::DirectorySeparatorChar))))
         }
         catch {
-            [void]$errors.Add("UNSAFE_PATH:$lineNumber:$relative")
+            [void]$errors.Add("UNSAFE_PATH:${lineNumber}:$relative")
             continue
         }
 
         if (-not $candidateFull.StartsWith($rootPrefix, [StringComparison]::OrdinalIgnoreCase)) {
-            [void]$errors.Add("UNSAFE_PATH:$lineNumber:$relative")
+            [void]$errors.Add("UNSAFE_PATH:${lineNumber}:$relative")
             continue
         }
         if ($candidateFull.Equals($manifestFull, [StringComparison]::OrdinalIgnoreCase)) {
@@ -106,7 +107,7 @@ function Test-PnccSha256Inventory {
 
         $key = $relative.ToLowerInvariant()
         if ($entries.ContainsKey($key)) {
-            [void]$errors.Add("DUPLICATE_ENTRY:$lineNumber:$relative")
+            [void]$errors.Add("DUPLICATE_ENTRY:${lineNumber}:$relative")
             continue
         }
 
