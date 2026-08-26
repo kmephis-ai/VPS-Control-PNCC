@@ -1,8 +1,8 @@
 # PNCC Quality and Test Pyramid
 
-Status: Wave 2 implementation contract, foundation stage.
+Status: Wave 2 implementation contract.
 
-Tracking: #6, Work Unit #19 (`PIPE-WU-003`).
+Tracking: #6. Completed foundation: #19 (`PIPE-WU-003`). Active regression unit: #21 (`PIPE-WU-004`).
 
 ## Purpose
 
@@ -12,7 +12,7 @@ Wave 2 moves PNCC from static/public-safety checks toward executable behavioral 
 
 ## FAST quality baseline
 
-The first behavioral layer is `quality-fast` on GitHub-hosted `windows-latest` using **Windows PowerShell 5.1**.
+The behavioral FAST layer is `quality-fast` on GitHub-hosted `windows-latest` using **Windows PowerShell 5.1**.
 
 Dependencies are intentionally fail-closed and version-pinned to modules already present in the hosted runner image:
 
@@ -20,6 +20,8 @@ Dependencies are intentionally fail-closed and version-pinned to modules already
 - PSScriptAnalyzer `1.25.0`.
 
 The workflow does not install packages or float to a newer module version. If the runner image no longer provides the pinned version, the gate blocks until an explicit reviewed dependency update is made.
+
+`quality-fast` analyzes all `.pncc-dev/quality` modules for PSScriptAnalyzer Error/Warning findings and runs the complete `.pncc-dev/pester` suite with a monotonic test-count floor.
 
 ## Failure classification contract
 
@@ -35,27 +37,40 @@ Classification precedence is fail-closed:
 
 `PRODUCT_ONLY` means the classifier found evidence compatible with product-scope mutation. It does **not** override Work Unit scope, owner/governance authority, runtime requirements, security policy, exact-SHA identity, or candidate promotion rules.
 
-## Initial regression set
+## PowerShell 5.1 collection contract
 
-The initial Pester suite proves:
+PowerShell command/pipeline results do not have stable caller cardinality by default: zero results commonly become `$null`, one result commonly becomes a scalar, and multiple results become an array. Validator code that assumes a stable array can therefore fail differently for 0/1/N results, particularly under StrictMode.
 
-- validator defect precedence;
-- harness defect attribution;
-- environment/baseline attribution;
-- product-defect evidence threshold;
-- no product defect when product execution never started;
-- unknown validator state blocks downstream classification;
-- contradictory evidence blocks classification;
-- clean evidence produces `NO_DEFECT`;
-- unknown product execution/invariant states cannot become product defect;
-- extra or missing evidence fields are rejected rather than silently ignored.
+`.pncc-dev/quality/PNCC.PowerShellCollections.psm1` addresses this at engineering-control-plane boundaries with `ConvertTo-PnccCollectionView`.
 
-Historical product/runtime regressions are intentionally deferred to later Wave 2 Work Units so this foundation remains small and independently reviewable.
+The function returns one PSCustomObject containing:
+
+- `Items` — an explicit `System.Object[]`;
+- `Count` — an explicit `Int32`;
+- `IsEmpty` — an explicit Boolean;
+- `SchemaVersion` — contract identity.
+
+The wrapper object is intentional. Returning a raw array from a PowerShell function would itself be subject to pipeline enumeration and could recreate the same 0/1/N collapse at the caller boundary.
+
+### Collection regressions
+
+The Pester suite verifies under StrictMode and Windows PowerShell 5.1:
+
+- `$null` -> zero items;
+- explicit empty array -> zero items;
+- scalar -> exactly one item;
+- one-element array -> exactly one item without scalar collapse inside the view;
+- multi-item arrays preserve count and order;
+- strings remain one logical item rather than character enumeration;
+- PSCustomObject remains one logical item;
+- simulated `Where-Object` pipelines yielding 0, 1 and N items all produce stable `Count` and `Items` semantics.
+
+The private historical Validation Lab function that exhibited a collection-cardinality defect is not present in the sanitized public product tree. This repository therefore records the generic failure class and reusable contract rather than fabricating a direct regression against unavailable private code.
 
 ## Execution-plane boundary
 
-All tests in this foundation run on GitHub-hosted infrastructure. The private Windows runtime node is not a CI runner. Tests requiring real Proxifier, SSH tunnel, DPAPI, host-key, network exit identity or physical process lifecycle evidence remain runtime qualification work and cannot be inferred from this gate.
+All tests in this layer run on GitHub-hosted infrastructure. The private Windows runtime node is not a CI runner. Tests requiring real Proxifier, SSH tunnel, DPAPI, host-key, network exit identity or physical process lifecycle evidence remain runtime qualification work and cannot be inferred from this gate.
 
-## Next maturity step
+## Next maturity steps
 
-After this foundation is merged and post-merge verified, the next Wave 2 Work Unit should add historical contract regressions around the highest-risk previously observed failure classes, beginning with collection normalization / StrictMode / validator-vs-product attribution while preserving the no-product-mutation-without-`PRODUCT_DEFECT` rule.
+After collection/StrictMode regressions are post-merge verified, continue Wave 2 with the next smallest historical contract domain. Prefer deterministic product-adjacent invariants that can be validated without physical network behavior, then introduce a separate DEEP CI layer before expanding into runtime-only scenarios.
