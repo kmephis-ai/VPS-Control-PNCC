@@ -163,6 +163,12 @@ jobs:
                   "plaintext `-pw` is forbidden",
                   "Stable/DONE requires fresh trusted Windows runtime evidence",
               ],
+              ".pncc-dev/contracts/sanitized-fixture-provenance.json": [
+                  "2a6c0027a195e91640ec2a6e38220a9fac372368",
+                  "6d81137519a363ebf3d8503f33a344d8fdc75848d517cf732cb6d6d02394d727",
+                  "SANITIZED_NOT_BYTE_IDENTICAL_NOT_RUNTIME_QUALIFIED",
+                  "\"ManifestEntryCount\": 32",
+              ],
           }
           missing = []
           for name, needles in required.items():
