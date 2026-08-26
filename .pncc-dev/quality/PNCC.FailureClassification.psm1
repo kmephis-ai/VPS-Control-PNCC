@@ -11,7 +11,7 @@ $script:RequiredEvidenceKeys = @(
     'EvidenceCoherent'
 )
 
-function New-PnccClassificationResult {
+function ConvertTo-PnccClassificationResult {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
@@ -84,49 +84,49 @@ function Resolve-PnccFailureClassification {
     Test-PnccFailureEvidenceContract -EvidenceFacts $EvidenceFacts
 
     if (-not $EvidenceFacts.EvidenceCoherent) {
-        return New-PnccClassificationResult -Status 'BLOCKED_UNCLASSIFIED' -FailureClass $null -MutationAuthority 'NONE' -Reason 'EVIDENCE_CONTRADICTORY'
+        return ConvertTo-PnccClassificationResult -Status 'BLOCKED_UNCLASSIFIED' -FailureClass $null -MutationAuthority 'NONE' -Reason 'EVIDENCE_CONTRADICTORY'
     }
 
     if ($EvidenceFacts.ValidatorSelfCheck -eq 'UNKNOWN') {
-        return New-PnccClassificationResult -Status 'BLOCKED_UNCLASSIFIED' -FailureClass $null -MutationAuthority 'NONE' -Reason 'VALIDATOR_STATE_UNKNOWN'
+        return ConvertTo-PnccClassificationResult -Status 'BLOCKED_UNCLASSIFIED' -FailureClass $null -MutationAuthority 'NONE' -Reason 'VALIDATOR_STATE_UNKNOWN'
     }
     if ($EvidenceFacts.ValidatorSelfCheck -eq 'FAIL') {
-        return New-PnccClassificationResult -Status 'CLASSIFIED' -FailureClass 'VALIDATOR_DEFECT' -MutationAuthority 'VALIDATOR_ONLY' -Reason 'VALIDATOR_SELF_CHECK_FAILED'
+        return ConvertTo-PnccClassificationResult -Status 'CLASSIFIED' -FailureClass 'VALIDATOR_DEFECT' -MutationAuthority 'VALIDATOR_ONLY' -Reason 'VALIDATOR_SELF_CHECK_FAILED'
     }
 
     if ($EvidenceFacts.HarnessOrchestration -eq 'UNKNOWN') {
-        return New-PnccClassificationResult -Status 'BLOCKED_UNCLASSIFIED' -FailureClass $null -MutationAuthority 'NONE' -Reason 'HARNESS_STATE_UNKNOWN'
+        return ConvertTo-PnccClassificationResult -Status 'BLOCKED_UNCLASSIFIED' -FailureClass $null -MutationAuthority 'NONE' -Reason 'HARNESS_STATE_UNKNOWN'
     }
     if ($EvidenceFacts.HarnessOrchestration -eq 'FAIL') {
-        return New-PnccClassificationResult -Status 'CLASSIFIED' -FailureClass 'HARNESS_DEFECT' -MutationAuthority 'HARNESS_ONLY' -Reason 'HARNESS_ORCHESTRATION_FAILED'
+        return ConvertTo-PnccClassificationResult -Status 'CLASSIFIED' -FailureClass 'HARNESS_DEFECT' -MutationAuthority 'HARNESS_ONLY' -Reason 'HARNESS_ORCHESTRATION_FAILED'
     }
 
     if ($EvidenceFacts.EnvironmentBaseline -eq 'UNKNOWN') {
-        return New-PnccClassificationResult -Status 'BLOCKED_UNCLASSIFIED' -FailureClass $null -MutationAuthority 'NONE' -Reason 'ENVIRONMENT_STATE_UNKNOWN'
+        return ConvertTo-PnccClassificationResult -Status 'BLOCKED_UNCLASSIFIED' -FailureClass $null -MutationAuthority 'NONE' -Reason 'ENVIRONMENT_STATE_UNKNOWN'
     }
     if ($EvidenceFacts.EnvironmentBaseline -eq 'FAIL') {
-        return New-PnccClassificationResult -Status 'CLASSIFIED' -FailureClass 'ENVIRONMENT_OR_BASELINE_BLOCKER' -MutationAuthority 'ENVIRONMENT_OR_EVIDENCE_ONLY' -Reason 'ENVIRONMENT_BASELINE_FAILED'
+        return ConvertTo-PnccClassificationResult -Status 'CLASSIFIED' -FailureClass 'ENVIRONMENT_OR_BASELINE_BLOCKER' -MutationAuthority 'ENVIRONMENT_OR_EVIDENCE_ONLY' -Reason 'ENVIRONMENT_BASELINE_FAILED'
     }
 
     if ($null -eq $EvidenceFacts.ProductExecutionStarted) {
-        return New-PnccClassificationResult -Status 'BLOCKED_UNCLASSIFIED' -FailureClass $null -MutationAuthority 'NONE' -Reason 'PRODUCT_EXECUTION_STATE_UNKNOWN'
+        return ConvertTo-PnccClassificationResult -Status 'BLOCKED_UNCLASSIFIED' -FailureClass $null -MutationAuthority 'NONE' -Reason 'PRODUCT_EXECUTION_STATE_UNKNOWN'
     }
 
     if (-not $EvidenceFacts.ProductExecutionStarted) {
         if ($EvidenceFacts.ProductInvariant -eq 'FAIL') {
-            return New-PnccClassificationResult -Status 'BLOCKED_UNCLASSIFIED' -FailureClass $null -MutationAuthority 'NONE' -Reason 'PRODUCT_FAILURE_WITHOUT_PRODUCT_EXECUTION'
+            return ConvertTo-PnccClassificationResult -Status 'BLOCKED_UNCLASSIFIED' -FailureClass $null -MutationAuthority 'NONE' -Reason 'PRODUCT_FAILURE_WITHOUT_PRODUCT_EXECUTION'
         }
-        return New-PnccClassificationResult -Status 'NO_DEFECT' -FailureClass $null -MutationAuthority 'NONE' -Reason 'PRODUCT_NOT_EXECUTED'
+        return ConvertTo-PnccClassificationResult -Status 'NO_DEFECT' -FailureClass $null -MutationAuthority 'NONE' -Reason 'PRODUCT_NOT_EXECUTED'
     }
 
     if ($EvidenceFacts.ProductInvariant -eq 'UNKNOWN') {
-        return New-PnccClassificationResult -Status 'BLOCKED_UNCLASSIFIED' -FailureClass $null -MutationAuthority 'NONE' -Reason 'PRODUCT_INVARIANT_UNKNOWN'
+        return ConvertTo-PnccClassificationResult -Status 'BLOCKED_UNCLASSIFIED' -FailureClass $null -MutationAuthority 'NONE' -Reason 'PRODUCT_INVARIANT_UNKNOWN'
     }
     if ($EvidenceFacts.ProductInvariant -eq 'FAIL') {
-        return New-PnccClassificationResult -Status 'CLASSIFIED' -FailureClass 'PRODUCT_DEFECT' -MutationAuthority 'PRODUCT_ONLY' -Reason 'PRODUCT_INVARIANT_FAILED_AFTER_EXECUTION'
+        return ConvertTo-PnccClassificationResult -Status 'CLASSIFIED' -FailureClass 'PRODUCT_DEFECT' -MutationAuthority 'PRODUCT_ONLY' -Reason 'PRODUCT_INVARIANT_FAILED_AFTER_EXECUTION'
     }
 
-    return New-PnccClassificationResult -Status 'NO_DEFECT' -FailureClass $null -MutationAuthority 'NONE' -Reason 'NO_FAILURE_EVIDENCE'
+    return ConvertTo-PnccClassificationResult -Status 'NO_DEFECT' -FailureClass $null -MutationAuthority 'NONE' -Reason 'NO_FAILURE_EVIDENCE'
 }
 
 Export-ModuleMember -Function Resolve-PnccFailureClassification
