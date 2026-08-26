@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PNCC Evidence Index Contract v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "role", "entries"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "role": {"const": "EVIDENCE_INDEX"},
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["evidence_id", "work_unit_id", "subject_sha", "kind", "source_plane", "sha256", "uri", "supports_claims"],
+        "properties": {
+          "evidence_id": {"type": "string", "minLength": 1},
+          "work_unit_id": {"type": "string", "pattern": "^[A-Z][A-Z0-9_-]*-[0-9]+$"},
+          "subject_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+          "kind": {"type": "string", "minLength": 1},
+          "source_plane": {"enum": ["GITHUB_HOSTED", "PRIVATE_RUNTIME"]},
+          "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "uri": {"type": "string", "minLength": 1},
+          "supports_claims": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true}
+        }
+      }
+    }
+  }
+}
