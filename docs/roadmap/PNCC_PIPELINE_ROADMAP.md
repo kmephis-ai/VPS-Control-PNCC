@@ -6,9 +6,9 @@
 
 ## Operating rule
 
-This roadmap defines direction and exit criteria. It is not the runtime state of development and must not be treated as evidence of completion.
+This roadmap defines direction and exit criteria. It is not runtime evidence and must not be treated as proof of completion.
 
-Only the nearest executable AI-sized Work Unit should be materialized in detail. Do not pre-create a large backlog of speculative Issues. Actual GitHub/CI/runtime truth overrides stale roadmap state.
+Only the nearest executable AI-sized Work Unit should be materialized in detail. Actual GitHub/CI/runtime truth overrides stale roadmap state.
 
 ## Wave 0 — Public migration and governance baseline
 
@@ -18,21 +18,13 @@ Establish a secret-safe public engineering repository with explicit public/priva
 
 ### Existing evidence/state
 
-The repository already contains the public bootstrap, migration safety contract, sanitized RC14.38 migration snapshot, hosted `public-safety` CI and active `main` ruleset.
+The repository contains the public bootstrap, migration safety contract, sanitized RC14.38 migration snapshot, hosted `public-safety` CI and active main ruleset.
 
-### Exit criteria
-
-- public source boundary is enforced;
-- required check names exist and are protected by ruleset;
-- sanitized source import is established;
-- product/runtime truth separation is explicit;
-- remaining migration/provenance/licensing blockers are tracked rather than hidden.
+Residual provider-admin and migration/provenance/licensing items remain tracked separately and must not be hidden by later pipeline maturity claims.
 
 ### State
 
-`IN_PROGRESS / VERIFY_EXIT_CRITERIA`
-
-No claim is made here that all migration work is complete.
+`BASELINE_ESTABLISHED / RESIDUAL_ITEMS_TRACKED`
 
 ---
 
@@ -42,32 +34,30 @@ No claim is made here that all migration work is complete.
 
 Make PNCC development independently resumable across ChatGPT/Codex/agent sessions without reconstructing state from conversation history.
 
-### Deliverables
+### Delivered
 
 - Current Work Unit schema;
 - Session Checkpoint schema;
 - Runtime Ledger schema;
 - Evidence Index schema;
 - Writer Lease contract;
+- Provider Truth Snapshot contract;
 - stale-state/provider-truth reconciliation rules;
-- natural-boundary checkpoint/resume protocol.
+- provider-visible Work Unit marker parsing;
+- natural-boundary checkpoint/resume protocol;
+- executable `BLOCK` / `WAITING_PROVIDER_CHECKS` / `WAITING_RUNTIME` / `RESUME_ALLOWED` decision model.
 
-### Exit criteria
+### Evidence
 
-A fresh authorized AI session can, from repository/provider state and durable records:
+- #8 `PIPE-WU-001 — Durable Development State Foundation`;
+- #17 `PIPE-WU-002 — Writer Lease + Resume Decision`;
+- exact post-merge L2 baseline: `2014d84a621d19b9ea5fc82b4e254e238c735c2b`;
+- `repo-integrity`, `powershell-static`, `truth-contract`, `adwf-binding`, `pipeline-state` all SUCCESS on that exact SHA;
+- durable-state v2 tests: 23/23 PASS on the candidate that produced the L2 baseline.
 
-1. identify the active Work Unit;
-2. verify exact BASE/HEAD SHA, branch and PR;
-3. determine current CI/blocker/failure state;
-4. detect stale or contradictory checkpoint data;
-5. select the exact next permitted action or waiting condition;
-6. resume without requiring the previous chat transcript.
+### State
 
-### First Work Unit
-
-`PIPE-WU-001 — Durable Development State Foundation`
-
-This is the next intended implementation boundary after the target architecture is accepted.
+`COMPLETE / L2_DURABLE_STATE`
 
 ---
 
@@ -101,12 +91,25 @@ Move from mostly static/public-safety validation to executable behavioral qualit
 - Proxifier cleanup/resource leaks;
 - V6.3.1 rollback identity.
 
+### Active first Work Unit
+
+#19 — `PIPE-WU-003 — Pester Foundation + Failure Classification Contract`.
+
+Exact base: `2014d84a621d19b9ea5fc82b4e254e238c735c2b`.
+
+Scope is engineering control plane only. It introduces a Windows PowerShell 5.1 Pester FAST gate and fail-closed classification contract. It does not modify legacy/product/runtime source.
+
 ### Exit criteria
 
 - product, validator, harness and environment failures are distinguishable by evidence;
 - historical classes of validator/harness defects have dedicated regressions;
 - ordinary code changes receive fast feedback while deep gates remain deterministic;
-- `PRODUCT_DEFECT` is the only failure class that may authorize product mutation.
+- `PRODUCT_DEFECT` is the only failure class compatible with product-scope mutation;
+- unknown/ambiguous evidence retains mutation authority `NONE`.
+
+### State
+
+`ACTIVE / FOUNDATION_IN_PROGRESS`
 
 ---
 
@@ -217,17 +220,17 @@ Routine engineering can progress from intent to verified evidence and next Work 
 ```text
 L0 Chat-driven
  ↓
-L1 Governed GitHub            ← current estimated state
+L1 Governed GitHub
  ↓
-L2 Durable State              ← Wave 1
+L2 Durable State               ← current verified maturity
  ↓
-L3 Tested Engineering Pipeline← Wave 2
+L3 Tested Engineering Pipeline ← Wave 2 target
  ↓
-L4 Artifact + Runtime Truth   ← Waves 3–4
+L4 Artifact + Runtime Truth    ← Waves 3–4
  ↓
-L5 Autonomous Work Units      ← Wave 5
+L5 Autonomous Work Units       ← Wave 5
  ↓
-L6 Human-by-Exception         ← Wave 6 target
+L6 Human-by-Exception          ← Wave 6 target
 ```
 
 ## Roadmap guardrails
