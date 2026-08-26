@@ -42,6 +42,26 @@ Do not create a new RC merely because a test harness failed.
 
 One writer per overlapping conflict domain. Read-only discovery can run in parallel. Before runtime mutation, prove process ownership and a clean baseline. Do not trust stale PID files as the sole process authority; live process identity and machine-verifiable evidence are required.
 
+## Development pipeline authority
+
+PNCC development follows the durable AI-managed pipeline accepted by ADR-0002 and tracked by Issue #6 (`PIPE-001`).
+
+Authority references:
+
+1. Mandatory invariants: `AGENTS.md` and `SECURITY.md`.
+2. Accepted architectural decisions: `docs/adr/`.
+3. Target pipeline: `docs/architecture/PNCC_TARGET_DEVELOPMENT_PIPELINE.md`.
+4. Rolling-wave execution direction: `docs/roadmap/PNCC_PIPELINE_ROADMAP.md`.
+5. Actual GitHub/CI/runtime provider state overrides stale planning/checkpoint state, but never silently overrides mandatory invariants.
+
+Development must progress through bounded AI-sized Work Units. A mutating Work Unit must define exact base identity, allowed scope, forbidden scope, exit criteria and evidence requirements before product/runtime mutation.
+
+Session continuity must use durable machine-readable state plus fresh provider reconciliation. Conversation history alone is not authoritative development state.
+
+Do not claim `DONE`, promotion eligibility or runtime qualification from roadmap/checkpoint text. Machine-verifiable provider/runtime evidence is required according to the active Work Unit.
+
+Do not pre-expand the target roadmap into a large speculative Issue backlog. Materialize the nearest executable Work Unit and reassess at natural boundaries.
+
 ## Public CI
 
 - GitHub-hosted runners only.
