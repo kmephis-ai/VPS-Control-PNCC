@@ -2,7 +2,7 @@
 
 Status: Wave 2 implementation contract.
 
-Tracking: #6. Completed units: #19 (`PIPE-WU-003`), #21 (`PIPE-WU-004`). Active regression unit: #23 (`PIPE-WU-005`).
+Tracking: #6. Completed units: #19 (`PIPE-WU-003`), #21 (`PIPE-WU-004`), #23 (`PIPE-WU-005`). Active unit: #25 (`PIPE-WU-006`).
 
 ## Purpose
 
@@ -21,7 +21,42 @@ Dependencies are intentionally fail-closed and version-pinned to modules already
 
 The workflow does not install packages or float to a newer module version. If the runner image no longer provides the pinned version, the gate blocks until an explicit reviewed dependency update is made.
 
-`quality-fast` analyzes all `.pncc-dev/quality` modules for PSScriptAnalyzer Error/Warning findings and runs the complete `.pncc-dev/pester` suite with a monotonic test-count floor.
+`quality-fast` analyzes all `.pncc-dev/quality` modules for PSScriptAnalyzer Error/Warning findings and runs the complete `.pncc-dev/pester` suite with a monotonic floor of **35 tests**.
+
+FAST is for low-latency behavioral feedback. Tests requiring a complete fixture inventory/provenance walk belong in DEEP rather than being silently added to the FAST count.
+
+## DEEP quality baseline
+
+`PIPE-WU-006` introduces an isolated `quality-deep` workflow on GitHub-hosted Windows infrastructure. DEEP uses Windows PowerShell 5.1 and pinned Pester 5.9.0, but executes only `.pncc-dev/pester-deep` plus the explicit sanitized-fixture provenance verification.
+
+The DEEP layer is deterministic and secret-free. It does not execute a live SSH tunnel, Proxifier, DPAPI store, host-key store, VPS, Keenetic or owner Windows node.
+
+Concurrency is scoped per pull request/ref with `cancel-in-progress: true`, so stale DEEP executions for the same change do not accumulate authority or obscure the latest exact-head result.
+
+### Sanitized fixture provenance contract
+
+The machine-readable contract is `.pncc-dev/contracts/sanitized-fixture-provenance.json`.
+
+It distinguishes three identities that must never be conflated:
+
+1. public sanitized fixture Git tree: `2a6c0027a195e91640ec2a6e38220a9fac372368`;
+2. public sanitized per-file SHA-256 inventory: `legacy/v7-rc14.38-sanitized/SANITIZED-SHA256.txt`, expected entry count `32`;
+3. original private candidate reference: `v7.0.0-rc14.38`, ZIP SHA-256 `6d81137519a363ebf3d8503f33a344d8fdc75848d517cf732cb6d6d02394d727`.
+
+The identity semantic is explicitly `SANITIZED_NOT_BYTE_IDENTICAL_NOT_RUNTIME_QUALIFIED`.
+
+`.pncc-dev/quality/PNCC.SanitizedFixtureProvenance.psm1` verifies fail-closed that:
+
+- the fixture Git tree matches the pinned public tree identity;
+- the SHA-256 manifest has strict syntax and no duplicate/self/unsafe entries;
+- manifest paths are relative and cannot traverse outside the fixture root;
+- the manifest inventory exactly equals all fixture files except the manifest itself;
+- every listed working-tree file hashes to the published SHA-256 under the repository line-ending contract;
+- the sanitation record retains the original private-candidate reference and explicit non-runtime-qualified semantics.
+
+Synthetic DEEP regressions prove that hash mismatch, missing files, unlisted extra files, malformed lines, duplicate paths, traversal, absolute paths and manifest self-entry all fail closed.
+
+A passing DEEP fixture gate proves only that the public regression fixture is the exact public fixture described by its provenance contract. It does **not** prove that the private runtime candidate is byte-identical, deployable, Stable, or runtime-qualified.
 
 ## Failure classification contract
 
@@ -51,7 +86,7 @@ The private historical Validation Lab function that exhibited a collection-cardi
 
 `PIPE-WU-005` treats the public `legacy/v7-rc14.38-sanitized` snapshot as a **read-only regression fixture**, not as runtime-qualified product evidence.
 
-The executable regression suite checks that the fixture's explicit tunnel contract continues to encode:
+The executable FAST regression suite checks that the fixture continues to encode:
 
 - `PRIMARY_AUTO` on `127.0.0.1:1081` with automatic start/recovery authority;
 - `RESERVE_MANUAL` on `127.0.0.1:1080` with `MANUAL_ONLY` lifecycle and every automatic reserve lifecycle action forbidden;
@@ -60,17 +95,17 @@ The executable regression suite checks that the fixture's explicit tunnel contra
 - missing portable host-key trust and registry conflicts fail closed;
 - unknown host-key acceptance and host-key verification disable remain forbidden;
 - credential at rest is DPAPI;
-- PuTTY password transport is `-pwfile`, while literal plaintext `-pw` fallback remains forbidden;
+- PuTTY password transport is `-pwfile`, while plaintext password argument fallback remains forbidden;
 - temporary credential material is local, creation-time ACL protected, inheritance-disabled and restricted to current user plus SYSTEM.
 
-The suite also checks source ordering in the sanitized tunnel manager: trusted host-key setup must occur in the manual reserve start path before password decryption and launch-argument preparation, and the launch path must construct `-pwfile` rather than a literal `-pw` argument.
+The suite also checks source ordering in the sanitized tunnel manager: trusted host-key setup must occur in the manual reserve start path before password decryption and launch-argument preparation.
 
 These are engineering regression claims only. They do not prove that a real tunnel, host key, DPAPI store, process ACL or network identity behaves correctly on a physical Windows node.
 
 ## Execution-plane boundary
 
-All tests in this layer run on GitHub-hosted infrastructure. The private Windows runtime node is not a CI runner. Tests requiring real Proxifier, SSH tunnel, DPAPI, host-key, network exit identity or physical process lifecycle evidence remain runtime qualification work and cannot be inferred from this gate.
+FAST and DEEP both run on GitHub-hosted infrastructure. The private Windows runtime node is not a CI runner. Tests requiring real Proxifier, SSH tunnel, DPAPI, host-key, network exit identity or physical process lifecycle evidence remain runtime qualification work and cannot be inferred from either hosted quality layer.
 
 ## Next maturity steps
 
-After tunnel/credential fixture regressions are post-merge verified, reassess the next smallest deterministic contract domain from fresh repository truth. Candidates include immutable rollback/source identity and a separate DEEP CI layer before any expansion into physical runtime-only behavior.
+After `PIPE-WU-006` is protected-merge and post-merge verified, reassess whether Wave 2 has enough deterministic coverage to close the remaining process-ownership/dirty-baseline/watchdog/cleanup regression domains or whether the next smallest unit should prepare the Wave 3 candidate-manifest boundary. Provider and runtime truth decide; roadmap text alone does not.
