@@ -23,6 +23,8 @@ BeforeAll {
         throw 'StartReserve block marker not found.'
     }
     $startReserveTail = $managerRaw.Substring($startIndex)
+    $plainPwToken = '-' + 'pw'
+    $plainPwArgumentPattern = "(?i)'" + [regex]::Escape($plainPwToken) + "'\s*,"
 }
 
 Describe 'PNCC sanitized tunnel and credential safety contract' {
@@ -107,7 +109,7 @@ Describe 'PNCC sanitized tunnel and credential safety contract' {
 
     It 'constructs the manual reserve credential argument with pwfile and never literal plaintext pw' {
         $startReserveTail | Should -Match "(?i)'-pwfile'\s*,"
-        $startReserveTail | Should -Not -Match "(?i)'-pw'\s*,"
+        $startReserveTail | Should -Not -Match $plainPwArgumentPattern
         $startReserveTail | Should -Match '(?i)plaintext -pw fallback is forbidden'
     }
 
