@@ -1,0 +1,67 @@
+name: quality-fast
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  quality-fast:
+    name: quality-fast
+    runs-on: windows-latest
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Assert Windows PowerShell 5.1 and pinned quality modules
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($PSVersionTable.PSVersion.Major -ne 5 -or $PSVersionTable.PSVersion.Minor -ne 1) {
+            throw "Windows PowerShell 5.1 required; got $($PSVersionTable.PSVersion)"
+          }
+          Import-Module Pester -RequiredVersion 5.9.0 -Force -ErrorAction Stop
+          Import-Module PSScriptAnalyzer -RequiredVersion 1.25.0 -Force -ErrorAction Stop
+          $pesterVersion = (Get-Module Pester).Version.ToString()
+          $pssaVersion = (Get-Module PSScriptAnalyzer).Version.ToString()
+          if ($pesterVersion -ne '5.9.0') { throw "Unexpected Pester version: $pesterVersion" }
+          if ($pssaVersion -ne '1.25.0') { throw "Unexpected PSScriptAnalyzer version: $pssaVersion" }
+          Write-Host "POWERSHELL_VERSION=$($PSVersionTable.PSVersion)"
+          Write-Host "PESTER_VERSION=$pesterVersion"
+          Write-Host "PSSCRIPTANALYZER_VERSION=$pssaVersion"
+
+      - name: Analyze failure classifier
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Import-Module PSScriptAnalyzer -RequiredVersion 1.25.0 -Force -ErrorAction Stop
+          $modulePath = Join-Path $env:GITHUB_WORKSPACE '.pncc-dev\quality\PNCC.FailureClassification.psm1'
+          $findings = @(Invoke-ScriptAnalyzer -Path $modulePath -Severity @('Error', 'Warning'))
+          if ($findings.Count -gt 0) {
+            $findings | Format-Table RuleName, Severity, Line, Message -AutoSize | Out-String | Write-Host
+            throw "PSScriptAnalyzer failed with $($findings.Count) Error/Warning finding(s)."
+          }
+          Write-Host 'PSSCRIPTANALYZER_RESULT=PASS FINDINGS=0'
+
+      - name: Run Pester FAST suite
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Import-Module Pester -RequiredVersion 5.9.0 -Force -ErrorAction Stop
+          $testPath = Join-Path $env:GITHUB_WORKSPACE '.pncc-dev\pester'
+          $result = Invoke-Pester -Path $testPath -PassThru -Output Detailed
+          if ($result.FailedCount -gt 0) {
+            throw "Pester failures: $($result.FailedCount)"
+          }
+          if ($result.TotalCount -lt 13) {
+            throw "Pester test-count floor violated: expected >=13, got $($result.TotalCount)"
+          }
+          Write-Host "PESTER_RESULT=PASS TOTAL=$($result.TotalCount) PASSED=$($result.PassedCount) FAILED=$($result.FailedCount)"
