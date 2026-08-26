@@ -61,7 +61,7 @@ jobs:
           if ($result.FailedCount -gt 0) {
             throw "Pester failures: $($result.FailedCount)"
           }
-          if ($result.TotalCount -lt 23) {
-            throw "Pester test-count floor violated: expected >=23, got $($result.TotalCount)"
+          if ($result.TotalCount -lt 35) {
+            throw "Pester test-count floor violated: expected >=35, got $($result.TotalCount)"
           }
           Write-Host "PESTER_RESULT=PASS TOTAL=$($result.TotalCount) PASSED=$($result.PassedCount) FAILED=$($result.FailedCount)"
