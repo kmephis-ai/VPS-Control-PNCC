@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PNCC Runtime Ledger Contract v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "role", "entries"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "role": {"const": "RUNTIME_LEDGER"},
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["entry_id", "work_unit_id", "subject_sha", "status", "source_plane", "evidence_refs"],
+        "properties": {
+          "entry_id": {"type": "string", "minLength": 1},
+          "work_unit_id": {"type": "string", "pattern": "^[A-Z][A-Z0-9_-]*-[0-9]+$"},
+          "subject_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+          "status": {"enum": ["NOT_REQUIRED", "NOT_VERIFIED", "RUNTIME_VERIFIED"]},
+          "source_plane": {"enum": ["GITHUB_HOSTED", "PRIVATE_RUNTIME"]},
+          "evidence_refs": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true}
+        }
+      }
+    }
+  }
+}

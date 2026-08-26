@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PNCC Current Work Unit Contract v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "role", "work_unit_id", "goal", "base_sha", "subject_sha", "branch", "pr", "conflict_domain", "state", "scope", "forbidden_scope", "required_checks", "runtime_required", "failure_class", "blockers", "exit_criteria", "evidence_refs", "next_natural_boundary"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "role": {"const": "CURRENT_WORK_UNIT"},
+    "work_unit_id": {"type": "string", "pattern": "^[A-Z][A-Z0-9_-]*-[0-9]+$"},
+    "goal": {"type": "string", "minLength": 1},
+    "base_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "subject_sha": {"type": ["string", "null"], "pattern": "^[0-9a-f]{40}$"},
+    "branch": {"type": "string", "minLength": 1},
+    "pr": {"type": ["integer", "null"], "minimum": 1},
+    "conflict_domain": {"type": "string", "minLength": 1},
+    "state": {"enum": ["READY", "ACTIVE", "BLOCKED", "VERIFYING", "DONE", "SUPERSEDED"]},
+    "scope": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "forbidden_scope": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "required_checks": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "runtime_required": {"type": "boolean"},
+    "failure_class": {"type": ["string", "null"], "enum": [null, "VALIDATOR_DEFECT", "HARNESS_DEFECT", "ENVIRONMENT_OR_BASELINE_BLOCKER", "PRODUCT_DEFECT"]},
+    "blockers": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "exit_criteria": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "evidence_refs": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "next_natural_boundary": {"type": "string", "minLength": 1}
+  }
+}

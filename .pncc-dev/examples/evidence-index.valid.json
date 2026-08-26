@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "role": "EVIDENCE_INDEX",
+  "entries": [
+    {
+      "evidence_id": "evidence-example-001",
+      "work_unit_id": "PIPE-WU-001",
+      "subject_sha": "1111111111111111111111111111111111111111",
+      "kind": "CI_CHECK_SET",
+      "source_plane": "GITHUB_HOSTED",
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "uri": "github://example/checks/1",
+      "supports_claims": ["ENGINEERING_VERIFIED"]
+    },
+    {
+      "evidence_id": "evidence-runtime-001",
+      "work_unit_id": "RUNTIME-001",
+      "subject_sha": "2222222222222222222222222222222222222222",
+      "kind": "RUNTIME_GATE_BUNDLE",
+      "source_plane": "PRIVATE_RUNTIME",
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "uri": "private-evidence://runtime/1",
+      "supports_claims": ["RUNTIME_VERIFIED"]
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PNCC Session Checkpoint Contract v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "role", "checkpoint_id", "work_unit_id", "recorded_subject_sha", "branch", "pr", "provider_snapshot", "runtime_status", "blockers", "evidence_refs", "next_natural_boundary"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "role": {"const": "SESSION_CHECKPOINT"},
+    "checkpoint_id": {"type": "string", "minLength": 1},
+    "work_unit_id": {"type": "string", "pattern": "^[A-Z][A-Z0-9_-]*-[0-9]+$"},
+    "recorded_subject_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "branch": {"type": "string", "minLength": 1},
+    "pr": {"type": ["integer", "null"], "minimum": 1},
+    "provider_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["observed_head_sha", "pr_state", "checks", "observed_at"],
+      "properties": {
+        "observed_head_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "pr_state": {"enum": ["OPEN", "CLOSED", "MERGED", "NONE"]},
+        "checks": {"type": "object", "additionalProperties": {"enum": ["SUCCESS", "FAILURE", "PENDING", "MISSING"]}},
+        "observed_at": {"type": "string", "minLength": 1}
+      }
+    },
+    "runtime_status": {"enum": ["NOT_REQUIRED", "NOT_VERIFIED", "RUNTIME_VERIFIED"]},
+    "blockers": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "evidence_refs": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "next_natural_boundary": {"type": "string", "minLength": 1}
+  }
+}
