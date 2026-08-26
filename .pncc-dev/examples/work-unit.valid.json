@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "role": "CURRENT_WORK_UNIT",
+  "work_unit_id": "PIPE-WU-001",
+  "goal": "Durable Development State Foundation",
+  "base_sha": "951e9644e86ca8afc13d55ddf292838cde20f468",
+  "subject_sha": null,
+  "branch": "agent/PIPE-WU-001-durable-state-a1",
+  "pr": null,
+  "conflict_domain": "pipeline-durable-state",
+  "state": "READY",
+  "scope": ["state-contracts", "reconciliation-tests"],
+  "forbidden_scope": ["product-runtime", "runtime-lifecycle"],
+  "required_checks": ["repo-integrity", "powershell-static", "truth-contract", "adwf-binding", "pipeline-state"],
+  "runtime_required": false,
+  "failure_class": null,
+  "blockers": [],
+  "exit_criteria": ["provider checks pass", "stale state fails closed"],
+  "evidence_refs": [],
+  "next_natural_boundary": "CREATE_WRITER_BRANCH_FROM_RECONCILED_BASE"
+}
