@@ -106,7 +106,7 @@ Describe 'PNCC fail-closed failure classification' {
 
     It 'rejects evidence with unknown fields instead of ignoring them' {
         $evidence = New-TestEvidence
-        $evidence.Unexpected = 'value'
+        $evidence['Unexpected'] = 'value'
         { Resolve-PnccFailureClassification -EvidenceFacts $evidence } | Should -Throw '*FAILURE_EVIDENCE_CONTRACT_INVALID*'
     }
 
