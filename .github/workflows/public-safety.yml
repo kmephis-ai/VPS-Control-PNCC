@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout exact revision
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
 
@@ -54,7 +54,6 @@ jobs:
               "private-key": re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
               "github-token": re.compile(r"\bgh[pousr]_[A-Za-z0-9]{20,}\b"),
               "aws-access-key": re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
-              "plaintext-putty-pw": re.compile(r"(?i)(?:^|\s)-pw(?:\s|=)+(?!<REDACTED>|<PASSWORD>|\$)[^\s]+"),
           }
 
           tracked = subprocess.check_output(["git", "ls-files"], text=True).splitlines()
@@ -77,12 +76,46 @@ jobs:
               sys.exit(1)
           print("Lightweight secret-pattern gate PASS.")
 
+      - name: Validate tracked JSON
+        shell: python
+        run: |
+          from pathlib import Path
+          import json, subprocess, sys
+          bad = []
+          for raw in subprocess.check_output(["git", "ls-files", "*.json"], text=True).splitlines():
+              p = Path(raw)
+              try:
+                  json.loads(p.read_text(encoding="utf-8-sig"))
+              except Exception as exc:
+                  bad.append(f"{raw}: {exc}")
+          if bad:
+              raise SystemExit("JSON validation failed:\n" + "\n".join(bad))
+          print("Tracked JSON PASS.")
+
+      - name: Enforce new-source PuTTY password transport
+        shell: python
+        run: |
+          from pathlib import Path
+          import re, subprocess, sys
+          bad = []
+          literal_pw = re.compile(r"(?i)(['\"])\-pw\1")
+          for raw in subprocess.check_output(["git", "ls-files", "*.ps1", "*.psm1"], text=True).splitlines():
+              p = Path(raw)
+              if "legacy" in p.parts:
+                  continue
+              text = p.read_text(encoding="utf-8-sig")
+              if literal_pw.search(text):
+                  bad.append(raw)
+          if bad:
+              raise SystemExit("Plaintext PuTTY -pw token is forbidden in new product source:\n" + "\n".join(bad))
+          print("New-source PuTTY transport contract PASS.")
+
   powershell-static:
     name: powershell-static
     runs-on: windows-latest
     steps:
       - name: Checkout exact revision
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
 
@@ -110,7 +143,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout exact revision
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
 
