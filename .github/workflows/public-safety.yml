@@ -1,0 +1,141 @@
+name: public-safety
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  repo-integrity:
+    name: repo-integrity
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Reject private/runtime material
+        shell: python
+        run: |
+          from pathlib import Path
+          import subprocess, sys
+
+          tracked = subprocess.check_output(["git", "ls-files"], text=True).splitlines()
+          forbidden_suffixes = {".dpapi", ".ppk", ".pem", ".pfx", ".p12", ".kdbx", ".log", ".dmp", ".pwfile"}
+          forbidden_parts = {"PNCC-Data", "VPS-Control-Data", "secrets", "runtime", "telemetry", "support-bundles"}
+          forbidden_names = {"watchdog.pid", "watchdog-heartbeat.json", "routing-config.json", "active-vps.json", "VPS-Control-Data.location"}
+
+          bad = []
+          for raw in tracked:
+              p = Path(raw)
+              if p.suffix.lower() in forbidden_suffixes or p.name in forbidden_names or any(part in forbidden_parts for part in p.parts):
+                  bad.append(raw)
+
+          if bad:
+              print("Forbidden tracked public files:")
+              print("\n".join(f" - {x}" for x in bad))
+              sys.exit(1)
+          print(f"Tracked public tree boundary PASS ({len(tracked)} files).")
+
+      - name: Lightweight secret-pattern gate
+        shell: python
+        run: |
+          from pathlib import Path
+          import re, subprocess, sys
+
+          code_ext = {".ps1", ".psm1", ".psd1", ".json", ".yml", ".yaml", ".ini", ".conf", ".config"}
+          patterns = {
+              "private-key": re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
+              "github-token": re.compile(r"\bgh[pousr]_[A-Za-z0-9]{20,}\b"),
+              "aws-access-key": re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
+              "plaintext-putty-pw": re.compile(r"(?i)(?:^|\s)-pw(?:\s|=)+(?!<REDACTED>|<PASSWORD>|\$)[^\s]+"),
+          }
+
+          tracked = subprocess.check_output(["git", "ls-files"], text=True).splitlines()
+          hits = []
+          for raw in tracked:
+              p = Path(raw)
+              if p.suffix.lower() not in code_ext or not p.is_file():
+                  continue
+              try:
+                  text = p.read_text(encoding="utf-8-sig")
+              except UnicodeDecodeError:
+                  continue
+              for name, rx in patterns.items():
+                  if rx.search(text):
+                      hits.append(f"{raw}: {name}")
+
+          if hits:
+              print("Potential public secret/credential violations:")
+              print("\n".join(f" - {x}" for x in hits))
+              sys.exit(1)
+          print("Lightweight secret-pattern gate PASS.")
+
+  powershell-static:
+    name: powershell-static
+    runs-on: windows-latest
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Windows PowerShell 5.1 AST and encoding baseline
+        shell: powershell
+        run: |
+          if ($PSVersionTable.PSVersion.Major -ne 5 -or $PSVersionTable.PSVersion.Minor -ne 1) { throw "Windows PowerShell 5.1 required; got $($PSVersionTable.PSVersion)" }
+          $files = @(Get-ChildItem -LiteralPath $env:GITHUB_WORKSPACE -Recurse -File | Where-Object { $_.Extension -in @('.ps1','.psm1','.psd1') })
+          $failures = New-Object System.Collections.ArrayList
+          foreach ($file in $files) {
+            $tokens = $null; $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($file.FullName,[ref]$tokens,[ref]$errors)
+            foreach ($e in @($errors)) { [void]$failures.Add("AST $($file.FullName):$($e.Extent.StartLineNumber): $($e.Message)") }
+            if ($file.Extension -eq '.ps1') {
+              $bytes = [IO.File]::ReadAllBytes($file.FullName)
+              $hasBom = $bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF
+              if (-not $hasBom) { [void]$failures.Add("UTF8_BOM_REQUIRED: $($file.FullName)") }
+            }
+          }
+          if ($failures.Count -gt 0) { $failures | ForEach-Object { Write-Error $_ }; throw "PowerShell static gate failed: $($failures.Count) violation(s)." }
+          Write-Host "PowerShell static gate PASS: $($files.Count) file(s)."
+
+  truth-contract:
+    name: truth-contract
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Verify fixed migration contracts
+        shell: python
+        run: |
+          from pathlib import Path
+          required = {
+              "AGENTS.md": [
+                  "127.0.0.1:1081 = PRIMARY_AUTO",
+                  "127.0.0.1:1080 = RESERVE_MANUAL / MANUAL_ONLY",
+                  "385e5178f10e79b0b234376e6a6671b64ce523a3971b2b4341ec94ce1efee11e",
+                  "CI success into a claim of physical runtime success",
+              ],
+              "SECURITY.md": [
+                  "PuTTY `-pwfile`",
+                  "plaintext `-pw` is forbidden",
+                  "Stable/DONE requires fresh trusted Windows runtime evidence",
+              ],
+          }
+          missing = []
+          for name, needles in required.items():
+              text = Path(name).read_text(encoding="utf-8")
+              for needle in needles:
+                  if needle not in text:
+                      missing.append(f"{name}: {needle}")
+          if missing:
+              raise SystemExit("Missing fixed contract text:\n" + "\n".join(missing))
+          print("Fixed PNCC truth contract PASS.")

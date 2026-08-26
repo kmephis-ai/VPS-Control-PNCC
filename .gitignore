@@ -1,0 +1,63 @@
+# PNCC public repository boundary
+# Runtime / instance truth must never enter Git history.
+
+# Local instance data
+PNCC-Data/
+VPS-Control-Data/
+local-config/
+secrets/
+runtime/
+telemetry/
+support-bundles/
+backups/private/
+evidence/private/
+
+# Credentials / cryptographic material
+*.dpapi
+*.ppk
+*.key
+*.pem
+*.pfx
+*.p12
+*.kdbx
+*.cred
+*.credential
+*.secret
+*.secrets
+
+# Runtime logs and state
+*.log
+*.pid
+*.lock
+*.tmp
+*.bak
+*.dmp
+*.trace
+watchdog-heartbeat.json
+routing-config.json
+active-vps.json
+VPS-Control-Data.location
+
+# Generated/private transport state
+*.pwfile
+*.password
+*.token
+*.session
+
+# Local tooling / IDE
+.vscode/
+.idea/
+.vs/
+*.user
+*.suo
+
+# PowerShell / test output
+TestResults/
+coverage/
+artifacts/local/
+packages/local/
+
+# OS noise
+Thumbs.db
+Desktop.ini
+.DS_Store
