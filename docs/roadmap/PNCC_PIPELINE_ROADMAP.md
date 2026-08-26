@@ -91,25 +91,42 @@ Move from mostly static/public-safety validation to executable behavioral qualit
 - Proxifier cleanup/resource leaks;
 - V6.3.1 rollback identity.
 
-### Active first Work Unit
+### Completed Work Units
 
-#19 — `PIPE-WU-003 — Pester Foundation + Failure Classification Contract`.
+- #19 — `PIPE-WU-003`: Pester foundation + fail-closed failure classification; protected merge `43bad8547631651d9fb0581f6f57d1d88da3feae`.
+- #21 — `PIPE-WU-004`: PS5.1 StrictMode/collection normalization regressions; protected merge `b52be81e44ad8690c78ddb66cb58201442a3be0d`.
+- #23 — `PIPE-WU-005`: tunnel/credential safety fixture regressions; protected merge `8af94a0d6432331e693f188925264ef605885fb7`; FAST suite 35/35 PASS and post-merge six-context hosted certification.
 
-Exact base: `2014d84a621d19b9ea5fc82b4e254e238c735c2b`.
+### Active Work Unit
 
-Scope is engineering control plane only. It introduces a Windows PowerShell 5.1 Pester FAST gate and fail-closed classification contract. It does not modify legacy/product/runtime source.
+#25 — `PIPE-WU-006 — DEEP CI + Sanitized Fixture Provenance`.
+
+Exact base: `8af94a0d6432331e693f188925264ef605885fb7`.
+
+Scope is engineering control plane only. It introduces a separate deterministic DEEP hosted layer and exact public-fixture provenance verification using the sanitized Git tree identity plus complete per-file SHA-256 inventory. It does not mutate `legacy/`, product/runtime code, the private candidate, V6.3.1, or physical runtime state.
+
+### Current engineering evidence
+
+- FAST layer: Windows PowerShell 5.1, Pester 5.9.0, PSScriptAnalyzer 1.25.0;
+- FAST behavioral floor: 35 tests;
+- PSScriptAnalyzer Error/Warning findings: 0 across `.pncc-dev/quality` on the main that entered `PIPE-WU-006`;
+- exact sanitized public fixture Git tree: `2a6c0027a195e91640ec2a6e38220a9fac372368`;
+- sanitized SHA-256 manifest expected inventory: 32 files excluding the manifest itself;
+- sanitized identity remains explicitly non-runtime-qualified.
 
 ### Exit criteria
 
 - product, validator, harness and environment failures are distinguishable by evidence;
 - historical classes of validator/harness defects have dedicated regressions;
-- ordinary code changes receive fast feedback while deep gates remain deterministic;
+- ordinary code changes receive fast feedback while deep gates remain deterministic and separately attributable;
+- DEEP fixture/provenance failures cannot silently contaminate FAST or runtime truth;
+- safe concurrency semantics prevent stale DEEP executions from becoming authoritative;
 - `PRODUCT_DEFECT` is the only failure class compatible with product-scope mutation;
 - unknown/ambiguous evidence retains mutation authority `NONE`.
 
 ### State
 
-`ACTIVE / FOUNDATION_IN_PROGRESS`
+`ACTIVE / FAST_ESTABLISHED / DEEP_IN_PROGRESS`
 
 ---
 
