@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "role": "PROVIDER_TRUTH_SNAPSHOT",
+  "repository": "kmephis-ai/VPS-Control-PNCC",
+  "default_branch": "main",
+  "default_branch_head_sha": "2222222222222222222222222222222222222222",
+  "branch": "agent/example",
+  "branch_exists": true,
+  "branch_head_sha": "1111111111111111111111111111111111111111",
+  "pr": 42,
+  "pr_state": "OPEN",
+  "checks": {
+    "repo-integrity": "SUCCESS",
+    "pipeline-state": "SUCCESS"
+  },
+  "observed_at": "2030-01-01T00:10:00Z"
+}
