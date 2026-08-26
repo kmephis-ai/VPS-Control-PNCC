@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "role": "RUNTIME_LEDGER",
+  "entries": [
+    {
+      "entry_id": "runtime-example-001",
+      "work_unit_id": "PIPE-WU-001",
+      "subject_sha": "1111111111111111111111111111111111111111",
+      "status": "NOT_REQUIRED",
+      "source_plane": "GITHUB_HOSTED",
+      "evidence_refs": ["evidence-example-001"]
+    },
+    {
+      "entry_id": "runtime-example-002",
+      "work_unit_id": "RUNTIME-001",
+      "subject_sha": "2222222222222222222222222222222222222222",
+      "status": "RUNTIME_VERIFIED",
+      "source_plane": "PRIVATE_RUNTIME",
+      "evidence_refs": ["evidence-runtime-001"]
+    }
+  ]
+}
