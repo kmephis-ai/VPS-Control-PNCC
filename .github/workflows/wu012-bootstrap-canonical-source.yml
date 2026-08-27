@@ -63,11 +63,9 @@ jobs:
           git apply ../../.pncc-dev/bootstrap/VPS-Control-v7-keenetic.ps1.patch
           vps_sha="$(sha256sum VPS-Control-v7-vps-manager.ps1 | awk '{print $1}')"
           keenetic_sha="$(sha256sum VPS-Control-v7-keenetic.ps1 | awk '{print $1}')"
-          echo "VPS_HELPER_SHA256=$vps_sha"
-          echo "KEENETIC_HELPER_SHA256=$keenetic_sha"
           test "$vps_sha" = "bf9da87121e8a6134ae04b546b3a8f70be7ee5ce5ae7358063e8fa6d80d06a01"
           test "$keenetic_sha" = "ca51cdd1f5c7cb48cfe1f3561592f9fa4205ae2921cb36f924a5ffccd1d96ed3"
-          echo 'CREDENTIAL_REMEDIATION=PASS HELPERS=2'
+          echo "CREDENTIAL_REMEDIATION=PASS VPS_SHA=$vps_sha KEENETIC_SHA=$keenetic_sha"
 
       - name: Generate canonical package manifest and provenance
         shell: python
@@ -117,7 +115,7 @@ jobs:
           }
           out=Path('.pncc-dev/provenance/canonical-source-post-rc14.38.json'); out.parent.mkdir(parents=True,exist_ok=True)
           out.write_text(json.dumps(prov,indent=2,sort_keys=True,ensure_ascii=False)+'\n',encoding='utf-8',newline='\n')
-          print(f'PROVENANCE_GENERATED=PASS FILES={len(inventory)} VPS_SHA={by["VPS-Control-v7-vps-manager.ps1"]["sha256"]} KEENETIC_SHA={by["VPS-Control-v7-keenetic.ps1"]["sha256"]}')
+          print(f'PROVENANCE_GENERATED=PASS FILES={len(inventory)}')
 
       - name: Fail-closed source precommit verification
         shell: bash
@@ -152,39 +150,22 @@ jobs:
           print('CANONICAL_SOURCE_PRECOMMIT=PASS FILES=32 PRIVATE_FINDINGS=0 EXECUTABLE_PLAINTEXT_PW=0')
           PY
 
-      - name: Update public-safety gate and commit generated source
+      - name: Commit ordinary canonical-source files only
         shell: bash
         run: |
           set -euo pipefail
-          python - <<'PY'
-          from pathlib import Path
-          p=Path('.github/workflows/public-safety.yml')
-          text=p.read_text(encoding='utf-8')
-          start='      - name: Enforce new-source PuTTY password transport\n'
-          end='\n  powershell-static:\n'
-          if text.count(start)!=1 or text.count(end)!=1:
-              raise SystemExit('public-safety target step boundary is not unique')
-          a=text.index(start); b=text.index(end,a)
-          replacement='\n'.join([
-              '      - name: Enforce new-source PuTTY password transport',
-              '        shell: python',
-              '        run: |',
-              '          import subprocess',
-              '          subprocess.run(["python", ".pncc-dev/scripts/check_putty_password_transport.py", "--repository-root", "."], check=True)',
-              '          print("New-source PuTTY executable-argv transport contract PASS.")',
-              ''
-          ])
-          new_text=text[:a]+replacement+text[b:]
-          if new_text==text: raise SystemExit('public-safety replacement made no change')
-          p.write_text(new_text,encoding='utf-8',newline='\n')
-          print('PUBLIC_SAFETY_SCANNER_TRANSACTION=PASS')
-          PY
-          rm -rf .pncc-dev/bootstrap
-          rm -f .github/workflows/wu012-bootstrap-canonical-source.yml
-          git config user.name 'PNCC GitHub Bootstrap'
-          git config user.email 'pncc-bootstrap@users.noreply.github.com'
-          git add --all
+          git reset
+          git add src/windows-v7 .pncc-dev/provenance/canonical-source-post-rc14.38.json
+          changed="$(git diff --cached --name-only)"
+          test -n "$changed"
+          if echo "$changed" | grep -Ev '^(src/windows-v7/|\.pncc-dev/provenance/canonical-source-post-rc14\.38\.json$)' >/dev/null; then
+            echo "$changed"
+            echo 'BOOTSTRAP_SCOPE_VIOLATION=true'
+            exit 1
+          fi
           python .pncc-dev/scripts/check_putty_password_transport.py --repository-root .
           git diff --cached --check
-          git commit -m 'PIPE-WU-012: admit canonical post-RC14.38 source [wu012-bootstrap-complete]'
+          git config user.name 'PNCC GitHub Bootstrap'
+          git config user.email 'pncc-bootstrap@users.noreply.github.com'
+          git commit -m 'PIPE-WU-012: materialize canonical post-RC14.38 source [wu012-bootstrap-complete]'
           git push origin HEAD:agent/PIPE-WU-012-canonical-source-admission-a1
