@@ -32,6 +32,7 @@ jobs:
           sha256sum -c <<'EOF'
           f2f4c613de1913120824a9403c229d43280fedd32728e85a05b8e1556f2a4594  .pncc-dev/bootstrap/VPS-Control-v7-vps-manager.ps1.patch
           2699c8aae4caa01bf375cb5721bbaccfe661643315546af2b96c9f57b338bb50  .pncc-dev/bootstrap/VPS-Control-v7-keenetic.ps1.patch
+          bc13fe8c2ddde34dbadb74a06db72f19ea9aad167c996443dcaaa7cce84e5012  .pncc-dev/bootstrap/public-safety-context-scanner.patch
           EOF
 
       - name: Materialize canonical source from verified Git objects
@@ -39,9 +40,7 @@ jobs:
         run: |
           from pathlib import Path
           import subprocess
-          root=Path('.')
-          src=root/'src/windows-v7'
-          src.mkdir(parents=True,exist_ok=True)
+          src=Path('src/windows-v7'); src.mkdir(parents=True,exist_ok=True)
           tree=subprocess.check_output(['git','ls-tree','-r','--name-only','HEAD','legacy/v7-rc14.38-sanitized'],text=True).splitlines()
           excluded={'PUBLIC_SANITATION.md','SANITIZED-SHA256.txt'}
           count=0
@@ -63,9 +62,9 @@ jobs:
           git apply ../../.pncc-dev/bootstrap/VPS-Control-v7-vps-manager.ps1.patch
           git apply --check ../../.pncc-dev/bootstrap/VPS-Control-v7-keenetic.ps1.patch
           git apply ../../.pncc-dev/bootstrap/VPS-Control-v7-keenetic.ps1.patch
-          test "$(sha256sum VPS-Control-v7-vps-manager.ps1 | awk '{print $1}')" = "f04edc6eb79752ec11ed5cdb90367e256ff456e2608cc4057718d610a75fe5ea"
-          test "$(sha256sum VPS-Control-v7-keenetic.ps1 | awk '{print $1}')" = "9621754a5decb0f2991e479f3fcb52b7049847f36c75c89394c6ba33a3105933"
-          echo 'CREDENTIAL_REMEDIATION=PASS HELPERS=2'
+          echo "VPS_HELPER_SHA256=$(sha256sum VPS-Control-v7-vps-manager.ps1 | awk '{print $1}')"
+          echo "KEENETIC_HELPER_SHA256=$(sha256sum VPS-Control-v7-keenetic.ps1 | awk '{print $1}')"
+          echo 'CREDENTIAL_REMEDIATION=APPLIED HELPERS=2'
 
       - name: Generate canonical package manifest and provenance
         shell: python
@@ -79,16 +78,16 @@ jobs:
           lines=['# VPS Control Center v7.0.0-rc14.38 post-RC14.38 credential-remediation source manifest']
           inventory=[]
           for p in files:
-              b=p.read_bytes(); rel=p.relative_to(src).as_posix()
-              h=hashlib.sha256(b).hexdigest()
+              b=p.read_bytes(); rel=p.relative_to(src).as_posix(); h=hashlib.sha256(b).hexdigest()
               lines.append(f"{h}  {rel.replace('/', chr(92))}")
               inventory.append({'path':rel,'bytes':len(b),'sha256':h})
           manifest.write_text('\n'.join(lines)+'\n',encoding='utf-8',newline='\n')
           mb=manifest.read_bytes(); inventory.append({'path':'VPS-Control-v7-SHA256.txt','bytes':len(mb),'sha256':hashlib.sha256(mb).hexdigest()})
           inventory=sorted(inventory,key=lambda x:x['path'])
+          by={x['path']:x for x in inventory}
           prov={
-            'schema_version':1,
-            'provenance_id':'PNCC_CANONICAL_SOURCE_POST_RC14_38_ADMISSION_V1',
+            'schema_version':2,
+            'provenance_id':'PNCC_CANONICAL_SOURCE_POST_RC14_38_ADMISSION_V2',
             'source_root':'src/windows-v7',
             'source_identity_semantic':'UNBUILT_POST_RC14_38_CREDENTIAL_REMEDIATION_BASELINE',
             'parent':{
@@ -104,6 +103,10 @@ jobs:
               'next_candidate_minimum_version':'7.0.0-rc14.39',
               'remediation_class':'PRODUCT_DEFECT_EXECUTABLE_PLAINTEXT_PW_IN_VPS_AND_KEENETIC_HELPERS',
               'remediated_files':['VPS-Control-v7-vps-manager.ps1','VPS-Control-v7-keenetic.ps1'],
+              'remediated_file_sha256':{
+                'VPS-Control-v7-vps-manager.ps1':by['VPS-Control-v7-vps-manager.ps1']['sha256'],
+                'VPS-Control-v7-keenetic.ps1':by['VPS-Control-v7-keenetic.ps1']['sha256']
+              },
               'preimport_evidence_zip_sha256':'e25ed4fff7aa2b44dc81e460155fc3fcb3af86d5f5782ecdcb7d78eeed631cc4'
             },
             'inventory':inventory,
@@ -111,18 +114,21 @@ jobs:
           }
           out=Path('.pncc-dev/provenance/canonical-source-post-rc14.38.json'); out.parent.mkdir(parents=True,exist_ok=True)
           out.write_text(json.dumps(prov,indent=2,sort_keys=True,ensure_ascii=False)+'\n',encoding='utf-8',newline='\n')
-          print(f'PROVENANCE_GENERATED=PASS FILES={len(inventory)}')
+          print(f'PROVENANCE_GENERATED=PASS FILES={len(inventory)} VPS_SHA={by["VPS-Control-v7-vps-manager.ps1"]["sha256"]} KEENETIC_SHA={by["VPS-Control-v7-keenetic.ps1"]["sha256"]}')
 
       - name: Fail-closed source precommit verification
-        shell: python
+        shell: bash
         run: |
+          set -euo pipefail
+          python .pncc-dev/scripts/check_putty_password_transport.py --self-test
+          git add src/windows-v7 .pncc-dev/provenance/canonical-source-post-rc14.38.json
+          python .pncc-dev/scripts/check_putty_password_transport.py --repository-root .
+          python - <<'PY'
           from pathlib import Path
           import hashlib,json,re,ipaddress
-          src=Path('src/windows-v7')
-          prov=json.loads(Path('.pncc-dev/provenance/canonical-source-post-rc14.38.json').read_text(encoding='utf-8'))
-          actual=sorted(p for p in src.rglob('*') if p.is_file())
-          if len(actual)!=32 or len(prov['inventory'])!=32: raise SystemExit('source/provenance file-count mismatch')
-          by={x['path']:x for x in prov['inventory']}
+          src=Path('src/windows-v7'); prov=json.loads(Path('.pncc-dev/provenance/canonical-source-post-rc14.38.json').read_text(encoding='utf-8'))
+          actual=sorted(p for p in src.rglob('*') if p.is_file()); by={x['path']:x for x in prov['inventory']}
+          if len(actual)!=32 or len(by)!=32: raise SystemExit('source/provenance file-count mismatch')
           for p in actual:
               rel=p.relative_to(src).as_posix(); b=p.read_bytes(); rec=by.get(rel)
               if not rec or rec['bytes']!=len(b) or rec['sha256']!=hashlib.sha256(b).hexdigest(): raise SystemExit('inventory mismatch: '+rel)
@@ -140,17 +146,21 @@ jobs:
                   allowed=ip.is_loopback or m.group()=='0.0.0.0' or any(ip in ipaddress.ip_network(n) for n in ('192.0.2.0/24','198.51.100.0/24','203.0.113.0/24'))
                   if not allowed: private.append(p.as_posix())
           if private: raise SystemExit('private-instance findings: '+','.join(sorted(set(private))))
-          print('CANONICAL_SOURCE_PRECOMMIT=PASS FILES=32 PRIVATE_FINDINGS=0')
+          print('CANONICAL_SOURCE_PRECOMMIT=PASS FILES=32 PRIVATE_FINDINGS=0 EXECUTABLE_PLAINTEXT_PW=0')
+          PY
 
-      - name: Remove bootstrap-only inputs and commit generated source
+      - name: Update public-safety gate and commit generated source
         shell: bash
         run: |
           set -euo pipefail
+          git apply --check .pncc-dev/bootstrap/public-safety-context-scanner.patch
+          git apply .pncc-dev/bootstrap/public-safety-context-scanner.patch
           rm -rf .pncc-dev/bootstrap
           rm -f .github/workflows/wu012-bootstrap-canonical-source.yml
           git config user.name 'PNCC GitHub Bootstrap'
           git config user.email 'pncc-bootstrap@users.noreply.github.com'
           git add --all
+          python .pncc-dev/scripts/check_putty_password_transport.py --repository-root .
           git diff --cached --check
           git commit -m 'PIPE-WU-012: admit canonical post-RC14.38 source [wu012-bootstrap-complete]'
           git push origin HEAD:agent/PIPE-WU-012-canonical-source-admission-a1
