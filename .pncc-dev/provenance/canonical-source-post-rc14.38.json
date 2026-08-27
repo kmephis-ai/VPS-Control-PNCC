@@ -4,8 +4,8 @@
     "next_candidate_minimum_version": "7.0.0-rc14.39",
     "preimport_evidence_zip_sha256": "e25ed4fff7aa2b44dc81e460155fc3fcb3af86d5f5782ecdcb7d78eeed631cc4",
     "remediated_file_sha256": {
-      "VPS-Control-v7-keenetic.ps1": "ca51cdd1f5c7cb48cfe1f3561592f9fa4205ae2921cb36f924a5ffccd1d96ed3",
-      "VPS-Control-v7-vps-manager.ps1": "bf9da87121e8a6134ae04b546b3a8f70be7ee5ce5ae7358063e8fa6d80d06a01"
+      "VPS-Control-v7-keenetic.ps1": "9621754a5decb0f2991e479f3fcb52b7049847f36c75c89394c6ba33a3105933",
+      "VPS-Control-v7-vps-manager.ps1": "f04edc6eb79752ec11ed5cdb90367e256ff456e2608cc4057718d610a75fe5ea"
     },
     "remediated_files": [
       "VPS-Control-v7-vps-manager.ps1",
@@ -14,6 +14,7 @@
     "remediation_class": "PRODUCT_DEFECT_EXECUTABLE_PLAINTEXT_PW_IN_VPS_AND_KEENETIC_HELPERS",
     "requires_version_bump_before_build": true
   },
+  "hash_semantics": "CANONICAL_GIT_BLOB_BYTES",
   "inventory": [
     {
       "bytes": 5279,
@@ -36,9 +37,9 @@
       "sha256": "f00f24ff7de5dc633d2b83e732cf775d9a911009d49f062d3b0009b0d297aa33"
     },
     {
-      "bytes": 2974,
+      "bytes": 2980,
       "path": "VPS-Control-v7-SHA256.txt",
-      "sha256": "45682e3136a374cc73326fca213c4476824ff8f5ce66fa7186587ccff2390416"
+      "sha256": "51d8354d02b264e5ab0252e504c013f6ad5f781363841c75d67befee5549b36a"
     },
     {
       "bytes": 3219,
@@ -66,9 +67,9 @@
       "sha256": "accc535655dbb9d1c9f56c0c9c6ffe6d3ba6e1fdfdbc6aef4d43d251568ab576"
     },
     {
-      "bytes": 15716,
+      "bytes": 15412,
       "path": "VPS-Control-v7-keenetic.ps1",
-      "sha256": "ca51cdd1f5c7cb48cfe1f3561592f9fa4205ae2921cb36f924a5ffccd1d96ed3"
+      "sha256": "9621754a5decb0f2991e479f3fcb52b7049847f36c75c89394c6ba33a3105933"
     },
     {
       "bytes": 7870,
@@ -86,9 +87,9 @@
       "sha256": "406a81ae29896593bde0b050ab1c7b9c55ccc355b8342079236e4b26f3490961"
     },
     {
-      "bytes": 24959,
+      "bytes": 24619,
       "path": "VPS-Control-v7-vps-manager.ps1",
-      "sha256": "bf9da87121e8a6134ae04b546b3a8f70be7ee5ce5ae7358063e8fa6d80d06a01"
+      "sha256": "f04edc6eb79752ec11ed5cdb90367e256ff456e2608cc4057718d610a75fe5ea"
     },
     {
       "bytes": 753,
