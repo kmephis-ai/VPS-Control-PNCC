@@ -1,0 +1,168 @@
+--- a/VPS-Control-v7-vps-manager.ps1
++++ b/VPS-Control-v7-vps-manager.ps1
+@@ -75,11 +75,151 @@
+     try{if(Get-Process -Name 'pageant' -ErrorAction SilentlyContinue|Select-Object -First 1){return $true}}catch{}
+     return $false
+ }
+-function Get-Args($p,[switch]$Batch){ $a=@(); if($Batch){$a+='-batch'}; $pw=Get-Secret ([string]$p.Id); $mode=[string]$p.AuthMode; if($mode -eq 'SavedSession'){if(-not $p.SavedSession){Fail 'Не указана PuTTY session.'};$si=Get-SavedSessionInfo ([string]$p.SavedSession);if(-not $si){Fail "PuTTY session '$([string]$p.SavedSession)' не найдена."};if(-not $pw -and -not(Test-SavedSessionNonPasswordAuth $si)){Fail 'SavedSession не имеет сохранённого DPAPI-пароля и не подтверждён .ppk/Pageant. Введите пароль один раз во вкладке VPS-серверы и сохраните профиль.'};$a+=@('-load',[string]$p.SavedSession);if($p.User){$a+=@('-l',[string]$p.User)};if($pw){$a+=@('-pw',$pw)}}else{if(-not $p.Host){Fail 'Не указан Host/IP.'};$a+=@('-ssh','-P',([string][int]$p.SshPort),'-l',[string]$p.User);if($mode -eq 'Password'){if($pw){$a+=@('-pw',$pw)}else{Fail 'Для режима IP/пароль сохранённый пароль не найден.'}}elseif($mode -eq 'PrivateKey'){if(-not $p.KeyFile -or -not(Test-Path -LiteralPath ([string]$p.KeyFile))){Fail 'Файл приватного ключа .ppk не найден.'};$a+=@('-i',[string]$p.KeyFile)}elseif($mode -eq 'Pageant'){$a+='-agent'}else{Fail "Неизвестный AuthMode: $mode"};$a+=[string]$p.Host}; return ,$a }
++function Get-VpsPuttyVersion([string]$Executable){
++    $s=''
++    try{$s=[string](Get-Item -LiteralPath $Executable -ErrorAction Stop).VersionInfo.ProductVersion}catch{}
++    if(-not $s){try{$s=[string](Get-Item -LiteralPath $Executable -ErrorAction Stop).VersionInfo.FileVersion}catch{}}
++    $m=[regex]::Match($s,'(\d+)\.(\d+)')
++    if($m.Success){try{return [version]("$($m.Groups[1].Value).$($m.Groups[2].Value)")}catch{}}
++    return $null
++}
++function Test-VpsPwFileSupport([string]$Executable){
++    $v=Get-VpsPuttyVersion $Executable
++    return ($v -and ($v.Major -gt 0 -or $v.Minor -ge 77))
++}
++function New-VpsSecurePwFile([string]$Password){
++    if(-not $Password){return ''}
++    $dir=Join-Path $env:LOCALAPPDATA 'VPS-Control-v6.3\secure-credentials'
++    if(-not(Test-Path -LiteralPath $dir -PathType Container)){
++        New-Item -ItemType Directory -Path $dir -Force -ErrorAction Stop|Out-Null
++    }
++    Get-ChildItem -LiteralPath $dir -Filter '*.pwtmp' -File -ErrorAction SilentlyContinue|
++        Where-Object{$_.LastWriteTime -lt (Get-Date).AddMinutes(-5)}|
++        Remove-Item -Force -ErrorAction SilentlyContinue
++
++    $currentSid=[Security.Principal.WindowsIdentity]::GetCurrent().User
++    $systemSid=New-Object Security.Principal.SecurityIdentifier('S-1-5-18')
++    $fileSecurity=New-Object Security.AccessControl.FileSecurity
++    $fileSecurity.SetAccessRuleProtection($true,$false)
++    $currentRuleArgs=@(
++        $currentSid,
++        [Security.AccessControl.FileSystemRights]::FullControl,
++        [Security.AccessControl.AccessControlType]::Allow
++    )
++    $systemRuleArgs=@(
++        $systemSid,
++        [Security.AccessControl.FileSystemRights]::FullControl,
++        [Security.AccessControl.AccessControlType]::Allow
++    )
++    $currentRule=New-Object -TypeName Security.AccessControl.FileSystemAccessRule -ArgumentList $currentRuleArgs
++    $systemRule=New-Object -TypeName Security.AccessControl.FileSystemAccessRule -ArgumentList $systemRuleArgs
++    [void]$fileSecurity.AddAccessRule($currentRule)
++    [void]$fileSecurity.AddAccessRule($systemRule)
++
++    $path=Join-Path $dir (([guid]::NewGuid().ToString('N'))+'.pwtmp')
++    $stream=$null
++    try{
++        $streamArgs=@(
++            $path,
++            [IO.FileMode]::CreateNew,
++            [Security.AccessControl.FileSystemRights]::Modify,
++            [IO.FileShare]::Read,
++            4096,
++            [IO.FileOptions]::WriteThrough,
++            $fileSecurity
++        )
++        $stream=New-Object -TypeName IO.FileStream -ArgumentList $streamArgs
++        $bytes=[Text.Encoding]::UTF8.GetBytes($Password+"`r`n")
++        $stream.Write($bytes,0,$bytes.Length)
++        $stream.Flush()
++    }
++    catch{
++        if($stream){try{$stream.Dispose()}catch{};$stream=$null}
++        Remove-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
++        throw
++    }
++    finally{if($stream){try{$stream.Dispose()}catch{}}}
++
++    $acl=Get-Acl -LiteralPath $path -ErrorAction Stop
++    if(-not [bool]$acl.AreAccessRulesProtected){
++        Remove-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
++        throw 'Credential file ACL inheritance is not disabled.'
++    }
++    $allowedSids=@([string]$currentSid.Value,[string]$systemSid.Value)
++    $rules=@($acl.GetAccessRules($true,$true,[Security.Principal.SecurityIdentifier]))
++    $unexpected=@($rules|Where-Object{
++        [string]$_.AccessControlType -ne 'Allow' -or
++        $allowedSids -notcontains [string]$_.IdentityReference.Value
++    })
++    if($unexpected.Count -gt 0){
++        Remove-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
++        throw 'Credential file ACL contains unexpected access rules.'
++    }
++    foreach($requiredSid in $allowedSids){
++        if(@($rules|Where-Object{[string]$_.IdentityReference.Value -eq $requiredSid}).Count -eq 0){
++            Remove-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
++            throw "Credential file ACL is missing required SID $requiredSid."
++        }
++    }
++    return $path
++}
++function Remove-VpsSecurePwFile([string]$Path){
++    if(-not $Path){return}
++    try{if(Test-Path -LiteralPath $Path -PathType Leaf){Remove-Item -LiteralPath $Path -Force -ErrorAction Stop}}catch{}
++}
++function Get-Args($p,[string]$Plink,[switch]$Batch){
++    $a=New-Object Collections.ArrayList
++    if($Batch){[void]$a.Add('-batch')}
++    $pw=Get-Secret ([string]$p.Id)
++    $pwfile=''
++    $mode=[string]$p.AuthMode
++    try{
++        if($mode -eq 'SavedSession'){
++            if(-not $p.SavedSession){Fail 'Не указана PuTTY session.'}
++            $si=Get-SavedSessionInfo ([string]$p.SavedSession)
++            if(-not $si){Fail "PuTTY session '$([string]$p.SavedSession)' не найдена."}
++            if(-not $pw -and -not(Test-SavedSessionNonPasswordAuth $si)){
++                Fail 'SavedSession не имеет сохранённого DPAPI-пароля и не подтверждён .ppk/Pageant. Введите пароль один раз во вкладке VPS-серверы и сохраните профиль.'
++            }
++            [void]$a.Add('-load');[void]$a.Add([string]$p.SavedSession)
++            if($p.User){[void]$a.Add('-l');[void]$a.Add([string]$p.User)}
++            if($pw){
++                if(-not(Test-VpsPwFileSupport $Plink)){Fail 'Plink -pwfile requires version 0.77 or newer; plaintext -pw fallback is forbidden.'}
++                $pwfile=New-VpsSecurePwFile $pw
++                [void]$a.Add('-pwfile');[void]$a.Add($pwfile)
++            }
++        }
++        else{
++            if(-not $p.Host){Fail 'Не указан Host/IP.'}
++            foreach($item in @('-ssh','-P',([string][int]$p.SshPort),'-l',[string]$p.User)){[void]$a.Add($item)}
++            if($mode -eq 'Password'){
++                if(-not $pw){Fail 'Для режима IP/пароль сохранённый пароль не найден.'}
++                if(-not(Test-VpsPwFileSupport $Plink)){Fail 'Plink -pwfile requires version 0.77 or newer; plaintext -pw fallback is forbidden.'}
++                $pwfile=New-VpsSecurePwFile $pw
++                [void]$a.Add('-pwfile');[void]$a.Add($pwfile)
++            }
++            elseif($mode -eq 'PrivateKey'){
++                if(-not $p.KeyFile -or -not(Test-Path -LiteralPath ([string]$p.KeyFile))){Fail 'Файл приватного ключа .ppk не найден.'}
++                [void]$a.Add('-i');[void]$a.Add([string]$p.KeyFile)
++            }
++            elseif($mode -eq 'Pageant'){[void]$a.Add('-agent')}
++            else{Fail "Неизвестный AuthMode: $mode"}
++            [void]$a.Add([string]$p.Host)
++        }
++        return [pscustomobject]@{Args=@($a);PasswordFile=$pwfile}
++    }
++    catch{
++        if($pwfile){Remove-VpsSecurePwFile $pwfile;$pwfile=''}
++        throw
++    }
++    finally{$pw=$null}
++}
+ function Invoke-RemoteCapture($p,[string]$script){
+     $plink=Get-PlinkPath
+     if(-not $plink){Fail 'plink.exe не найден. Проверены локальный PuTTY PORTABLE рядом с V7, каталог PuTTY из V6.3.1, Program Files\PuTTY и PATH.'}
+-    $a=Get-Args $p -Batch
++    $argState=Get-Args $p -Plink $plink -Batch
++    $a=@($argState.Args)
++    $pwfile=[string]$argState.PasswordFile
+     $oldEap=$ErrorActionPreference
+     $out=@();$rc=1
+     try{
+@@ -88,7 +228,10 @@
+         $ErrorActionPreference='Continue'
+         $out=@($script | & $plink @a 'sh -s' 2>&1 | ForEach-Object { [string]$_ })
+         $rc=[int]$LASTEXITCODE
+-    }finally{$ErrorActionPreference=$oldEap}
++    }finally{
++        $ErrorActionPreference=$oldEap
++        if($pwfile){Remove-VpsSecurePwFile $pwfile}
++    }
+     if($rc -ne 0){
+         $out|ForEach-Object{Write-Output $_}
+         [Console]::Error.WriteLine("SSH/plink не установил соединение (код $rc). Это ошибка SSH-транспорта, а не успешная операция VPS. Проверьте доступность SSH/порт/host key; SOCKS через этот VPS не сможет работать, пока SSH не восстановлен.")
