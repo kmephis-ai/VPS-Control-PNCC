@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "work_unit_id": "PIPE-WU-017",
+  "state": "ACTIVE",
+  "next_boundary": "HOSTED_PROVIDER_ACQUISITION_PROOF"
+}
