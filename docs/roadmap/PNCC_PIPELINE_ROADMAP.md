@@ -52,7 +52,7 @@ Make PNCC development independently resumable across ChatGPT/Codex/agent session
 - #8 `PIPE-WU-001 — Durable Development State Foundation`;
 - #17 `PIPE-WU-002 — Writer Lease + Resume Decision`;
 - exact post-merge L2 baseline: `2014d84a621d19b9ea5fc82b4e254e238c735c2b`;
-- `repo-integrity`, `powershell-static`, `truth-contract`, `adwf-binding`, `pipeline-state` all SUCCESS on that exact SHA;
+- required durable-state hosted checks all SUCCESS on that exact boundary;
 - durable-state v2 tests: 23/23 PASS on the candidate that produced the L2 baseline.
 
 ### State
@@ -67,78 +67,55 @@ Make PNCC development independently resumable across ChatGPT/Codex/agent session
 
 Move from mostly static/public-safety validation to executable behavioral quality gates.
 
-### Deliverables
+### Delivered
 
 - Pester foundation and test conventions;
-- unit/contract/component layers;
-- deterministic mocks/fixtures for infrastructure boundaries;
-- historical regression suite;
-- executable failure classifier;
-- FAST CI / DEEP CI separation;
-- safe CI concurrency semantics.
-
-### Priority regression domains
-
-- StrictMode;
-- collection normalization (empty/single/multiple);
-- null handling;
-- process ownership/PID reuse;
-- dirty baseline;
-- watchdog lifecycle;
-- PuTTY host-key and `-pwfile` contracts;
-- DPAPI boundaries;
-- 1080/1081 lifecycle invariants;
-- Proxifier cleanup/resource leaks;
-- V6.3.1 rollback identity.
+- executable fail-closed failure classifier;
+- PowerShell 5.1 StrictMode and 0/1/N collection regressions;
+- tunnel and credential safety fixture regressions;
+- deterministic FAST CI;
+- isolated deterministic DEEP CI;
+- exact sanitized-fixture provenance with Git-object/EOL reconciliation semantics;
+- safe DEEP concurrency semantics;
+- process identity/PID-reuse/dirty-baseline evidence and cleanup-authority model.
 
 ### Completed Work Units
 
 - #19 — `PIPE-WU-003`: Pester foundation + fail-closed failure classification; protected merge `43bad8547631651d9fb0581f6f57d1d88da3feae`.
 - #21 — `PIPE-WU-004`: PS5.1 StrictMode/collection normalization regressions; protected merge `b52be81e44ad8690c78ddb66cb58201442a3be0d`.
-- #23 — `PIPE-WU-005`: tunnel/credential safety fixture regressions; protected merge `8af94a0d6432331e693f188925264ef605885fb7`; FAST suite 35/35 PASS and post-merge six-context hosted certification.
-- #25 — `PIPE-WU-006`: DEEP CI + sanitized fixture provenance; protected merge `327b46730b77a9742f1179b4c02e03238619e38f`; post-merge seven-context certification, PSScriptAnalyzer 0 findings, FAST 35/35, DEEP fixture 32/32 with exactly three explicit EOL reconciliations, DEEP Pester 12/12.
+- #23 — `PIPE-WU-005`: tunnel/credential safety regressions; protected merge `8af94a0d6432331e693f188925264ef605885fb7`.
+- #25 — `PIPE-WU-006`: DEEP CI + sanitized fixture provenance; protected merge `327b46730b77a9742f1179b4c02e03238619e38f`.
+- #27 — `PIPE-WU-007`: process identity + dirty baseline evidence; protected merge `90a95b812eecdd72a4f1bbd9b638414e90baf6df`.
 
-### Active Work Unit
+### Exit evidence
 
-#27 — `PIPE-WU-007 — Process Identity + Dirty Baseline Evidence`.
+Exact Wave 2 exit main `90a95b812eecdd72a4f1bbd9b638414e90baf6df`:
 
-Exact base: `327b46730b77a9742f1179b4c02e03238619e38f`.
+- `repo-integrity` SUCCESS;
+- `powershell-static` SUCCESS;
+- `truth-contract` SUCCESS;
+- `adwf-binding` SUCCESS;
+- `pipeline-state` SUCCESS;
+- `quality-fast` SUCCESS;
+- `quality-deep` SUCCESS;
+- PSScriptAnalyzer Error/Warning findings: 0 across `.pncc-dev/quality`;
+- FAST Pester: 54/54 PASS;
+- DEEP sanitized fixture provenance: exact tree `2a6c0027a195e91640ec2a6e38220a9fac372368`, 32/32/32 verified, exactly 3 explicit EOL reconciliations;
+- DEEP Pester: 12/12 PASS;
+- process identity rule: PID alone is never ownership proof;
+- dirty baselines containing foreign/ambiguous managed processes retain cleanup authority `NONE`.
 
-Scope remains engineering control plane only. The Work Unit introduces deterministic process identity and dirty-baseline evidence primitives for future harness/runtime-qualification consumers. It does not inspect or mutate real runtime processes, does not mutate `legacy/`, product/runtime code, an RC, V6.3.1 or physical runtime state.
+### Physical-runtime deferral
 
-Core rule: PID alone is never ownership proof. Exact ownership requires process ID, process name, normalized executable path, command-line identity markers and process creation identity. PID reuse, foreign identity, incomplete metadata or duplicate/contradictory observation fails closed with cleanup authority `NONE`.
+Watchdog stop/restart correctness, lingering Proxifier descendants and real process/resource leak behavior require observing physical Windows process state. Hosted synthetic tests cannot prove those effects without conflating simulation with runtime truth.
 
-### Current engineering evidence
+Those domains are therefore deliberately deferred to Wave 4 trusted Runtime Qualification, where the existing failure-classification and process-identity contracts can be consumed against real evidence.
 
-- FAST layer: Windows PowerShell 5.1, Pester 5.9.0, PSScriptAnalyzer 1.25.0;
-- FAST behavioral floor: 54 tests;
-- PSScriptAnalyzer Error/Warning findings: 0 across `.pncc-dev/quality` on the current WU-007 executable core;
-- process identity/baseline regressions: 19 synthetic tests included in the 54-test FAST suite;
-- process baseline states: `CLEAN`, `DIRTY_OWNED`, `DIRTY_FOREIGN`, `BLOCKED_AMBIGUOUS`;
-- foreign/ambiguous/mixed managed-process evidence retains cleanup authority `NONE`;
-- engineering process classifier performs no real process mutation and has no runtime mutation authority;
-- exact sanitized public fixture Git tree remains `2a6c0027a195e91640ec2a6e38220a9fac372368`;
-- sanitized fixture provenance remains 32/32 verified with exactly three explicit EOL reconciliations;
-- DEEP behavioral floor remains 12 tests and remains independently green;
-- sanitized identity remains explicitly non-runtime-qualified.
-
-### Exit criteria
-
-- product, validator, harness and environment failures are distinguishable by evidence;
-- historical classes of validator/harness defects have dedicated regressions;
-- ordinary code changes receive fast feedback while deep gates remain deterministic and separately attributable;
-- DEEP fixture/provenance failures cannot silently contaminate FAST or runtime truth;
-- safe concurrency semantics prevent stale DEEP executions from becoming authoritative;
-- process ownership cannot be inferred from PID alone;
-- dirty baselines containing foreign/ambiguous processes cannot authorize cleanup;
-- `PRODUCT_DEFECT` is the only failure class compatible with product-scope mutation;
-- unknown/ambiguous evidence retains mutation authority `NONE`.
+This deferral is not a PASS claim for physical lifecycle behavior.
 
 ### State
 
-`ACTIVE / FAST_ESTABLISHED / DEEP_ESTABLISHED / PROCESS_BASELINE_IN_PROGRESS`
-
-After protected merge and exact post-merge certification of #27, reassess whether the remaining watchdog-lifecycle / Proxifier-cleanup domains can be usefully strengthened on hosted infrastructure. If meaningful proof requires physical process/runtime behavior, the next smallest Work Unit should stop synthetic expansion and move to Wave 3 Candidate Artifact Truth.
+`COMPLETE / L3_TESTED_ENGINEERING_PIPELINE`
 
 ---
 
@@ -146,25 +123,73 @@ After protected merge and exact post-merge certification of #27, reassess whethe
 
 ### Goal
 
-Bind every runtime-qualified candidate to an exact source revision and deterministic artifact identity.
+Bind every future runtime-qualified candidate to an exact source revision and deterministic artifact identity before trusted runtime qualification begins.
 
-### Deliverables
+### Active Work Unit
 
-- candidate builder;
-- `candidate-manifest.json`;
-- SHA-256 manifest;
-- source commit identity;
-- engineering test summary;
+#29 — `PIPE-WU-008 — Candidate Artifact Truth Contract Foundation`.
+
+Exact base: `90a95b812eecdd72a4f1bbd9b638414e90baf6df`.
+
+The Work Unit establishes the manifest/schema/validator/evidence contract only. It does not build RC14.39, does not create a deployable artifact and does not treat the public sanitized RC14.38 fixture as a runtime candidate.
+
+### Contract foundation
+
+The v1 Candidate Artifact Truth contract binds:
+
+- exact source commit SHA;
+- artifact filename, SHA-256 and byte size;
+- build workflow/run/attempt/job/timestamp identity;
+- tool/runtime versions relevant to reproducibility;
+- required engineering checks, each terminal SUCCESS on the exact same source SHA;
+- provenance/source identity semantics;
+- runtime qualification state.
+
+Hosted contract output must remain:
+
+```text
+runtime.qualification_state = NOT_VERIFIED
+runtime.evidence_ref = null
+runtime.promotion_eligible = false
+provenance.runtime_authority = false
+```
+
+The synthetic example is explicitly `SYNTHETIC_TEST_FIXTURE`. A future `RUNTIME_CANDIDATE` must use exact source/build-output semantics; sanitized RC14.38 source identity/path is rejected.
+
+### Current core evidence
+
+On executable-core HEAD `f2ed1bd0179544cf4bffe92a002422406a7007a9`:
+
+- new `candidate-artifact-truth` hosted gate SUCCESS;
+- validator regression suite: 21/21 PASS;
+- synthetic manifest validates with `RUNTIME=NOT_VERIFIED` and `PROMOTION_ELIGIBLE=false`;
+- all pre-existing hosted quality/truth/pipeline contexts remain SUCCESS.
+
+This core evidence is not the final Work Unit evidence; protected merge and exact post-merge certification remain required.
+
+### Deliverables across Wave 3
+
+- candidate-manifest contract and semantic validator;
+- candidate builder once exact governed non-sanitized build inputs exist;
+- deterministic artifact SHA-256 and size capture;
+- exact source commit identity;
+- engineering test summary bound to source SHA;
 - provenance metadata;
-- retained GitHub Actions artifact;
-- artifact attestation/provenance where supported and appropriate.
+- retained GitHub Actions artifact where appropriate;
+- artifact attestation/provenance where supported and reviewed.
 
 ### Exit criteria
 
 - no runtime qualification can start without exact candidate SHA-256;
 - candidate references exact source SHA and CI/build identity;
 - rebuilt/replaced artifacts cannot silently inherit prior runtime evidence;
-- promotion decisions are traceable to exact candidate identity.
+- public sanitized fixture cannot be elevated into runtime candidate authority;
+- promotion decisions are traceable to exact candidate identity;
+- hosted candidate creation cannot claim runtime verification.
+
+### State
+
+`ACTIVE / CONTRACT_FOUNDATION`
 
 ---
 
@@ -179,6 +204,9 @@ Turn trusted Windows/network qualification into a deterministic, machine-verifia
 - typed Runtime Qualification request/result contract;
 - trusted Windows Runtime Test Agent integration;
 - environment/baseline preflight;
+- physical process ownership/dirty-baseline verification;
+- watchdog lifecycle verification;
+- Proxifier descendant/cleanup/resource-leak verification;
 - Windows qualification;
 - network qualification;
 - rollback qualification where required;
@@ -190,6 +218,7 @@ Turn trusted Windows/network qualification into a deterministic, machine-verifia
 - `ENGINEERING_VERIFIED` cannot be confused with `RUNTIME_VERIFIED`;
 - qualification always identifies exact candidate/source/runtime versions;
 - dirty baseline and environment blockers are classified without mutating product;
+- real lifecycle cleanup is authorized only for positively owned processes;
 - runtime result is machine-readable and resumable after interruption.
 
 ---
@@ -251,9 +280,9 @@ L0 Chat-driven
  ↓
 L1 Governed GitHub
  ↓
-L2 Durable State               ← current verified maturity
+L2 Durable State
  ↓
-L3 Tested Engineering Pipeline ← Wave 2 target
+L3 Tested Engineering Pipeline ← current verified maturity / Wave 2 complete
  ↓
 L4 Artifact + Runtime Truth    ← Waves 3–4
  ↓
@@ -266,7 +295,9 @@ L6 Human-by-Exception          ← Wave 6 target
 
 - Finish the current Work Unit before expanding scope.
 - Do not create a new product RC for validator/harness/environment failures.
-- Do not conflate roadmap completion with runtime evidence.
+- Do not manufacture runtime evidence from hosted simulation.
+- Do not build a runtime candidate from the sanitized RC14.38 fixture.
+- Do not conflate candidate identity with runtime qualification.
 - Do not weaken fixed tunnel, credential, host-key or V6.3.1 contracts.
 - Prefer generic capabilities upstream in ADWF and PNCC-specific policy/tests in this repository.
 - Reassess the roadmap at natural boundaries using fresh provider/runtime truth.
