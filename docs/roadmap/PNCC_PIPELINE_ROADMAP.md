@@ -96,24 +96,30 @@ Move from mostly static/public-safety validation to executable behavioral qualit
 - #19 — `PIPE-WU-003`: Pester foundation + fail-closed failure classification; protected merge `43bad8547631651d9fb0581f6f57d1d88da3feae`.
 - #21 — `PIPE-WU-004`: PS5.1 StrictMode/collection normalization regressions; protected merge `b52be81e44ad8690c78ddb66cb58201442a3be0d`.
 - #23 — `PIPE-WU-005`: tunnel/credential safety fixture regressions; protected merge `8af94a0d6432331e693f188925264ef605885fb7`; FAST suite 35/35 PASS and post-merge six-context hosted certification.
+- #25 — `PIPE-WU-006`: DEEP CI + sanitized fixture provenance; protected merge `327b46730b77a9742f1179b4c02e03238619e38f`; post-merge seven-context certification, PSScriptAnalyzer 0 findings, FAST 35/35, DEEP fixture 32/32 with exactly three explicit EOL reconciliations, DEEP Pester 12/12.
 
 ### Active Work Unit
 
-#25 — `PIPE-WU-006 — DEEP CI + Sanitized Fixture Provenance`.
+#27 — `PIPE-WU-007 — Process Identity + Dirty Baseline Evidence`.
 
-Exact base: `8af94a0d6432331e693f188925264ef605885fb7`.
+Exact base: `327b46730b77a9742f1179b4c02e03238619e38f`.
 
-Scope is engineering control plane only. It introduces a separate deterministic DEEP hosted layer and exact public-fixture provenance verification using the sanitized Git tree identity plus complete per-file sanitized-import SHA-256 inventory. It does not mutate `legacy/`, product/runtime code, the private candidate, V6.3.1, or physical runtime state.
+Scope remains engineering control plane only. The Work Unit introduces deterministic process identity and dirty-baseline evidence primitives for future harness/runtime-qualification consumers. It does not inspect or mutate real runtime processes, does not mutate `legacy/`, product/runtime code, an RC, V6.3.1 or physical runtime state.
+
+Core rule: PID alone is never ownership proof. Exact ownership requires process ID, process name, normalized executable path, command-line identity markers and process creation identity. PID reuse, foreign identity, incomplete metadata or duplicate/contradictory observation fails closed with cleanup authority `NONE`.
 
 ### Current engineering evidence
 
 - FAST layer: Windows PowerShell 5.1, Pester 5.9.0, PSScriptAnalyzer 1.25.0;
-- FAST behavioral floor: 35 tests;
-- PSScriptAnalyzer Error/Warning findings: 0 across `.pncc-dev/quality` on the main that entered `PIPE-WU-006`;
-- exact sanitized public fixture Git tree: `2a6c0027a195e91640ec2a6e38220a9fac372368`;
-- sanitized-import SHA-256 manifest expected inventory: 32 files excluding the manifest itself;
-- manifest semantics: exact canonical Git blobs plus explicit reversible EOL reconciliation for exactly `VPS-Control-v7.cmd`, `VPS-Control-v7-demo.cmd`, and `modules/V7-Storage.ps1`, reflecting `.gitattributes` normalization that predated snapshot import;
-- DEEP behavioral floor: 12 tests;
+- FAST behavioral floor: 54 tests;
+- PSScriptAnalyzer Error/Warning findings: 0 across `.pncc-dev/quality` on the current WU-007 executable core;
+- process identity/baseline regressions: 19 synthetic tests included in the 54-test FAST suite;
+- process baseline states: `CLEAN`, `DIRTY_OWNED`, `DIRTY_FOREIGN`, `BLOCKED_AMBIGUOUS`;
+- foreign/ambiguous/mixed managed-process evidence retains cleanup authority `NONE`;
+- engineering process classifier performs no real process mutation and has no runtime mutation authority;
+- exact sanitized public fixture Git tree remains `2a6c0027a195e91640ec2a6e38220a9fac372368`;
+- sanitized fixture provenance remains 32/32 verified with exactly three explicit EOL reconciliations;
+- DEEP behavioral floor remains 12 tests and remains independently green;
 - sanitized identity remains explicitly non-runtime-qualified.
 
 ### Exit criteria
@@ -123,12 +129,16 @@ Scope is engineering control plane only. It introduces a separate deterministic 
 - ordinary code changes receive fast feedback while deep gates remain deterministic and separately attributable;
 - DEEP fixture/provenance failures cannot silently contaminate FAST or runtime truth;
 - safe concurrency semantics prevent stale DEEP executions from becoming authoritative;
+- process ownership cannot be inferred from PID alone;
+- dirty baselines containing foreign/ambiguous processes cannot authorize cleanup;
 - `PRODUCT_DEFECT` is the only failure class compatible with product-scope mutation;
 - unknown/ambiguous evidence retains mutation authority `NONE`.
 
 ### State
 
-`ACTIVE / FAST_ESTABLISHED / DEEP_IN_PROGRESS`
+`ACTIVE / FAST_ESTABLISHED / DEEP_ESTABLISHED / PROCESS_BASELINE_IN_PROGRESS`
+
+After protected merge and exact post-merge certification of #27, reassess whether the remaining watchdog-lifecycle / Proxifier-cleanup domains can be usefully strengthened on hosted infrastructure. If meaningful proof requires physical process/runtime behavior, the next smallest Work Unit should stop synthetic expansion and move to Wave 3 Candidate Artifact Truth.
 
 ---
 
