@@ -6,9 +6,9 @@ param(
 Set-StrictMode -Version 2.0
 $ErrorActionPreference='Stop'
 
-function Get-Proc([int]$Pid){
-    if($Pid -le 0){return $null}
-    try{return Get-CimInstance Win32_Process -Filter ("ProcessId="+$Pid) -ErrorAction Stop}catch{return $null}
+function Get-Proc([int]$ProcessId){
+    if($ProcessId -le 0){return $null}
+    try{return Get-CimInstance Win32_Process -Filter ("ProcessId="+$ProcessId) -ErrorAction Stop}catch{return $null}
 }
 function Get-FileArg([string]$Cmd){
     if([string]::IsNullOrWhiteSpace($Cmd)){return ''}
@@ -26,8 +26,8 @@ function Get-RedactedFingerprint([string]$Cmd){
     $s=[regex]::Replace($s,'(?i)(token|secret|api[_-]?key)\s*[=:]\s*("[^"]*"|\S+)','$1=<redacted>')
     return ([Convert]::ToBase64String([Security.Cryptography.SHA256]::Create().ComputeHash([Text.Encoding]::UTF8.GetBytes($s))))
 }
-function Get-Ancestry([int]$Pid,[int]$Max=8){
-    $items=@();$seen=@{};$cur=$Pid
+function Get-Ancestry([int]$ProcessId,[int]$Max=8){
+    $items=@();$seen=@{};$cur=$ProcessId
     for($i=0;$i -lt $Max -and $cur -gt 0;$i++){
         if($seen.ContainsKey($cur)){break};$seen[$cur]=$true
         $p=Get-Proc $cur;if($null-eq$p){break}
