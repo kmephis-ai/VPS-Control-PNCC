@@ -1,0 +1,43 @@
+name: runtime-putty-085-admission
+on:
+  pull_request:
+    paths:
+      - 'tools/runtime-agent/Invoke-PnccPutty085AdmissionAndRecovery.ps1'
+      - 'tests/fixtures/runtime-putty-085-admission-plan.json'
+      - '.github/workflows/runtime-putty-085-admission.yml'
+permissions:
+  contents: read
+jobs:
+  contract:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: PowerShell 5.1 parse and BOM preflight
+        shell: powershell
+        run: |
+          $p='tools/runtime-agent/Invoke-PnccPutty085AdmissionAndRecovery.ps1'
+          $bytes=[IO.File]::ReadAllBytes($p)
+          if($bytes.Length -lt 3 -or $bytes[0] -ne 0xEF -or $bytes[1] -ne 0xBB -or $bytes[2] -ne 0xBF){throw 'UTF-8 BOM required'}
+          $tokens=$null;$errors=$null
+          [void][Management.Automation.Language.Parser]::ParseFile((Resolve-Path $p),[ref]$tokens,[ref]$errors)
+          if($errors.Count){$errors|ForEach-Object{Write-Error $_.Message};exit 1}
+          if($PSVersionTable.PSVersion.Major -ne 5){throw 'Windows PowerShell 5.1 required'}
+      - name: Assert transport admission safety contract
+        shell: powershell
+        run: |
+          $raw=Get-Content 'tools/runtime-agent/Invoke-PnccPutty085AdmissionAndRecovery.ps1' -Raw
+          foreach($needle in @('0.85','d01fdb5aae8f112526040a39b0bfb9e27d813003178645e65f8d1cfdb2a26c87','Get-AuthenticodeSignature','-pwfile','putty_portable.exe','RESERVE_1080_MUTATION=false','WU028')){if($raw -notlike "*$needle*"){throw "missing safety marker: $needle"}}
+          if($raw -match '(?i)Stop-Process\s+.*1080'){throw 'direct reserve stop forbidden'}
+          if($raw -match '(?i)-D\s+.*1080'){throw 'reserve tunnel launch forbidden'}
+          if($raw -match '(?i)\$Pid\b'){throw 'reserved PID variable collision forbidden'}
+      - name: Execute non-mutating Plan mode under Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $out=Join-Path $env:RUNNER_TEMP 'pncc-putty-085-plan'
+          $text=& powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File 'tools/runtime-agent/Invoke-PnccPutty085AdmissionAndRecovery.ps1' -Mode Plan -FixturePath 'tests/fixtures/runtime-putty-085-admission-plan.json' -OutputDirectory $out
+          if($LASTEXITCODE -ne 0){throw "plan failed rc=$LASTEXITCODE"}
+          if(($text -join "`n") -notmatch 'PNCC_PUTTY_085_ADMISSION=PLAN_PASS RUNTIME_MUTATION=false RESERVE_1080_MUTATION=false'){throw 'plan contract marker missing'}
+      - name: Assert repository remains clean
+        shell: powershell
+        run: |
+          if(git status --porcelain){git status --short;throw 'workflow mutated repository'}
