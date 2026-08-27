@@ -5,7 +5,12 @@
   "FixtureGitTreeSha": "2a6c0027a195e91640ec2a6e38220a9fac372368",
   "ManifestRelativePath": "SANITIZED-SHA256.txt",
   "ManifestEntryCount": 32,
-  "ManifestHashSemantics": "GIT_BLOB_BYTES_SHA256",
+  "ManifestHashSemantics": "SANITIZED_IMPORT_BYTES_WITH_EXPLICIT_GIT_EOL_RECONCILIATION",
+  "EolReconciledPaths": [
+    "VPS-Control-v7.cmd",
+    "VPS-Control-v7-demo.cmd",
+    "modules/V7-Storage.ps1"
+  ],
   "IdentitySemantics": "SANITIZED_NOT_BYTE_IDENTICAL_NOT_RUNTIME_QUALIFIED",
   "OriginalPrivateCandidate": {
     "Version": "v7.0.0-rc14.38",
@@ -18,6 +23,7 @@
     "RequireCompleteSha256Inventory": true,
     "AllowManifestSelfEntry": false,
     "AllowUnlistedFixtureFiles": false,
-    "AllowPathTraversal": false
+    "AllowPathTraversal": false,
+    "AllowImplicitEolReconciliation": false
   }
 }

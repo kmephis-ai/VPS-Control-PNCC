@@ -9,7 +9,9 @@ function ConvertTo-PnccProvenanceResult {
         [int]$EntryCount = 0,
         [int]$ActualFileCount = 0,
         [int]$VerifiedCount = 0,
-        [string]$FixtureGitTreeSha = ''
+        [string]$FixtureGitTreeSha = '',
+        [int]$EolReconciledCount = 0,
+        [object[]]$EolReconciledPaths = @()
     )
 
     return [pscustomobject][ordered]@{
@@ -20,6 +22,8 @@ function ConvertTo-PnccProvenanceResult {
         ActualFileCount = [int]$ActualFileCount
         VerifiedCount = [int]$VerifiedCount
         FixtureGitTreeSha = [string]$FixtureGitTreeSha
+        EolReconciledCount = [int]$EolReconciledCount
+        EolReconciledPaths = [object[]]@($EolReconciledPaths)
         Errors = [object[]]@($Errors)
     }
 }
@@ -84,6 +88,45 @@ function Get-PnccGitBlobBytes {
         $memory.Dispose()
         $process.Dispose()
     }
+}
+
+function Get-PnccEolVariantHashes {
+    [CmdletBinding()]
+    param([Parameter(Mandatory=$true)][byte[]]$Bytes)
+
+    $result = [ordered]@{
+        IsUtf8 = $false
+        LfHash = ''
+        CrlfHash = ''
+    }
+
+    $hasBom = $Bytes.Length -ge 3 -and $Bytes[0] -eq 0xEF -and $Bytes[1] -eq 0xBB -and $Bytes[2] -eq 0xBF
+    $offset = 0
+    if ($hasBom) { $offset = 3 }
+
+    try {
+        $utf8Strict = New-Object Text.UTF8Encoding($false, $true)
+        $text = $utf8Strict.GetString($Bytes, $offset, $Bytes.Length - $offset)
+    }
+    catch {
+        return [pscustomobject]$result
+    }
+
+    $lfText = ($text -replace "`r`n", "`n") -replace "`r", "`n"
+    $crlfText = $lfText -replace "`n", "`r`n"
+    $utf8NoBom = New-Object Text.UTF8Encoding($false)
+    [byte[]]$lfBytes = $utf8NoBom.GetBytes($lfText)
+    [byte[]]$crlfBytes = $utf8NoBom.GetBytes($crlfText)
+    if ($hasBom) {
+        [byte[]]$bom = @(0xEF, 0xBB, 0xBF)
+        [byte[]]$lfBytes = @($bom + $lfBytes)
+        [byte[]]$crlfBytes = @($bom + $crlfBytes)
+    }
+
+    $result.IsUtf8 = $true
+    $result.LfHash = Get-PnccSha256FromBytes -Bytes $lfBytes
+    $result.CrlfHash = Get-PnccSha256FromBytes -Bytes $crlfBytes
+    return [pscustomobject]$result
 }
 
 function Test-PnccSha256Inventory {
@@ -231,13 +274,35 @@ function Test-PnccGitSha256Inventory {
     param(
         [Parameter(Mandatory=$true)][string]$RepositoryRoot,
         [Parameter(Mandatory=$true)][string]$FixtureRelativePath,
-        [Parameter(Mandatory=$true)][string]$ManifestPath
+        [Parameter(Mandatory=$true)][string]$ManifestPath,
+        [string[]]$AllowedEolReconciledPaths = @()
     )
 
     $errors = New-Object System.Collections.ArrayList
     $entries = @{}
+    $allowedEol = @{}
+    $reconciled = @{}
     $verifiedCount = 0
     $actualFileCount = 0
+
+    foreach ($allowedPathRaw in @($AllowedEolReconciledPaths)) {
+        $allowedPath = ([string]$allowedPathRaw).Replace('\', '/').Trim()
+        $allowedSegments = @($allowedPath -split '/')
+        if ([string]::IsNullOrWhiteSpace($allowedPath) -or
+            [IO.Path]::IsPathRooted($allowedPath) -or
+            $allowedPath.Contains(':') -or
+            $allowedSegments -contains '.' -or
+            $allowedSegments -contains '..') {
+            [void]$errors.Add('EOL_ALLOWLIST_PATH_UNSAFE:' + $allowedPath)
+            continue
+        }
+        $allowedKey = $allowedPath.ToLowerInvariant()
+        if ($allowedEol.ContainsKey($allowedKey)) {
+            [void]$errors.Add('EOL_ALLOWLIST_DUPLICATE:' + $allowedPath)
+            continue
+        }
+        $allowedEol[$allowedKey] = $allowedPath
+    }
 
     try {
         $repoRoot = [IO.Path]::GetFullPath($RepositoryRoot)
@@ -359,12 +424,29 @@ function Test-PnccGitSha256Inventory {
             continue
         }
 
-        $actualHash = Get-PnccSha256FromBytes -Bytes ([byte[]]$blobResult.Bytes)
-        if ($actualHash -ne [string]$entry.ExpectedHash) {
-            [void]$errors.Add('HASH_MISMATCH:' + [string]$entry.RelativePath)
+        $blobBytes = [byte[]]$blobResult.Bytes
+        $actualHash = Get-PnccSha256FromBytes -Bytes $blobBytes
+        if ($actualHash -eq [string]$entry.ExpectedHash) {
+            $verifiedCount++
             continue
         }
-        $verifiedCount++
+
+        $eolVariants = Get-PnccEolVariantHashes -Bytes $blobBytes
+        $eolMatches = [bool]$eolVariants.IsUtf8 -and (
+            [string]$entry.ExpectedHash -eq [string]$eolVariants.LfHash -or
+            [string]$entry.ExpectedHash -eq [string]$eolVariants.CrlfHash
+        )
+        if ($eolMatches) {
+            if (-not $allowedEol.ContainsKey($key)) {
+                [void]$errors.Add('EOL_RECONCILIATION_NOT_ALLOWED:' + [string]$entry.RelativePath)
+                continue
+            }
+            $reconciled[$key] = [string]$entry.RelativePath
+            $verifiedCount++
+            continue
+        }
+
+        [void]$errors.Add('HASH_MISMATCH:' + [string]$entry.RelativePath)
     }
 
     foreach ($key in @($actualByKey.Keys)) {
@@ -373,11 +455,22 @@ function Test-PnccGitSha256Inventory {
         }
     }
 
-    if ($errors.Count -gt 0) {
-        return ConvertTo-PnccProvenanceResult -Status 'FAIL' -FailureClass 'FIXTURE_PROVENANCE_INVALID' -Errors @($errors) -EntryCount $entries.Count -ActualFileCount $actualFileCount -VerifiedCount $verifiedCount
+    foreach ($allowedKey in @($allowedEol.Keys)) {
+        if (-not $entries.ContainsKey($allowedKey)) {
+            [void]$errors.Add('EOL_ALLOWLIST_ENTRY_MISSING:' + [string]$allowedEol[$allowedKey])
+            continue
+        }
+        if (-not $reconciled.ContainsKey($allowedKey)) {
+            [void]$errors.Add('EOL_ALLOWLIST_NOT_RECONCILED:' + [string]$allowedEol[$allowedKey])
+        }
     }
 
-    return ConvertTo-PnccProvenanceResult -Status 'PASS' -FailureClass 'NONE' -Errors @() -EntryCount $entries.Count -ActualFileCount $actualFileCount -VerifiedCount $verifiedCount
+    $reconciledPaths = @($reconciled.Values | Sort-Object)
+    if ($errors.Count -gt 0) {
+        return ConvertTo-PnccProvenanceResult -Status 'FAIL' -FailureClass 'FIXTURE_PROVENANCE_INVALID' -Errors @($errors) -EntryCount $entries.Count -ActualFileCount $actualFileCount -VerifiedCount $verifiedCount -EolReconciledCount $reconciled.Count -EolReconciledPaths $reconciledPaths
+    }
+
+    return ConvertTo-PnccProvenanceResult -Status 'PASS' -FailureClass 'NONE' -Errors @() -EntryCount $entries.Count -ActualFileCount $actualFileCount -VerifiedCount $verifiedCount -EolReconciledCount $reconciled.Count -EolReconciledPaths $reconciledPaths
 }
 
 function Test-PnccSanitizedFixtureProvenance {
@@ -407,7 +500,7 @@ function Test-PnccSanitizedFixtureProvenance {
     if ([string]$contract.IdentitySemantics -ne 'SANITIZED_NOT_BYTE_IDENTICAL_NOT_RUNTIME_QUALIFIED') {
         [void]$errors.Add('IDENTITY_SEMANTICS_INVALID')
     }
-    if ([string]$contract.ManifestHashSemantics -ne 'GIT_BLOB_BYTES_SHA256') {
+    if ([string]$contract.ManifestHashSemantics -ne 'SANITIZED_IMPORT_BYTES_WITH_EXPLICIT_GIT_EOL_RECONCILIATION') {
         [void]$errors.Add('MANIFEST_HASH_SEMANTICS_INVALID')
     }
     if ([bool]$contract.OriginalPrivateCandidate.RuntimeQualificationAuthority) {
@@ -420,6 +513,7 @@ function Test-PnccSanitizedFixtureProvenance {
     $fixtureRelative = ([string]$contract.FixturePath).Replace('\', '/')
     $fixtureRoot = Join-Path $repoRoot ($fixtureRelative.Replace('/', [IO.Path]::DirectorySeparatorChar))
     $manifestPath = Join-Path $fixtureRoot ([string]$contract.ManifestRelativePath)
+    $allowedEolPaths = @($contract.EolReconciledPaths | ForEach-Object { [string]$_ })
 
     try {
         $gitOutput = @(& git -C $repoRoot rev-parse ('HEAD:' + $fixtureRelative) 2>&1)
@@ -438,7 +532,7 @@ function Test-PnccSanitizedFixtureProvenance {
         [void]$errors.Add('GIT_TREE_RESOLUTION_FAILED:' + $_.Exception.Message)
     }
 
-    $inventory = Test-PnccGitSha256Inventory -RepositoryRoot $repoRoot -FixtureRelativePath $fixtureRelative -ManifestPath $manifestPath
+    $inventory = Test-PnccGitSha256Inventory -RepositoryRoot $repoRoot -FixtureRelativePath $fixtureRelative -ManifestPath $manifestPath -AllowedEolReconciledPaths $allowedEolPaths
     if ([string]$inventory.Status -ne 'PASS') {
         foreach ($inventoryError in @($inventory.Errors)) {
             [void]$errors.Add('INVENTORY:' + [string]$inventoryError)
@@ -446,6 +540,9 @@ function Test-PnccSanitizedFixtureProvenance {
     }
     if ([int]$inventory.EntryCount -ne [int]$contract.ManifestEntryCount) {
         [void]$errors.Add('MANIFEST_ENTRY_COUNT_MISMATCH')
+    }
+    if ([int]$inventory.EolReconciledCount -ne $allowedEolPaths.Count) {
+        [void]$errors.Add('EOL_RECONCILIATION_COUNT_MISMATCH')
     }
 
     $sanitationPath = Join-Path $fixtureRoot 'PUBLIC_SANITATION.md'
@@ -468,11 +565,12 @@ function Test-PnccSanitizedFixtureProvenance {
         [void]$errors.Add('SANITATION_RECORD_READ_FAILED:' + $_.Exception.Message)
     }
 
+    $reconciledPaths = @($inventory.EolReconciledPaths)
     if ($errors.Count -gt 0) {
-        return ConvertTo-PnccProvenanceResult -Status 'FAIL' -FailureClass 'FIXTURE_PROVENANCE_INVALID' -Errors @($errors) -EntryCount ([int]$inventory.EntryCount) -ActualFileCount ([int]$inventory.ActualFileCount) -VerifiedCount ([int]$inventory.VerifiedCount) -FixtureGitTreeSha $treeSha
+        return ConvertTo-PnccProvenanceResult -Status 'FAIL' -FailureClass 'FIXTURE_PROVENANCE_INVALID' -Errors @($errors) -EntryCount ([int]$inventory.EntryCount) -ActualFileCount ([int]$inventory.ActualFileCount) -VerifiedCount ([int]$inventory.VerifiedCount) -FixtureGitTreeSha $treeSha -EolReconciledCount ([int]$inventory.EolReconciledCount) -EolReconciledPaths $reconciledPaths
     }
 
-    return ConvertTo-PnccProvenanceResult -Status 'PASS' -FailureClass 'NONE' -Errors @() -EntryCount ([int]$inventory.EntryCount) -ActualFileCount ([int]$inventory.ActualFileCount) -VerifiedCount ([int]$inventory.VerifiedCount) -FixtureGitTreeSha $treeSha
+    return ConvertTo-PnccProvenanceResult -Status 'PASS' -FailureClass 'NONE' -Errors @() -EntryCount ([int]$inventory.EntryCount) -ActualFileCount ([int]$inventory.ActualFileCount) -VerifiedCount ([int]$inventory.VerifiedCount) -FixtureGitTreeSha $treeSha -EolReconciledCount ([int]$inventory.EolReconciledCount) -EolReconciledPaths $reconciledPaths
 }
 
 Export-ModuleMember -Function Test-PnccSha256Inventory, Test-PnccGitSha256Inventory, Test-PnccSanitizedFixtureProvenance

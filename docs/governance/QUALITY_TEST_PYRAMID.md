@@ -40,12 +40,18 @@ The machine-readable contract is `.pncc-dev/contracts/sanitized-fixture-provenan
 It distinguishes three identities that must never be conflated:
 
 1. public sanitized fixture Git tree: `2a6c0027a195e91640ec2a6e38220a9fac372368`;
-2. public sanitized per-file SHA-256 inventory: `legacy/v7-rc14.38-sanitized/SANITIZED-SHA256.txt`, expected entry count `32`;
+2. sanitized-import per-file SHA-256 inventory: `legacy/v7-rc14.38-sanitized/SANITIZED-SHA256.txt`, expected entry count `32`;
 3. original private candidate reference: `v7.0.0-rc14.38`, ZIP SHA-256 `6d81137519a363ebf3d8503f33a344d8fdc75848d517cf732cb6d6d02394d727`.
 
 The identity semantic is explicitly `SANITIZED_NOT_BYTE_IDENTICAL_NOT_RUNTIME_QUALIFIED`.
 
-The SHA-256 manifest semantic is explicitly `GIT_BLOB_BYTES_SHA256`: hashes are computed from the canonical bytes stored in the pinned Git tree, before `.gitattributes` checkout transformations. Platform-specific LF/CRLF working-tree materialization therefore cannot change or redefine public fixture provenance.
+The manifest semantic is `SANITIZED_IMPORT_BYTES_WITH_EXPLICIT_GIT_EOL_RECONCILIATION`. The public bootstrap `.gitattributes` existed before the sanitized snapshot was imported, so Git clean filters normalized text EOL for canonical blobs. Provider evidence showed that 29 manifest entries equal the canonical Git blob bytes directly, while exactly three historical sanitized-import entries preserve CRLF bytes that Git normalized on import:
+
+- `VPS-Control-v7.cmd`;
+- `VPS-Control-v7-demo.cmd`;
+- `modules/V7-Storage.ps1`.
+
+Those three paths are the complete explicit EOL reconciliation allowlist in the machine contract. Reconciliation is limited to reversible UTF-8 LF/CRLF transformation derived from the exact pinned Git blob. A matching EOL variant for any unlisted path fails closed, and every listed exception must actually require reconciliation. This prevents platform checkout behavior from silently weakening the manifest while retaining the original sanitized-import SHA-256 evidence.
 
 `.pncc-dev/quality/PNCC.SanitizedFixtureProvenance.psm1` verifies fail-closed that:
 
@@ -53,10 +59,11 @@ The SHA-256 manifest semantic is explicitly `GIT_BLOB_BYTES_SHA256`: hashes are 
 - the SHA-256 manifest has strict syntax and no duplicate/self/unsafe entries;
 - manifest paths are relative and cannot traverse outside the fixture root;
 - the manifest inventory exactly equals all Git blobs in the fixture tree except the manifest itself;
-- every listed canonical Git blob hashes to the published SHA-256;
+- every manifest entry matches either the canonical Git blob bytes or its explicitly allowlisted reversible EOL reconstruction;
+- no implicit EOL reconciliation is accepted;
 - the sanitation record retains the original private-candidate reference and explicit non-runtime-qualified semantics.
 
-The DEEP Pester floor is **10 tests**. Synthetic regressions prove that hash mismatch, missing files, unlisted extra files, malformed lines, duplicate paths, traversal, absolute paths and manifest self-entry all fail closed. A dedicated Git-blob regression proves that a post-commit working-tree CRLF transformation cannot change a valid committed-blob provenance result.
+The DEEP Pester floor is **12 tests**. Synthetic regressions prove that hash mismatch, missing files, unlisted extra files, malformed lines, duplicate paths, traversal, absolute paths and manifest self-entry all fail closed. Git-object regressions prove that transformed working-tree bytes do not override committed provenance, an explicitly allowlisted pre-import CRLF entry can be reconstructed from the normalized blob, and the same EOL difference is blocked without the explicit allowlist.
 
 A passing DEEP fixture gate proves only that the public regression fixture is the exact public fixture described by its provenance contract. It does **not** prove that the private runtime candidate is byte-identical, deployable, Stable, or runtime-qualified.
 

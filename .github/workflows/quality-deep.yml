@@ -101,7 +101,8 @@ jobs:
 
             throw "Sanitized fixture provenance failed: $($result.FailureClass)"
           }
-          Write-Host "FIXTURE_PROVENANCE_RESULT=PASS TREE=$($result.FixtureGitTreeSha) ENTRIES=$($result.EntryCount) FILES=$($result.ActualFileCount) VERIFIED=$($result.VerifiedCount) HASH_SEMANTICS=GIT_BLOB_BYTES_SHA256"
+          $eolPaths = @($result.EolReconciledPaths) -join ','
+          Write-Host "FIXTURE_PROVENANCE_RESULT=PASS TREE=$($result.FixtureGitTreeSha) ENTRIES=$($result.EntryCount) FILES=$($result.ActualFileCount) VERIFIED=$($result.VerifiedCount) HASH_SEMANTICS=SANITIZED_IMPORT_BYTES_WITH_EXPLICIT_GIT_EOL_RECONCILIATION EOL_RECONCILED=$($result.EolReconciledCount) EOL_PATHS=$eolPaths"
 
       - name: Run Pester DEEP provenance regressions
         shell: powershell
@@ -113,7 +114,7 @@ jobs:
           if ($result.FailedCount -gt 0) {
             throw "DEEP Pester failures: $($result.FailedCount)"
           }
-          if ($result.TotalCount -lt 10) {
-            throw "DEEP Pester test-count floor violated: expected >=10, got $($result.TotalCount)"
+          if ($result.TotalCount -lt 12) {
+            throw "DEEP Pester test-count floor violated: expected >=12, got $($result.TotalCount)"
           }
           Write-Host "DEEP_PESTER_RESULT=PASS TOTAL=$($result.TotalCount) PASSED=$($result.PassedCount) FAILED=$($result.FailedCount)"

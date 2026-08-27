@@ -103,7 +103,7 @@ Move from mostly static/public-safety validation to executable behavioral qualit
 
 Exact base: `8af94a0d6432331e693f188925264ef605885fb7`.
 
-Scope is engineering control plane only. It introduces a separate deterministic DEEP hosted layer and exact public-fixture provenance verification using the sanitized Git tree identity plus complete per-file SHA-256 inventory. It does not mutate `legacy/`, product/runtime code, the private candidate, V6.3.1, or physical runtime state.
+Scope is engineering control plane only. It introduces a separate deterministic DEEP hosted layer and exact public-fixture provenance verification using the sanitized Git tree identity plus complete per-file sanitized-import SHA-256 inventory. It does not mutate `legacy/`, product/runtime code, the private candidate, V6.3.1, or physical runtime state.
 
 ### Current engineering evidence
 
@@ -111,8 +111,9 @@ Scope is engineering control plane only. It introduces a separate deterministic 
 - FAST behavioral floor: 35 tests;
 - PSScriptAnalyzer Error/Warning findings: 0 across `.pncc-dev/quality` on the main that entered `PIPE-WU-006`;
 - exact sanitized public fixture Git tree: `2a6c0027a195e91640ec2a6e38220a9fac372368`;
-- sanitized SHA-256 manifest expected inventory: 32 files excluding the manifest itself;
-- manifest hash semantic: `GIT_BLOB_BYTES_SHA256`, independent of platform-specific checkout LF/CRLF materialization;
+- sanitized-import SHA-256 manifest expected inventory: 32 files excluding the manifest itself;
+- manifest semantics: exact canonical Git blobs plus explicit reversible EOL reconciliation for exactly `VPS-Control-v7.cmd`, `VPS-Control-v7-demo.cmd`, and `modules/V7-Storage.ps1`, reflecting `.gitattributes` normalization that predated snapshot import;
+- DEEP behavioral floor: 12 tests;
 - sanitized identity remains explicitly non-runtime-qualified.
 
 ### Exit criteria

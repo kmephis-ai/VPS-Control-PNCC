@@ -29,6 +29,14 @@ BeforeAll {
         )
         [IO.File]::WriteAllText($Path, (($Lines -join "`n") + "`n"), (New-Object Text.UTF8Encoding($false)))
     }
+
+    function Initialize-DeepGitRepo {
+        param([Parameter(Mandatory=$true)][string]$Path)
+        & git -C $Path init | Out-Null
+        & git -C $Path config core.autocrlf false
+        & git -C $Path config user.email 'pncc-ci@example.invalid'
+        & git -C $Path config user.name 'PNCC CI'
+    }
 }
 
 Describe 'PNCC DEEP sanitized fixture SHA-256 inventory verifier' {
@@ -152,7 +160,7 @@ Describe 'PNCC DEEP sanitized fixture SHA-256 inventory verifier' {
     }
 }
 
-Describe 'PNCC DEEP Git-blob SHA-256 provenance semantics' {
+Describe 'PNCC DEEP Git-object and historical EOL provenance semantics' {
     It 'hashes committed Git blob bytes instead of a transformed working tree' {
         $repo = Join-Path $TestDrive 'git-blob-semantics'
         $fixture = Join-Path $repo 'fixture'
@@ -164,9 +172,7 @@ Describe 'PNCC DEEP Git-blob SHA-256 provenance semantics' {
         $manifest = Join-Path $fixture 'SANITIZED-SHA256.txt'
         Write-DeepManifest -Path $manifest -Lines @("$expectedHash  a.ps1")
 
-        & git -C $repo init | Out-Null
-        & git -C $repo config user.email 'pncc-ci@example.invalid'
-        & git -C $repo config user.name 'PNCC CI'
+        Initialize-DeepGitRepo -Path $repo
         & git -C $repo add --all
         & git -C $repo commit -m 'fixture' | Out-Null
         $LASTEXITCODE | Should -Be 0
@@ -179,6 +185,52 @@ Describe 'PNCC DEEP Git-blob SHA-256 provenance semantics' {
         $result.EntryCount | Should -Be 1
         $result.ActualFileCount | Should -Be 1
         $result.VerifiedCount | Should -Be 1
+        $result.EolReconciledCount | Should -Be 0
         @($result.Errors).Count | Should -Be 0
+    }
+
+    It 'reconciles an explicitly allowlisted pre-import CRLF manifest entry against a normalized Git blob' {
+        $repo = Join-Path $TestDrive 'git-eol-allowed'
+        $fixture = Join-Path $repo 'fixture'
+        [void](New-Item -ItemType Directory -Path $fixture -Force)
+        Write-DeepTestFile -Path (Join-Path $repo '.gitattributes') -Content '*.ps1 text eol=crlf'
+        $scriptPath = Join-Path $fixture 'a.ps1'
+        Write-DeepTestFile -Path $scriptPath -Content "alpha`r`nbeta`r`n"
+        $expectedHash = Get-DeepTestHash $scriptPath
+        $manifest = Join-Path $fixture 'SANITIZED-SHA256.txt'
+        Write-DeepManifest -Path $manifest -Lines @("$expectedHash  a.ps1")
+
+        Initialize-DeepGitRepo -Path $repo
+        & git -C $repo add --all
+        & git -C $repo commit -m 'fixture' | Out-Null
+        $LASTEXITCODE | Should -Be 0
+
+        $result = Test-PnccGitSha256Inventory -RepositoryRoot $repo -FixtureRelativePath 'fixture' -ManifestPath $manifest -AllowedEolReconciledPaths @('a.ps1')
+        $result.Status | Should -Be 'PASS'
+        $result.VerifiedCount | Should -Be 1
+        $result.EolReconciledCount | Should -Be 1
+        @($result.EolReconciledPaths) | Should -Contain 'a.ps1'
+        @($result.Errors).Count | Should -Be 0
+    }
+
+    It 'fails closed when pre-import EOL reconciliation is not explicitly allowlisted' {
+        $repo = Join-Path $TestDrive 'git-eol-blocked'
+        $fixture = Join-Path $repo 'fixture'
+        [void](New-Item -ItemType Directory -Path $fixture -Force)
+        Write-DeepTestFile -Path (Join-Path $repo '.gitattributes') -Content '*.ps1 text eol=crlf'
+        $scriptPath = Join-Path $fixture 'a.ps1'
+        Write-DeepTestFile -Path $scriptPath -Content "alpha`r`nbeta`r`n"
+        $expectedHash = Get-DeepTestHash $scriptPath
+        $manifest = Join-Path $fixture 'SANITIZED-SHA256.txt'
+        Write-DeepManifest -Path $manifest -Lines @("$expectedHash  a.ps1")
+
+        Initialize-DeepGitRepo -Path $repo
+        & git -C $repo add --all
+        & git -C $repo commit -m 'fixture' | Out-Null
+        $LASTEXITCODE | Should -Be 0
+
+        $result = Test-PnccGitSha256Inventory -RepositoryRoot $repo -FixtureRelativePath 'fixture' -ManifestPath $manifest
+        $result.Status | Should -Be 'FAIL'
+        @($result.Errors) -join '|' | Should -Match 'EOL_RECONCILIATION_NOT_ALLOWED:a.ps1'
     }
 }
