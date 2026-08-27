@@ -1,0 +1,42 @@
+name: runtime-baseline-provenance
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  runtime-baseline-provenance:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: PowerShell 5.1 parse and invariant checks
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $path='tools/runtime-agent/Get-PnccRuntimeBaselineProvenance.ps1'
+          $bytes=[IO.File]::ReadAllBytes((Resolve-Path $path))
+          if($bytes.Length -lt 3 -or $bytes[0]-ne 0xEF -or $bytes[1]-ne 0xBB -or $bytes[2]-ne 0xBF){throw 'UTF8 BOM required'}
+          $tokens=$null;$errors=$null
+          [Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path),[ref]$tokens,[ref]$errors)|Out-Null
+          if(@($errors).Count){$errors|ForEach-Object{Write-Error $_};exit 1}
+          $text=Get-Content $path -Raw
+          if($text -match '(?im)function\s+\w+\s*\(\s*\[int\]\$Pid\b'){throw 'automatic $PID collision forbidden'}
+          if($text -match '(?im)\[int\]\$Pid\b'){throw 'automatic $PID variable name forbidden in typed parameters'}
+          foreach($forbidden in @('Stop-Process','Start-Process','Restart-Service','Stop-Service','Start-Service','taskkill')){if($text -match [regex]::Escape($forbidden)){throw "mutation primitive forbidden: $forbidden"}}
+          if($text -notmatch 'runtime_mutation=\$false'){throw 'non-mutation evidence missing'}
+          'RUNTIME_BASELINE_PROVENANCE_CONTRACT=PASS PS51=true'
+
+      - name: Assert repository remains clean
+        shell: powershell
+        run: |
+          if(git status --porcelain --untracked-files=all){git status --short;throw 'repository became dirty'}
