@@ -1,3 +1,7 @@
+# VPS Control Center v7.0.0-rc14.39 — Candidate build-input activation
+
+RC14.39 is the first governed candidate-source identity derived from the admitted post-RC14.38 credential-remediation baseline. The deterministic build recipe is declared separately; no candidate artifact is created by this source-identity transaction. Runtime/promotion authority remains false.
+
 # VPS Control Center v7.0.0-rc14.38 — Windows PowerShell 5.1 encoding correction
 
 Fresh Windows Validation Lab v1.0.4 evidence for exact RC14.37 classified the candidate as `PRODUCT_DEFECT`: the three RC14.37-modified PowerShell files were written as UTF-8 without BOM. Windows PowerShell 5.1 therefore decoded their Cyrillic source text through the legacy ANSI path, producing parser failures before runtime.

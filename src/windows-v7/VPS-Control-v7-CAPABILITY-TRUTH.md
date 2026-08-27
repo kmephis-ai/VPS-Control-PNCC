@@ -1,3 +1,13 @@
+# VPS Control Center v7.0.0-rc14.39 — Capability Truth
+
+## RC14.39 delta — governed build-input activation
+
+- source version aligned after the proven VPS/Keenetic `-pwfile` remediation;
+- deterministic candidate-build inputs may be READY in hosted engineering truth;
+- no RC14.39 ZIP exists in this transaction;
+- runtime and promotion authority remain false;
+- `1081=PRIMARY_AUTO`, `1080=RESERVE_MANUAL/MANUAL_ONLY`, V6.3.1 immutable.
+
 # VPS Control Center v7.0.0-rc14.38 — Capability Truth
 
 ## RC14.38 delta — Windows PowerShell 5.1 script-encoding correction

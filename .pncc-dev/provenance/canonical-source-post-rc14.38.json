@@ -1,8 +1,15 @@
 {
+  "activation": {
+    "builder_introduced": false,
+    "candidate_artifact_generated": false,
+    "exact_base_main_sha": "188051183bbb1a3a12cdb3dfa1295616aeb18a60",
+    "work_unit": "PIPE-WU-013"
+  },
   "baseline": {
-    "embedded_version": "7.0.0-rc14.38",
-    "next_candidate_minimum_version": "7.0.0-rc14.39",
+    "activated_candidate_version": "7.0.0-rc14.39",
+    "embedded_version": "7.0.0-rc14.39",
     "preimport_evidence_zip_sha256": "e25ed4fff7aa2b44dc81e460155fc3fcb3af86d5f5782ecdcb7d78eeed631cc4",
+    "previous_runtime_version": "7.0.0-rc14.38",
     "remediated_file_sha256": {
       "VPS-Control-v7-keenetic.ps1": "9621754a5decb0f2991e479f3fcb52b7049847f36c75c89394c6ba33a3105933",
       "VPS-Control-v7-vps-manager.ps1": "f04edc6eb79752ec11ed5cdb90367e256ff456e2608cc4057718d610a75fe5ea"
@@ -12,7 +19,7 @@
       "VPS-Control-v7-keenetic.ps1"
     ],
     "remediation_class": "PRODUCT_DEFECT_EXECUTABLE_PLAINTEXT_PW_IN_VPS_AND_KEENETIC_HELPERS",
-    "requires_version_bump_before_build": true
+    "requires_version_bump_before_build": false
   },
   "hash_semantics": "CANONICAL_GIT_BLOB_BYTES",
   "inventory": [
@@ -22,29 +29,29 @@
       "sha256": "017bcebec7dfbec3e06070762b1550dfd0f919f6007bce9ba738caba7535976a"
     },
     {
-      "bytes": 33328,
+      "bytes": 33699,
       "path": "VPS-Control-v7-ARCHITECTURE.md",
-      "sha256": "b0afeb4f70b8220c0819beb4bd8b97640047974fa1bae657b62be015ac0a6e67"
+      "sha256": "8d2538538e611018e29903654cf209374a92a2fe4a9e5856e15c93f7f8f3a8e8"
     },
     {
-      "bytes": 26663,
+      "bytes": 27104,
       "path": "VPS-Control-v7-CAPABILITY-TRUTH.md",
-      "sha256": "ccb81221f5da05e6852244596122f97b946cda24670ffedde37aa9d0a83fc90c"
+      "sha256": "4e301acd74c8965edacf509ba043786d29439d5d844e8470eea52629cfda2605"
     },
     {
-      "bytes": 32792,
+      "bytes": 33045,
       "path": "VPS-Control-v7-README.txt",
-      "sha256": "f00f24ff7de5dc633d2b83e732cf775d9a911009d49f062d3b0009b0d297aa33"
+      "sha256": "5acf63c88f475b430ecd1cbc8e393496b388fe9768ea7ad74c7a75a782d15cf7"
     },
     {
-      "bytes": 2980,
+      "bytes": 2971,
       "path": "VPS-Control-v7-SHA256.txt",
-      "sha256": "51d8354d02b264e5ab0252e504c013f6ad5f781363841c75d67befee5549b36a"
+      "sha256": "49deed87b448ecb83923d90fd07a103e98360a1ab5bdb84e7fb80dedc0c56684"
     },
     {
       "bytes": 3219,
       "path": "VPS-Control-v7-TUNNEL-CONTRACT.json",
-      "sha256": "5b541a707da5ed08b41821948619426137f63891b8d84e9951b804816e68ec82"
+      "sha256": "38dd520f050751de3547f2d43c05168d34adbcf6b9a772d2f9fe456878f5ba8f"
     },
     {
       "bytes": 3482,
@@ -74,7 +81,7 @@
     {
       "bytes": 7870,
       "path": "VPS-Control-v7-launch.ps1",
-      "sha256": "fcfa5e6167853a1934fe318d27dcd3780d476547685524761f70bee5c3704041"
+      "sha256": "8f6b866d2bc2ed1bb3945a7fda04ec4c62b161a76cc14ff63b23a1fb05f972d2"
     },
     {
       "bytes": 24351,
@@ -99,7 +106,7 @@
     {
       "bytes": 267347,
       "path": "VPS-Control-v7.ps1",
-      "sha256": "7e74f0b8fa8c1e9ff5aa145ab41978c2a71a1d4ac23b259869b36582898cf958"
+      "sha256": "b6747efd7d3a58b7ead9f200ec7ef4b2ae2c2839c24afeb666eff016bb0270a7"
     },
     {
       "bytes": 2326,
@@ -184,15 +191,17 @@
     "private_rc14_38_bytes": 196487,
     "private_rc14_38_sha256": "6d81137519a363ebf3d8503f33a344d8fdc75848d517cf732cb6d6d02394d727"
   },
-  "provenance_id": "PNCC_CANONICAL_SOURCE_POST_RC14_38_ADMISSION_V2",
+  "provenance_id": "PNCC_CANONICAL_SOURCE_RC14_39_BUILD_INPUT_ACTIVATION_V1",
   "safety": {
+    "artifact_exists": false,
     "build_authority": false,
+    "build_input_ready": true,
     "ci_is_runtime_truth": false,
     "promotion_authority": false,
     "runtime_authority": false,
     "stable_done": false
   },
-  "schema_version": 2,
-  "source_identity_semantic": "UNBUILT_POST_RC14_38_CREDENTIAL_REMEDIATION_BASELINE",
+  "schema_version": 3,
+  "source_identity_semantic": "UNBUILT_RC14_39_CANDIDATE_SOURCE_BASELINE",
   "source_root": "src/windows-v7"
 }
