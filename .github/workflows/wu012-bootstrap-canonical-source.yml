@@ -32,7 +32,6 @@ jobs:
           sha256sum -c <<'EOF'
           f2f4c613de1913120824a9403c229d43280fedd32728e85a05b8e1556f2a4594  .pncc-dev/bootstrap/VPS-Control-v7-vps-manager.ps1.patch
           2699c8aae4caa01bf375cb5721bbaccfe661643315546af2b96c9f57b338bb50  .pncc-dev/bootstrap/VPS-Control-v7-keenetic.ps1.patch
-          bc13fe8c2ddde34dbadb74a06db72f19ea9aad167c996443dcaaa7cce84e5012  .pncc-dev/bootstrap/public-safety-context-scanner.patch
           EOF
 
       - name: Materialize canonical source from verified Git objects
@@ -62,9 +61,13 @@ jobs:
           git apply ../../.pncc-dev/bootstrap/VPS-Control-v7-vps-manager.ps1.patch
           git apply --check ../../.pncc-dev/bootstrap/VPS-Control-v7-keenetic.ps1.patch
           git apply ../../.pncc-dev/bootstrap/VPS-Control-v7-keenetic.ps1.patch
-          echo "VPS_HELPER_SHA256=$(sha256sum VPS-Control-v7-vps-manager.ps1 | awk '{print $1}')"
-          echo "KEENETIC_HELPER_SHA256=$(sha256sum VPS-Control-v7-keenetic.ps1 | awk '{print $1}')"
-          echo 'CREDENTIAL_REMEDIATION=APPLIED HELPERS=2'
+          vps_sha="$(sha256sum VPS-Control-v7-vps-manager.ps1 | awk '{print $1}')"
+          keenetic_sha="$(sha256sum VPS-Control-v7-keenetic.ps1 | awk '{print $1}')"
+          echo "VPS_HELPER_SHA256=$vps_sha"
+          echo "KEENETIC_HELPER_SHA256=$keenetic_sha"
+          test "$vps_sha" = "bf9da87121e8a6134ae04b546b3a8f70be7ee5ce5ae7358063e8fa6d80d06a01"
+          test "$keenetic_sha" = "ca51cdd1f5c7cb48cfe1f3561592f9fa4205ae2921cb36f924a5ffccd1d96ed3"
+          echo 'CREDENTIAL_REMEDIATION=PASS HELPERS=2'
 
       - name: Generate canonical package manifest and provenance
         shell: python
@@ -153,8 +156,29 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git apply --check .pncc-dev/bootstrap/public-safety-context-scanner.patch
-          git apply .pncc-dev/bootstrap/public-safety-context-scanner.patch
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('.github/workflows/public-safety.yml')
+          text=p.read_text(encoding='utf-8')
+          start='      - name: Enforce new-source PuTTY password transport\n'
+          end='\n  powershell-static:\n'
+          if text.count(start)!=1 or text.count(end)!=1:
+              raise SystemExit('public-safety target step boundary is not unique')
+          a=text.index(start); b=text.index(end,a)
+          replacement='\n'.join([
+              '      - name: Enforce new-source PuTTY password transport',
+              '        shell: python',
+              '        run: |',
+              '          import subprocess',
+              '          subprocess.run(["python", ".pncc-dev/scripts/check_putty_password_transport.py", "--repository-root", "."], check=True)',
+              '          print("New-source PuTTY executable-argv transport contract PASS.")',
+              ''
+          ])
+          new_text=text[:a]+replacement+text[b:]
+          if new_text==text: raise SystemExit('public-safety replacement made no change')
+          p.write_text(new_text,encoding='utf-8',newline='\n')
+          print('PUBLIC_SAFETY_SCANNER_TRANSACTION=PASS')
+          PY
           rm -rf .pncc-dev/bootstrap
           rm -f .github/workflows/wu012-bootstrap-canonical-source.yml
           git config user.name 'PNCC GitHub Bootstrap'
