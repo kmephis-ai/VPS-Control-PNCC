@@ -1,8 +1,8 @@
 # PNCC Candidate Artifact Truth
 
-Status: Wave 3 contract foundation.
+Status: Wave 3 active — contract foundation + build-input readiness boundary.
 
-Tracking: #6 (`PIPE-001`) and #29 (`PIPE-WU-008`).
+Tracking: #6 (`PIPE-001`), #29 (`PIPE-WU-008`) and #31 (`PIPE-WU-009`).
 
 ## Purpose
 
@@ -158,21 +158,40 @@ The schema and semantic validator reject:
 
 Unknown or contradictory evidence never becomes PASS by omission.
 
-## What this Work Unit does not do
+## WU-008 result
 
-`PIPE-WU-008` does not:
+`PIPE-WU-008` established the contract foundation and was protected-squash merged as main `a39369f005086c5ef209c392032a435096265542` with fresh post-merge hosted verification.
 
-- create RC14.39;
-- build a deployable PNCC ZIP;
-- mutate product or `legacy/` source;
-- deploy to Windows/Keenetic/VPS;
-- execute a runtime gate;
-- produce Stable/DONE product evidence;
-- attach owner infrastructure as a GitHub runner;
-- weaken rulesets or bypass review/checks.
+It did not create RC14.39, build a deployable PNCC ZIP, mutate product/legacy source or claim runtime qualification.
+
+## Build-input readiness boundary
+
+Source-truth discovery after WU-008 proved that the public repository still has no governed non-legacy product source declaration and no admitted candidate build recipe. Product-like historical source remains only under `legacy/v7-rc14.38-sanitized/`, which is migration/regression material and is forbidden as candidate source authority.
+
+`PIPE-WU-009` therefore introduces a separate fail-closed readiness layer before any future builder can run:
+
+- policy: `.pncc-dev/contracts/candidate-build-input-policy.json`;
+- evaluator: `.pncc-dev/scripts/evaluate_candidate_build_input.py`;
+- regressions: `.pncc-dev/tests/test_candidate_build_input.py`;
+- hosted gate: `.github/workflows/candidate-build-input-readiness.yml`.
+
+The current exact repository is expected to classify as:
+
+```text
+CANDIDATE_BUILD_INPUT_STATE=BLOCKED_MISSING_SOURCE_DECLARATION
+CAN_BUILD=false
+RUNTIME_AUTHORITY=false
+PROMOTION_AUTHORITY=false
+```
+
+A future `READY` state requires an explicit closed declaration using `EXACT_SOURCE_COMMIT`, Git-tracked product source under governed `src/` roots, a Git-tracked build recipe under `build/`, no forbidden `legacy/` input and no dirty/untracked declared build inputs.
+
+The `--require-ready` guard exits nonzero for every blocked state. A green hosted readiness workflow means the classification/guard behaved correctly; it does **not** mean a candidate can currently be built.
+
+Exact PR evidence must be tied to the PR head SHA rather than GitHub's temporary merge ref. This is enforced by explicit checkout of `${{ github.event.pull_request.head.sha || github.sha }}`.
 
 ## Next Wave 3 boundary
 
-After this contract foundation is protected-merge and post-merge verified, source truth must determine the smallest safe candidate-builder Work Unit.
+After WU-009 is protected-merge and post-merge verified, the next source-truth decision is whether exact governed non-sanitized product source and a build recipe can be admitted into the public Product / Engineering Truth plane.
 
-A builder may only be introduced when exact non-sanitized product source/build inputs are available in the governed engineering source plane. If the public repository still lacks those exact build inputs, the pipeline must represent that condition explicitly rather than manufacturing a candidate from the sanitized legacy fixture.
+Until that source-plane condition becomes `READY`, a candidate builder must remain absent/blocked. The pipeline must not manufacture a runtime candidate from the sanitized RC14.38 fixture or infer build readiness from CI success.

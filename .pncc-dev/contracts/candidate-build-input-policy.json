@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "contract_id": "PNCC_CANDIDATE_BUILD_INPUT_READINESS_V1",
+  "declaration_path": ".pncc-dev/candidate-source.json",
+  "allowed_source_root_prefixes": [
+    "src/"
+  ],
+  "allowed_build_recipe_prefixes": [
+    "build/"
+  ],
+  "forbidden_prefixes": [
+    "legacy/",
+    ".pncc-dev/examples/",
+    "docs/",
+    ".github/"
+  ],
+  "product_source_extensions": [
+    ".ps1",
+    ".psm1",
+    ".psd1",
+    ".cmd",
+    ".vbs"
+  ],
+  "runtime_authority": false,
+  "hosted_ci_is_runtime_truth": false
+}
