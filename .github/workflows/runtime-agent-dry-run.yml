@@ -1,0 +1,77 @@
+name: runtime-agent-dry-run
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  runtime-agent-dry-run:
+    name: runtime-agent-dry-run
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: PowerShell parse preflight
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $path='tools/runtime-agent/Invoke-PnccRuntimeQualificationAgent.ps1'
+          $tokens=$null; $errors=$null
+          [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path),[ref]$tokens,[ref]$errors) | Out-Null
+          if($errors.Count -ne 0){ $errors | ForEach-Object { Write-Error $_ }; exit 1 }
+          if(git status --porcelain --untracked-files=all){ throw 'parse preflight dirtied repository' }
+          'POWERSHELL_PARSE=PASS'
+
+      - name: Prove exact request produces non-mutating dry-run plan
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $out=Join-Path $env:RUNNER_TEMP 'pncc-agent-dryrun'
+          & ./tools/runtime-agent/Invoke-PnccRuntimeQualificationAgent.ps1 -RequestPath ./.pncc-dev/requests/runtime-qualification-rc14.39.json -OutputDirectory $out -DryRun
+          if($LASTEXITCODE -ne 0){ exit $LASTEXITCODE }
+          $plan=Get-Content (Join-Path $out 'execution-plan.json') -Raw | ConvertFrom-Json
+          $result=Get-Content (Join-Path $out 'runtime-result.skeleton.json') -Raw | ConvertFrom-Json
+          if(-not $plan.dry_run){ throw 'dry_run must be true' }
+          if($plan.runtime_mutation_permitted){ throw 'runtime mutation must be false' }
+          if(@($plan.steps).Count -ne 9){ throw 'all nine qualification scopes must be planned' }
+          if(@($plan.steps | Where-Object { $_.mutation_allowed }).Count -ne 0){ throw 'dry-run step cannot allow mutation' }
+          if($result.qualification_state -eq 'RUNTIME_VERIFIED'){ throw 'dry-run skeleton cannot claim RUNTIME_VERIFIED' }
+          if($result.runtime_authority){ throw 'dry-run skeleton cannot grant runtime authority' }
+          if($result.promotion_eligible){ throw 'dry-run skeleton cannot grant promotion eligibility' }
+          'RUNTIME_AGENT_DRY_RUN=PASS SCOPES=9 RUNTIME_MUTATION=false RUNTIME_AUTHORITY=false PROMOTION_ELIGIBLE=false'
+
+      - name: Reject candidate substitution
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $tmp=Join-Path $env:RUNNER_TEMP 'substituted-request.json'
+          $req=Get-Content ./.pncc-dev/requests/runtime-qualification-rc14.39.json -Raw | ConvertFrom-Json
+          $req.candidate.artifact_sha256=('f' * 64)
+          $req | ConvertTo-Json -Depth 8 | Set-Content $tmp -Encoding UTF8
+          & ./tools/runtime-agent/Invoke-PnccRuntimeQualificationAgent.ps1 -RequestPath $tmp -OutputDirectory (Join-Path $env:RUNNER_TEMP 'reject-out') -DryRun
+          if($LASTEXITCODE -eq 0){ throw 'candidate substitution was accepted' }
+          'CANDIDATE_SUBSTITUTION=REJECTED'
+
+      - name: Prove real execution is fail-closed disabled
+        shell: pwsh
+        run: |
+          & ./tools/runtime-agent/Invoke-PnccRuntimeQualificationAgent.ps1 -RequestPath ./.pncc-dev/requests/runtime-qualification-rc14.39.json -OutputDirectory (Join-Path $env:RUNNER_TEMP 'real-disabled')
+          if($LASTEXITCODE -ne 4){ throw "expected rc=4, got $LASTEXITCODE" }
+          'REAL_RUNTIME_EXECUTION=DISABLED_BY_WU016'
+
+      - name: Assert product/runtime source unchanged by test
+        shell: pwsh
+        run: |
+          if(git status --porcelain --untracked-files=all){ git status --short; throw 'repository became dirty' }
+          'RUNTIME_AGENT_HOSTED_CI=PASS CI_VERIFIED_NOT_RUNTIME_VERIFIED=true'
