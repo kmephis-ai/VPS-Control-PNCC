@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "contract_id": "PNCC_CANDIDATE_ARTIFACT_TRUTH_V1",
+  "candidate_id": "PNCC-SYNTHETIC-ARTIFACT-V1",
+  "artifact_role": "SYNTHETIC_TEST_FIXTURE",
+  "source": {
+    "repository": "kmephis-ai/VPS-Control-PNCC",
+    "commit_sha": "90a95b812eecdd72a4f1bbd9b638414e90baf6df",
+    "ref": "synthetic/test-fixture",
+    "identity_semantic": "SYNTHETIC_SOURCE",
+    "path": ".pncc-dev/examples/candidate-manifest.synthetic.json"
+  },
+  "artifact": {
+    "filename": "PNCC-SYNTHETIC-CANDIDATE.zip",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "size_bytes": 1024
+  },
+  "build": {
+    "workflow": "candidate-artifact-truth",
+    "run_id": 1,
+    "run_attempt": 1,
+    "job_name": "candidate-artifact-truth",
+    "created_at_utc": "2026-08-27T00:00:00Z",
+    "builder": "SYNTHETIC_TEST"
+  },
+  "tool_versions": {
+    "python": "stdlib-only synthetic fixture"
+  },
+  "engineering_checks": [
+    {
+      "name": "repo-integrity",
+      "conclusion": "SUCCESS",
+      "subject_sha": "90a95b812eecdd72a4f1bbd9b638414e90baf6df"
+    },
+    {
+      "name": "powershell-static",
+      "conclusion": "SUCCESS",
+      "subject_sha": "90a95b812eecdd72a4f1bbd9b638414e90baf6df"
+    },
+    {
+      "name": "truth-contract",
+      "conclusion": "SUCCESS",
+      "subject_sha": "90a95b812eecdd72a4f1bbd9b638414e90baf6df"
+    },
+    {
+      "name": "adwf-binding",
+      "conclusion": "SUCCESS",
+      "subject_sha": "90a95b812eecdd72a4f1bbd9b638414e90baf6df"
+    },
+    {
+      "name": "pipeline-state",
+      "conclusion": "SUCCESS",
+      "subject_sha": "90a95b812eecdd72a4f1bbd9b638414e90baf6df"
+    },
+    {
+      "name": "quality-fast",
+      "conclusion": "SUCCESS",
+      "subject_sha": "90a95b812eecdd72a4f1bbd9b638414e90baf6df"
+    },
+    {
+      "name": "quality-deep",
+      "conclusion": "SUCCESS",
+      "subject_sha": "90a95b812eecdd72a4f1bbd9b638414e90baf6df"
+    }
+  ],
+  "provenance": {
+    "artifact_origin": "SYNTHETIC_FIXTURE",
+    "sanitation_state": "SYNTHETIC",
+    "attestation_state": "NOT_ATTESTED",
+    "runtime_authority": false
+  },
+  "runtime": {
+    "qualification_state": "NOT_VERIFIED",
+    "evidence_ref": null,
+    "promotion_eligible": false
+  }
+}

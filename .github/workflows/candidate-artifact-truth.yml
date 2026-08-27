@@ -1,0 +1,54 @@
+name: candidate-artifact-truth
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: candidate-artifact-truth-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  candidate-artifact-truth:
+    name: candidate-artifact-truth
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Assert stdlib-only contract files parse
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile .pncc-dev/scripts/validate_candidate_manifest.py .pncc-dev/tests/test_candidate_manifest.py
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          for path in (
+              Path('.pncc-dev/schemas/candidate-manifest.schema.json'),
+              Path('.pncc-dev/examples/candidate-manifest.synthetic.json'),
+          ):
+              json.loads(path.read_text(encoding='utf-8-sig'))
+              print(f'JSON_PARSE=PASS PATH={path}')
+          PY
+
+      - name: Run candidate manifest regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s .pncc-dev/tests -p 'test_candidate_manifest.py' -v
+
+      - name: Validate synthetic non-runtime candidate fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .pncc-dev/scripts/validate_candidate_manifest.py .pncc-dev/examples/candidate-manifest.synthetic.json
