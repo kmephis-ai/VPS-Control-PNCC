@@ -58,7 +58,7 @@ if(-not(Test-Path -LiteralPath $WorkspacePath -PathType Container)){throw "works
 New-Item -ItemType Directory -Force -Path $OutputDirectory|Out-Null
 $evidencePath=Join-Path $OutputDirectory 'stage-a-evidence.json'
 $resultPath=Join-Path $OutputDirectory 'runtime-qualification-stage-a-result.json'
-$checks=@();$evidence=[ordered]@{schema_version=1;stage='A';mode=$Mode;runtime_mutation=false;observations=[ordered]@{}}
+$checks=@();$evidence=[ordered]@{schema_version=1;stage='A';mode=$Mode;runtime_mutation=$false;observations=[ordered]@{}}
 $failedClass='ENVIRONMENT_OR_BASELINE_BLOCKER'
 
 if($Mode -eq 'Fixture'){
