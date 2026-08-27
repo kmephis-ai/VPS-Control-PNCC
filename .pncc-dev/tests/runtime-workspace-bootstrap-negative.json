@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "purpose": "Negative fixture metadata for substitution tests",
+  "tampered_artifact_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+  "expected_outcome": "REJECT"
+}
