@@ -5,6 +5,7 @@
   "FixtureGitTreeSha": "2a6c0027a195e91640ec2a6e38220a9fac372368",
   "ManifestRelativePath": "SANITIZED-SHA256.txt",
   "ManifestEntryCount": 32,
+  "ManifestHashSemantics": "GIT_BLOB_BYTES_SHA256",
   "IdentitySemantics": "SANITIZED_NOT_BYTE_IDENTICAL_NOT_RUNTIME_QUALIFIED",
   "OriginalPrivateCandidate": {
     "Version": "v7.0.0-rc14.38",

@@ -151,3 +151,34 @@ Describe 'PNCC DEEP sanitized fixture SHA-256 inventory verifier' {
         @($result.Errors) -join '|' | Should -Match 'MANIFEST_SELF_ENTRY:1'
     }
 }
+
+Describe 'PNCC DEEP Git-blob SHA-256 provenance semantics' {
+    It 'hashes committed Git blob bytes instead of a transformed working tree' {
+        $repo = Join-Path $TestDrive 'git-blob-semantics'
+        $fixture = Join-Path $repo 'fixture'
+        [void](New-Item -ItemType Directory -Path $fixture -Force)
+        Write-DeepTestFile -Path (Join-Path $repo '.gitattributes') -Content '*.ps1 text eol=crlf'
+        $scriptPath = Join-Path $fixture 'a.ps1'
+        Write-DeepTestFile -Path $scriptPath -Content "alpha`nbeta`n"
+        $expectedHash = Get-DeepTestHash $scriptPath
+        $manifest = Join-Path $fixture 'SANITIZED-SHA256.txt'
+        Write-DeepManifest -Path $manifest -Lines @("$expectedHash  a.ps1")
+
+        & git -C $repo init | Out-Null
+        & git -C $repo config user.email 'pncc-ci@example.invalid'
+        & git -C $repo config user.name 'PNCC CI'
+        & git -C $repo add --all
+        & git -C $repo commit -m 'fixture' | Out-Null
+        $LASTEXITCODE | Should -Be 0
+
+        Write-DeepTestFile -Path $scriptPath -Content "alpha`r`nbeta`r`n"
+        (Get-DeepTestHash $scriptPath) | Should -Not -Be $expectedHash
+
+        $result = Test-PnccGitSha256Inventory -RepositoryRoot $repo -FixtureRelativePath 'fixture' -ManifestPath $manifest
+        $result.Status | Should -Be 'PASS'
+        $result.EntryCount | Should -Be 1
+        $result.ActualFileCount | Should -Be 1
+        $result.VerifiedCount | Should -Be 1
+        @($result.Errors).Count | Should -Be 0
+    }
+}

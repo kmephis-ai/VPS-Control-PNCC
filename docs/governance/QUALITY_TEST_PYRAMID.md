@@ -45,16 +45,18 @@ It distinguishes three identities that must never be conflated:
 
 The identity semantic is explicitly `SANITIZED_NOT_BYTE_IDENTICAL_NOT_RUNTIME_QUALIFIED`.
 
+The SHA-256 manifest semantic is explicitly `GIT_BLOB_BYTES_SHA256`: hashes are computed from the canonical bytes stored in the pinned Git tree, before `.gitattributes` checkout transformations. Platform-specific LF/CRLF working-tree materialization therefore cannot change or redefine public fixture provenance.
+
 `.pncc-dev/quality/PNCC.SanitizedFixtureProvenance.psm1` verifies fail-closed that:
 
 - the fixture Git tree matches the pinned public tree identity;
 - the SHA-256 manifest has strict syntax and no duplicate/self/unsafe entries;
 - manifest paths are relative and cannot traverse outside the fixture root;
-- the manifest inventory exactly equals all fixture files except the manifest itself;
-- every listed working-tree file hashes to the published SHA-256 under the repository line-ending contract;
+- the manifest inventory exactly equals all Git blobs in the fixture tree except the manifest itself;
+- every listed canonical Git blob hashes to the published SHA-256;
 - the sanitation record retains the original private-candidate reference and explicit non-runtime-qualified semantics.
 
-Synthetic DEEP regressions prove that hash mismatch, missing files, unlisted extra files, malformed lines, duplicate paths, traversal, absolute paths and manifest self-entry all fail closed.
+The DEEP Pester floor is **10 tests**. Synthetic regressions prove that hash mismatch, missing files, unlisted extra files, malformed lines, duplicate paths, traversal, absolute paths and manifest self-entry all fail closed. A dedicated Git-blob regression proves that a post-commit working-tree CRLF transformation cannot change a valid committed-blob provenance result.
 
 A passing DEEP fixture gate proves only that the public regression fixture is the exact public fixture described by its provenance contract. It does **not** prove that the private runtime candidate is byte-identical, deployable, Stable, or runtime-qualified.
 

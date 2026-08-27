@@ -112,6 +112,7 @@ Scope is engineering control plane only. It introduces a separate deterministic 
 - PSScriptAnalyzer Error/Warning findings: 0 across `.pncc-dev/quality` on the main that entered `PIPE-WU-006`;
 - exact sanitized public fixture Git tree: `2a6c0027a195e91640ec2a6e38220a9fac372368`;
 - sanitized SHA-256 manifest expected inventory: 32 files excluding the manifest itself;
+- manifest hash semantic: `GIT_BLOB_BYTES_SHA256`, independent of platform-specific checkout LF/CRLF materialization;
 - sanitized identity remains explicitly non-runtime-qualified.
 
 ### Exit criteria
