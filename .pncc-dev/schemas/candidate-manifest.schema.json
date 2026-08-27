@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kmephis-ai/VPS-Control-PNCC/.pncc-dev/schemas/candidate-manifest.schema.json",
+  "title": "PNCC Candidate Artifact Truth Manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "contract_id",
+    "candidate_id",
+    "artifact_role",
+    "source",
+    "artifact",
+    "build",
+    "tool_versions",
+    "engineering_checks",
+    "provenance",
+    "runtime"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "contract_id": { "const": "PNCC_CANDIDATE_ARTIFACT_TRUTH_V1" },
+    "candidate_id": {
+      "type": "string",
+      "pattern": "^[A-Z0-9][A-Z0-9._-]{2,127}$"
+    },
+    "artifact_role": {
+      "enum": ["RUNTIME_CANDIDATE", "SYNTHETIC_TEST_FIXTURE"]
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "commit_sha", "ref", "identity_semantic", "path"],
+      "properties": {
+        "repository": { "const": "kmephis-ai/VPS-Control-PNCC" },
+        "commit_sha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "ref": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "identity_semantic": {
+          "enum": ["EXACT_SOURCE_COMMIT", "SYNTHETIC_SOURCE", "SANITIZED_PUBLIC_FIXTURE"]
+        },
+        "path": { "type": "string", "minLength": 1, "maxLength": 512 }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["filename", "sha256", "size_bytes"],
+      "properties": {
+        "filename": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "size_bytes": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "build": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["workflow", "run_id", "run_attempt", "job_name", "created_at_utc", "builder"],
+      "properties": {
+        "workflow": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "run_id": { "type": "integer", "minimum": 1 },
+        "run_attempt": { "type": "integer", "minimum": 1 },
+        "job_name": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "created_at_utc": { "type": "string", "format": "date-time" },
+        "builder": { "enum": ["GITHUB_HOSTED", "SYNTHETIC_TEST"] }
+      }
+    },
+    "tool_versions": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128
+      }
+    },
+    "engineering_checks": {
+      "type": "array",
+      "minItems": 7,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "conclusion", "subject_sha"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "conclusion": { "const": "SUCCESS" },
+          "subject_sha": { "type": "string", "pattern": "^[0-9a-f]{40}$" }
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifact_origin", "sanitation_state", "attestation_state", "runtime_authority"],
+      "properties": {
+        "artifact_origin": {
+          "enum": ["BUILD_OUTPUT", "SYNTHETIC_FIXTURE", "SANITIZED_PUBLIC_FIXTURE"]
+        },
+        "sanitation_state": {
+          "enum": ["EXACT_BUILD_OUTPUT", "SYNTHETIC", "SANITIZED_PUBLIC"]
+        },
+        "attestation_state": {
+          "enum": ["NOT_ATTESTED", "HOSTED_PROVENANCE_RECORDED"]
+        },
+        "runtime_authority": { "const": false }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["qualification_state", "evidence_ref", "promotion_eligible"],
+      "properties": {
+        "qualification_state": { "const": "NOT_VERIFIED" },
+        "evidence_ref": { "type": "null" },
+        "promotion_eligible": { "const": false }
+      }
+    }
+  }
+}
