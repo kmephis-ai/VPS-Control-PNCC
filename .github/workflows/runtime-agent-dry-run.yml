@@ -60,14 +60,18 @@ jobs:
           $req.candidate.artifact_sha256=('f' * 64)
           $req | ConvertTo-Json -Depth 8 | Set-Content $tmp -Encoding UTF8
           & ./tools/runtime-agent/Invoke-PnccRuntimeQualificationAgent.ps1 -RequestPath $tmp -OutputDirectory (Join-Path $env:RUNNER_TEMP 'reject-out') -DryRun
-          if($LASTEXITCODE -eq 0){ throw 'candidate substitution was accepted' }
-          'CANDIDATE_SUBSTITUTION=REJECTED'
+          $negativeRc=$LASTEXITCODE
+          if($negativeRc -eq 0){ throw 'candidate substitution was accepted' }
+          $global:LASTEXITCODE=0
+          "CANDIDATE_SUBSTITUTION=REJECTED RC=$negativeRc"
 
       - name: Prove real execution is fail-closed disabled
         shell: pwsh
         run: |
           & ./tools/runtime-agent/Invoke-PnccRuntimeQualificationAgent.ps1 -RequestPath ./.pncc-dev/requests/runtime-qualification-rc14.39.json -OutputDirectory (Join-Path $env:RUNNER_TEMP 'real-disabled')
-          if($LASTEXITCODE -ne 4){ throw "expected rc=4, got $LASTEXITCODE" }
+          $negativeRc=$LASTEXITCODE
+          if($negativeRc -ne 4){ throw "expected rc=4, got $negativeRc" }
+          $global:LASTEXITCODE=0
           'REAL_RUNTIME_EXECUTION=DISABLED_BY_WU016'
 
       - name: Assert product/runtime source unchanged by test
