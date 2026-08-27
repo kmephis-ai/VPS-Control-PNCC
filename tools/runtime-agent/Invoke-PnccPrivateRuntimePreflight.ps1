@@ -71,7 +71,9 @@ if ($Mode -eq 'Fixture') {
     $observations.processes = @($fixture.processes)
 } else {
     $isWindows = ($env:OS -eq 'Windows_NT')
-    $checks += New-Check 'WINDOWS_BASELINE' $isWindows (if($isWindows){'Windows_NT observed'}else{'Windows_NT not observed'})
+    $windowsReason = 'Windows_NT not observed'
+    if($isWindows){ $windowsReason = 'Windows_NT observed' }
+    $checks += New-Check 'WINDOWS_BASELINE' $isWindows $windowsReason
 
     $psOk = ($PSVersionTable.PSVersion.Major -gt 5 -or ($PSVersionTable.PSVersion.Major -eq 5 -and $PSVersionTable.PSVersion.Minor -ge 1))
     $checks += New-Check 'POWERSHELL_BASELINE' $psOk ("PowerShell " + $PSVersionTable.PSVersion.ToString())
@@ -88,15 +90,17 @@ if ($Mode -eq 'Fixture') {
     $checks += New-Check 'CANDIDATE_IDENTITY' $candidatePass $candidateReason
 
     $proxifierPresent = Test-Path -LiteralPath $ProxifierPath -PathType Leaf
-    $checks += New-Check 'PROXIFIER_PRESENT' $proxifierPresent (if($proxifierPresent){$ProxifierPath}else{'Proxifier executable not found at governed path'})
+    $proxifierReason = 'Proxifier executable not found at governed path'
+    if($proxifierPresent){ $proxifierReason = $ProxifierPath }
+    $checks += New-Check 'PROXIFIER_PRESENT' $proxifierPresent $proxifierReason
 
     $gh = Get-Command gh -ErrorAction SilentlyContinue
     $ghOk = $false
     $ghReason = 'gh command missing'
     if ($null -ne $gh) {
-        $null = & gh auth status 2>&1
+        & gh auth status 1>$null 2>$null
         $ghOk = ($LASTEXITCODE -eq 0)
-        $ghReason = if($ghOk){'gh authenticated'}else{'gh auth status failed'}
+        if($ghOk){ $ghReason = 'gh authenticated' } else { $ghReason = 'gh auth status failed' }
     }
     $checks += New-Check 'GH_AUTH' $ghOk $ghReason
 
@@ -114,14 +118,20 @@ if ($Mode -eq 'Fixture') {
 }
 
 $failed = @($checks | Where-Object { -not $_.pass })
-$state = if($failed.Count -eq 0){'READY'}else{'BLOCKED'}
-$failureClass = if($state -eq 'READY'){$null}else{'ENVIRONMENT_OR_BASELINE_BLOCKER'}
+$state = 'BLOCKED'
+$failureClass = 'ENVIRONMENT_OR_BASELINE_BLOCKER'
+if($failed.Count -eq 0){
+    $state = 'READY'
+    $failureClass = $null
+}
+$workspaceValue = [IO.Path]::GetFullPath($WorkspacePath)
+if($Mode -eq 'Fixture'){ $workspaceValue = 'FIXTURE_WORKSPACE' }
 
 $result = [ordered]@{
     schema_version = 1
     contract_id = 'PNCC_PRIVATE_RUNTIME_PREFLIGHT_V1'
     mode = $Mode
-    workspace = if($Mode -eq 'Fixture'){'FIXTURE_WORKSPACE'}else{[IO.Path]::GetFullPath($WorkspacePath)}
+    workspace = $workspaceValue
     expected = [ordered]@{
         candidate_sha256 = $ExpectedCandidateSha
         candidate_size_bytes = $ExpectedCandidateSize
