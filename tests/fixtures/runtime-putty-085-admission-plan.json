@@ -1,0 +1,15 @@
+{
+  "wu028_pwfile_unsupported": true,
+  "dpapi_pass": true,
+  "session_metadata_pass": true,
+  "hostkey_trust_pass": true,
+  "primary_absent": true,
+  "reserve_listening": true,
+  "official_url_pinned": true,
+  "official_sha256_pinned": true,
+  "authenticode_required": true,
+  "pwfile_capability_required": true,
+  "portable_launcher_preserved": true,
+  "reserve_observation_only": true,
+  "resume_wu028": true
+}
