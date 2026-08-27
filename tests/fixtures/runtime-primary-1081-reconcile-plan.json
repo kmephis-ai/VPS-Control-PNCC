@@ -1,0 +1,10 @@
+{
+  "candidate_identity": true,
+  "rollback_identity": true,
+  "old_primary_proven": true,
+  "old_watchdog_proven": true,
+  "reserve_observation_only": true,
+  "generated_pwfile": true,
+  "generated_no_plain_pw": true,
+  "hostkey_fail_closed": true
+}
