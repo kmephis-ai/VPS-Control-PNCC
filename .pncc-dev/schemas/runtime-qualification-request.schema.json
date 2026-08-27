@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PNCC Runtime Qualification Request v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version","contract_id","request_id","origin_work_unit_id","candidate","required_scopes","expected_invariants","state","runtime_authority","promotion_eligible"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "contract_id": {"const": "PNCC_RUNTIME_QUALIFICATION_REQUEST_V1"},
+    "request_id": {"type": "string", "minLength": 1},
+    "origin_work_unit_id": {"type": "string", "pattern": "^[A-Z][A-Z0-9_-]*-[0-9]+$"},
+    "candidate": {"type": "object", "additionalProperties": false, "required": ["candidate_id","source_sha","artifact_filename","artifact_sha256","artifact_size_bytes","provider_artifact_id","provider_artifact_digest","provider_build_run_id"]},
+    "required_scopes": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "expected_invariants": {"type": "object", "additionalProperties": false, "required": ["primary_auto_port","reserve_manual_port","reserve_manual_lifecycle","v6_3_1_sha256","putty_password_argument","plaintext_pw_allowed","hostkey_verification_disable_allowed"]},
+    "state": {"const": "RUNTIME_PENDING"},
+    "runtime_authority": {"const": false},
+    "promotion_eligible": {"const": false}
+  }
+}
