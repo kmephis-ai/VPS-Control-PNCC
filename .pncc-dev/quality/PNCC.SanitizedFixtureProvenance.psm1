@@ -242,7 +242,7 @@ function Test-PnccGitSha256Inventory {
     try {
         $repoRoot = [IO.Path]::GetFullPath($RepositoryRoot)
         $fixtureRelative = $FixtureRelativePath.Replace('\', '/').Trim('/')
-        $fixtureRoot = [IO.Path]::GetFullPath((Join-Path $repoRoot ($fixtureRelative.Replace('/', [IO.Path]::DirectorySeparatorChar)))
+        $fixtureRoot = [IO.Path]::GetFullPath((Join-Path $repoRoot ($fixtureRelative.Replace('/', [IO.Path]::DirectorySeparatorChar))))
         $manifestFull = [IO.Path]::GetFullPath($ManifestPath)
     }
     catch {
