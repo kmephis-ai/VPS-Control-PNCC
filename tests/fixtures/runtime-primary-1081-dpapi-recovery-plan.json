@@ -1,0 +1,13 @@
+{
+  "wu026_blocked": true,
+  "primary_absent": true,
+  "candidate_identity": true,
+  "rollback_identity": true,
+  "active_profile": true,
+  "secret_id": true,
+  "dpapi_present": true,
+  "dpapi_decryptable": true,
+  "pwfile_only": true,
+  "hostkey_fail_closed": true,
+  "reserve_observation_only": true
+}
