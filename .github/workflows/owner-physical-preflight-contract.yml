@@ -43,6 +43,8 @@ jobs:
           if($text -notmatch $pin){ throw 'corrected exact harness SHA pin missing' }
           if($text -notmatch 'Invoke-NativeCaptured'){ throw 'PS5.1-safe native capture helper missing' }
           if($text -match 'powershell\.exe @args 2>&1'){ throw 'unsafe direct child stderr merge still present' }
+          git fetch --depth=1 origin $pin
+          if($LASTEXITCODE -ne 0){ throw 'unable to fetch pinned preflight harness revision' }
           $pinned=git show "$pin`:tools/runtime-agent/Invoke-PnccPrivateRuntimePreflight.ps1"
           if($LASTEXITCODE -ne 0){ throw 'unable to inspect pinned preflight harness' }
           $pinnedText=$pinned -join "`n"
