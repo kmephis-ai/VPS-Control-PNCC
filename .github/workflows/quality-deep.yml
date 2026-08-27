@@ -48,7 +48,57 @@ jobs:
           Import-Module $modulePath -Force -ErrorAction Stop
           $result = Test-PnccSanitizedFixtureProvenance -RepositoryRoot $env:GITHUB_WORKSPACE -ContractPath $contractPath
           if ($result.Status -ne 'PASS') {
-            @($result.Errors) | ForEach-Object { Write-Error $_ }
+            foreach ($provenanceError in @($result.Errors)) {
+              Write-Host "FIXTURE_PROVENANCE_ERROR=$provenanceError"
+            }
+
+            $fixtureRoot = Join-Path $env:GITHUB_WORKSPACE 'legacy\v7-rc14.38-sanitized'
+            $manifestPath = Join-Path $fixtureRoot 'SANITIZED-SHA256.txt'
+            $manifestLines = @([IO.File]::ReadAllLines($manifestPath))
+
+            function Get-DiagnosticSha256([byte[]]$Bytes) {
+              $sha = [Security.Cryptography.SHA256]::Create()
+              try {
+                return ([BitConverter]::ToString($sha.ComputeHash($Bytes))).Replace('-', '').ToLowerInvariant()
+              }
+              finally {
+                $sha.Dispose()
+              }
+            }
+
+            foreach ($provenanceError in @($result.Errors)) {
+              if ([string]$provenanceError -notmatch '^INVENTORY:HASH_MISMATCH:(?<path>.+)$') { continue }
+              $relative = [string]$Matches['path']
+              $manifestLine = @($manifestLines | Where-Object { $_ -match ('^[0-9a-fA-F]{64}  ' + [regex]::Escape($relative) + '$') })
+              if ($manifestLine.Count -ne 1) {
+                Write-Host "FIXTURE_HASH_DIAGNOSTIC PATH=$relative MANIFEST_MATCH_COUNT=$($manifestLine.Count)"
+                continue
+              }
+
+              $expected = ([string]$manifestLine[0]).Substring(0, 64).ToLowerInvariant()
+              $fullPath = Join-Path $fixtureRoot ($relative.Replace('/', [IO.Path]::DirectorySeparatorChar))
+              $rawBytes = [IO.File]::ReadAllBytes($fullPath)
+              $hasBom = $rawBytes.Length -ge 3 -and $rawBytes[0] -eq 0xEF -and $rawBytes[1] -eq 0xBB -and $rawBytes[2] -eq 0xBF
+              $offset = 0
+              if ($hasBom) { $offset = 3 }
+              $text = [Text.Encoding]::UTF8.GetString($rawBytes, $offset, $rawBytes.Length - $offset)
+              $lfText = ($text -replace "`r`n", "`n") -replace "`r", "`n"
+              $crlfText = $lfText -replace "`n", "`r`n"
+              $utf8NoBom = New-Object Text.UTF8Encoding($false)
+              [byte[]]$lfBytes = $utf8NoBom.GetBytes($lfText)
+              [byte[]]$crlfBytes = $utf8NoBom.GetBytes($crlfText)
+              if ($hasBom) {
+                [byte[]]$bom = @(0xEF, 0xBB, 0xBF)
+                [byte[]]$lfBytes = @($bom + $lfBytes)
+                [byte[]]$crlfBytes = @($bom + $crlfBytes)
+              }
+
+              $rawHash = Get-DiagnosticSha256 $rawBytes
+              $lfHash = Get-DiagnosticSha256 $lfBytes
+              $crlfHash = Get-DiagnosticSha256 $crlfBytes
+              Write-Host "FIXTURE_HASH_DIAGNOSTIC PATH=$relative EXPECTED=$expected WORKTREE_RAW=$rawHash NORMALIZED_LF=$lfHash NORMALIZED_CRLF=$crlfHash UTF8_BOM=$hasBom"
+            }
+
             throw "Sanitized fixture provenance failed: $($result.FailureClass)"
           }
           Write-Host "FIXTURE_PROVENANCE_RESULT=PASS TREE=$($result.FixtureGitTreeSha) ENTRIES=$($result.EntryCount) FILES=$($result.ActualFileCount) VERIFIED=$($result.VerifiedCount)"
