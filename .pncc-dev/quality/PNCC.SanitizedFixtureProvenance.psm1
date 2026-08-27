@@ -28,7 +28,7 @@ function ConvertTo-PnccProvenanceResult {
     }
 }
 
-function Get-PnccSha256FromBytes {
+function Get-PnccSha256Digest {
     [CmdletBinding()]
     param([Parameter(Mandatory=$true)][byte[]]$Bytes)
 
@@ -41,7 +41,7 @@ function Get-PnccSha256FromBytes {
     }
 }
 
-function Get-PnccGitBlobBytes {
+function Get-PnccGitBlobContent {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$true)][string]$RepositoryRoot,
@@ -90,7 +90,7 @@ function Get-PnccGitBlobBytes {
     }
 }
 
-function Get-PnccEolVariantHashes {
+function Get-PnccEolVariantDigest {
     [CmdletBinding()]
     param([Parameter(Mandatory=$true)][byte[]]$Bytes)
 
@@ -124,8 +124,8 @@ function Get-PnccEolVariantHashes {
     }
 
     $result.IsUtf8 = $true
-    $result.LfHash = Get-PnccSha256FromBytes -Bytes $lfBytes
-    $result.CrlfHash = Get-PnccSha256FromBytes -Bytes $crlfBytes
+    $result.LfHash = Get-PnccSha256Digest -Bytes $lfBytes
+    $result.CrlfHash = Get-PnccSha256Digest -Bytes $crlfBytes
     return [pscustomobject]$result
 }
 
@@ -418,20 +418,20 @@ function Test-PnccGitSha256Inventory {
             continue
         }
         $blobSha = (($blobOutput | Out-String).Trim()).ToLowerInvariant()
-        $blobResult = Get-PnccGitBlobBytes -RepositoryRoot $repoRoot -BlobSha $blobSha
+        $blobResult = Get-PnccGitBlobContent -RepositoryRoot $repoRoot -BlobSha $blobSha
         if (-not [bool]$blobResult.Success) {
             [void]$errors.Add('GIT_BLOB_READ_FAILED:' + [string]$entry.RelativePath + ':' + [string]$blobResult.Error)
             continue
         }
 
         $blobBytes = [byte[]]$blobResult.Bytes
-        $actualHash = Get-PnccSha256FromBytes -Bytes $blobBytes
+        $actualHash = Get-PnccSha256Digest -Bytes $blobBytes
         if ($actualHash -eq [string]$entry.ExpectedHash) {
             $verifiedCount++
             continue
         }
 
-        $eolVariants = Get-PnccEolVariantHashes -Bytes $blobBytes
+        $eolVariants = Get-PnccEolVariantDigest -Bytes $blobBytes
         $eolMatches = [bool]$eolVariants.IsUtf8 -and (
             [string]$entry.ExpectedHash -eq [string]$eolVariants.LfHash -or
             [string]$entry.ExpectedHash -eq [string]$eolVariants.CrlfHash
