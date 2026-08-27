@@ -1,0 +1,12 @@
+{
+  "stage_a_ready": true,
+  "candidate_identity": true,
+  "rollback_identity": true,
+  "watchdog_present": true,
+  "watchdog_fresh": true,
+  "watchdog_exact_engine": true,
+  "primary_owner_putty": true,
+  "primary_binding_1081": true,
+  "plaintext_pw_absent": true,
+  "reserve_unchanged": true
+}
