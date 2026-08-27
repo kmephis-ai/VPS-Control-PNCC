@@ -1,3 +1,7 @@
+VPS CONTROL CENTER v7.0.0-rc14.39 — CANDIDATE BUILD INPUT ACTIVATION
+
+RC14.39 source identity is the governed post-RC14.38 credential-remediation baseline. This source transaction creates no ZIP artifact and grants no runtime or promotion authority.
+
 VPS CONTROL CENTER v7.0.0-rc14.38 — WINDOWS POWERSHELL 5.1 ENCODING CORRECTION
 
 Fresh Windows Validation Lab v1.0.4 evidence for exact RC14.37:

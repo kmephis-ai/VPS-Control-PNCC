@@ -1,12 +1,15 @@
 {
-  "schema_version": 1,
-  "contract_id": "PNCC_CANDIDATE_BUILD_INPUT_READINESS_V1",
+  "schema_version": 2,
+  "contract_id": "PNCC_CANDIDATE_BUILD_INPUT_READINESS_V2",
   "declaration_path": ".pncc-dev/candidate-source.json",
   "allowed_source_root_prefixes": [
     "src/"
   ],
   "allowed_build_recipe_prefixes": [
     "build/"
+  ],
+  "allowed_provenance_prefixes": [
+    ".pncc-dev/provenance/"
   ],
   "forbidden_prefixes": [
     "legacy/",
