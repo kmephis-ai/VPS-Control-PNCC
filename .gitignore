@@ -51,6 +51,10 @@ VPS-Control-Data.location
 *.user
 *.suo
 
+# Python tooling cache (generated, never a build input)
+__pycache__/
+*.py[cod]
+
 # PowerShell / test output
 TestResults/
 coverage/
