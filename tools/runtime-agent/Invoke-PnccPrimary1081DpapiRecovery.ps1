@@ -78,7 +78,7 @@ try{
  $gsha=Sha $g
  $raw=Get-Content $g -Raw
  if($raw -notmatch "(?i)'?-pwfile'?" -or $raw -notmatch 'Ensure-V7OfficialPuttyHostKeyTrust' -or $raw -notmatch 'V7-DPAPI'){throw 'generated engine security contract failed'}
- if($raw -match "(?i)\$arguments\s*\+=\s*@\(\s*['\"]-pw['\"]"){throw 'generated engine still constructs plaintext -pw'}
+ if(($raw -match '(?i)\$arguments\s*\+=\s*@\(\s*''-pw''') -or ($raw -match '(?i)\$arguments\s*\+=\s*@\(\s*"-pw"')){throw 'generated engine still constructs plaintext -pw'}
  $installed=Join-Path $runtimeDir 'VPS-Control-v6.5.ps1'
  $oldSha=$(if(Test-Path $installed){Sha $installed}else{''})
  Copy-Item $g $installed -Force
