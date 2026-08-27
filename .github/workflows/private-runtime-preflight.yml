@@ -1,0 +1,73 @@
+name: private-runtime-preflight
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  private-runtime-preflight:
+    name: private-runtime-preflight
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: PowerShell 5.1 parse and BOM preflight
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $path='tools/runtime-agent/Invoke-PnccPrivateRuntimePreflight.ps1'
+          $tokens=$null; $errors=$null
+          [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path),[ref]$tokens,[ref]$errors) | Out-Null
+          if(@($errors).Count -ne 0){ $errors | ForEach-Object { Write-Error $_ }; exit 1 }
+          $b=[IO.File]::ReadAllBytes((Resolve-Path $path))
+          if($b.Length -lt 3 -or $b[0] -ne 0xEF -or $b[1] -ne 0xBB -or $b[2] -ne 0xBF){ throw 'UTF8 BOM missing' }
+          'PRIVATE_RUNTIME_PREFLIGHT_PARSE=PASS PS51=true'
+
+      - name: Prove READY fixture remains non-authoritative
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $workspace=Join-Path $env:RUNNER_TEMP 'fixture-workspace-ready'
+          New-Item -ItemType Directory -Path $workspace -Force | Out-Null
+          $out=Join-Path $env:RUNNER_TEMP 'preflight-ready.json'
+          & ./tools/runtime-agent/Invoke-PnccPrivateRuntimePreflight.ps1 -WorkspacePath $workspace -OutputPath $out -Mode Fixture -FixturePath ./.pncc-dev/tests/runtime-preflight-ready.fixture.json
+          if($LASTEXITCODE -ne 0){ exit $LASTEXITCODE }
+          $r=Get-Content $out -Raw | ConvertFrom-Json
+          if($r.preflight_state -ne 'READY'){ throw 'ready fixture did not produce READY' }
+          if($r.runtime_mutation_permitted -or $r.runtime_authority -or $r.promotion_eligible){ throw 'preflight cannot grant mutation/runtime/promotion authority' }
+          if(@($r.checks | Where-Object { -not $_.pass }).Count -ne 0){ throw 'ready fixture contains failed checks' }
+          'PRIVATE_RUNTIME_PREFLIGHT_READY=PASS RUNTIME_MUTATION=false RUNTIME_AUTHORITY=false'
+
+      - name: Prove blocked candidate substitution remains environment blocker
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $workspace=Join-Path $env:RUNNER_TEMP 'fixture-workspace-blocked'
+          New-Item -ItemType Directory -Path $workspace -Force | Out-Null
+          $out=Join-Path $env:RUNNER_TEMP 'preflight-blocked.json'
+          & ./tools/runtime-agent/Invoke-PnccPrivateRuntimePreflight.ps1 -WorkspacePath $workspace -OutputPath $out -Mode Fixture -FixturePath ./.pncc-dev/tests/runtime-preflight-blocked.fixture.json
+          if($LASTEXITCODE -ne 0){ exit $LASTEXITCODE }
+          $r=Get-Content $out -Raw | ConvertFrom-Json
+          if($r.preflight_state -ne 'BLOCKED'){ throw 'blocked fixture did not produce BLOCKED' }
+          if($r.failure_classification -ne 'ENVIRONMENT_OR_BASELINE_BLOCKER'){ throw 'blocked fixture classification mismatch' }
+          $candidate=@($r.checks | Where-Object { $_.name -eq 'CANDIDATE_IDENTITY' })
+          if($candidate.Count -ne 1 -or $candidate[0].pass){ throw 'candidate substitution was not blocked' }
+          if($r.runtime_authority -or $r.promotion_eligible){ throw 'blocked preflight cannot grant authority' }
+          'PRIVATE_RUNTIME_PREFLIGHT_BLOCKED=PASS CLASS=ENVIRONMENT_OR_BASELINE_BLOCKER'
+
+      - name: Assert repository remains clean
+        shell: powershell
+        run: |
+          if(git status --porcelain --untracked-files=all){ git status --short; throw 'repository became dirty' }
+          'PRIVATE_RUNTIME_PREFLIGHT_HOSTED_CI=PASS CI_VERIFIED_NOT_RUNTIME_VERIFIED=true'

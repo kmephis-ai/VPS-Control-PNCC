@@ -1,0 +1,15 @@
+{
+  "windows_baseline": true,
+  "powershell_baseline": true,
+  "candidate_identity": true,
+  "proxifier_present": true,
+  "gh_auth": true,
+  "rollback_identity": true,
+  "listeners": [
+    {"port": 1080, "listening": true, "owners": [{"pid": 100, "process": "plink"}]},
+    {"port": 1081, "listening": false, "owners": []}
+  ],
+  "processes": [
+    {"pid": 200, "name": "Proxifier"}
+  ]
+}
