@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PNCC Runtime Qualification Result v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version","contract_id","request_id","candidate","producer","environment","checks","evidence_bundle","qualification_state","failure_classification","runtime_authority","promotion_eligible"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "contract_id": {"const": "PNCC_RUNTIME_QUALIFICATION_RESULT_V1"},
+    "request_id": {"type": "string", "minLength": 1},
+    "candidate": {"type": "object", "additionalProperties": false},
+    "producer": {"type": "object", "additionalProperties": false, "required": ["source_plane","agent_id","runtime_agent_version","validation_lab_version"]},
+    "environment": {"type": "object", "additionalProperties": false, "required": ["windows_version","powershell_version"]},
+    "checks": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false, "required": ["scope","result","exit_code","failure_class","evidence_refs"]}},
+    "evidence_bundle": {"type": "object", "additionalProperties": false, "required": ["sha256","private_location_ref","sanitation_state"]},
+    "qualification_state": {"enum": ["BLOCKED","FAILED","RUNTIME_VERIFIED"]},
+    "failure_classification": {"type": ["string","null"]},
+    "runtime_authority": {"type": "boolean"},
+    "promotion_eligible": {"const": false}
+  }
+}
