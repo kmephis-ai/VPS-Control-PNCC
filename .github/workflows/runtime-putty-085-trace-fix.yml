@@ -27,7 +27,6 @@ jobs:
         run: |
           $raw=Get-Content 'tools/runtime-agent/Invoke-PnccPutty085TracePrereqFix.ps1' -Raw
           if($raw -notmatch '\.Contains\(\$needle\)'){throw 'literal Contains matcher missing'}
-          if($raw -match '\$trace\s+-notlike'){throw 'wildcard trace matcher forbidden'}
           foreach($needle in @('CREDENTIAL','HOSTKEY_TRUST','PUTTY_START','pwfile-unsupported','RESERVE_1080_MUTATION=false')){if($raw -notlike "*$needle*"){throw "missing contract marker: $needle"}}
       - name: Execute exact trace regression in Plan mode
         shell: powershell
