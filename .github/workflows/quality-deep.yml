@@ -1,0 +1,120 @@
+name: quality-deep
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-deep-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality-deep:
+    name: quality-deep
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Assert Windows PowerShell 5.1 and pinned Pester
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($PSVersionTable.PSVersion.Major -ne 5 -or $PSVersionTable.PSVersion.Minor -ne 1) {
+            throw "Windows PowerShell 5.1 required; got $($PSVersionTable.PSVersion)"
+          }
+          Import-Module Pester -RequiredVersion 5.9.0 -Force -ErrorAction Stop
+          $pesterVersion = (Get-Module Pester).Version.ToString()
+          if ($pesterVersion -ne '5.9.0') { throw "Unexpected Pester version: $pesterVersion" }
+          Write-Host "POWERSHELL_VERSION=$($PSVersionTable.PSVersion)"
+          Write-Host "PESTER_VERSION=$pesterVersion"
+
+      - name: Verify exact sanitized fixture provenance
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $modulePath = Join-Path $env:GITHUB_WORKSPACE '.pncc-dev\quality\PNCC.SanitizedFixtureProvenance.psm1'
+          $contractPath = Join-Path $env:GITHUB_WORKSPACE '.pncc-dev\contracts\sanitized-fixture-provenance.json'
+          Import-Module $modulePath -Force -ErrorAction Stop
+          $result = Test-PnccSanitizedFixtureProvenance -RepositoryRoot $env:GITHUB_WORKSPACE -ContractPath $contractPath
+          if ($result.Status -ne 'PASS') {
+            foreach ($provenanceError in @($result.Errors)) {
+              Write-Host "FIXTURE_PROVENANCE_ERROR=$provenanceError"
+            }
+
+            $fixtureRoot = Join-Path $env:GITHUB_WORKSPACE 'legacy\v7-rc14.38-sanitized'
+            $manifestPath = Join-Path $fixtureRoot 'SANITIZED-SHA256.txt'
+            $manifestLines = @([IO.File]::ReadAllLines($manifestPath))
+
+            function Get-DiagnosticSha256([byte[]]$Bytes) {
+              $sha = [Security.Cryptography.SHA256]::Create()
+              try {
+                return ([BitConverter]::ToString($sha.ComputeHash($Bytes))).Replace('-', '').ToLowerInvariant()
+              }
+              finally {
+                $sha.Dispose()
+              }
+            }
+
+            foreach ($provenanceError in @($result.Errors)) {
+              if ([string]$provenanceError -notmatch '^INVENTORY:HASH_MISMATCH:(?<path>.+)$') { continue }
+              $relative = [string]$Matches['path']
+              $manifestLine = @($manifestLines | Where-Object { $_ -match ('^[0-9a-fA-F]{64}  ' + [regex]::Escape($relative) + '$') })
+              if ($manifestLine.Count -ne 1) {
+                Write-Host "FIXTURE_HASH_DIAGNOSTIC PATH=$relative MANIFEST_MATCH_COUNT=$($manifestLine.Count)"
+                continue
+              }
+
+              $expected = ([string]$manifestLine[0]).Substring(0, 64).ToLowerInvariant()
+              $fullPath = Join-Path $fixtureRoot ($relative.Replace('/', [IO.Path]::DirectorySeparatorChar))
+              $rawBytes = [IO.File]::ReadAllBytes($fullPath)
+              $hasBom = $rawBytes.Length -ge 3 -and $rawBytes[0] -eq 0xEF -and $rawBytes[1] -eq 0xBB -and $rawBytes[2] -eq 0xBF
+              $offset = 0
+              if ($hasBom) { $offset = 3 }
+              $text = [Text.Encoding]::UTF8.GetString($rawBytes, $offset, $rawBytes.Length - $offset)
+              $lfText = ($text -replace "`r`n", "`n") -replace "`r", "`n"
+              $crlfText = $lfText -replace "`n", "`r`n"
+              $utf8NoBom = New-Object Text.UTF8Encoding($false)
+              [byte[]]$lfBytes = $utf8NoBom.GetBytes($lfText)
+              [byte[]]$crlfBytes = $utf8NoBom.GetBytes($crlfText)
+              if ($hasBom) {
+                [byte[]]$bom = @(0xEF, 0xBB, 0xBF)
+                [byte[]]$lfBytes = @($bom + $lfBytes)
+                [byte[]]$crlfBytes = @($bom + $crlfBytes)
+              }
+
+              $rawHash = Get-DiagnosticSha256 $rawBytes
+              $lfHash = Get-DiagnosticSha256 $lfBytes
+              $crlfHash = Get-DiagnosticSha256 $crlfBytes
+              Write-Host "FIXTURE_HASH_DIAGNOSTIC PATH=$relative EXPECTED=$expected WORKTREE_RAW=$rawHash NORMALIZED_LF=$lfHash NORMALIZED_CRLF=$crlfHash UTF8_BOM=$hasBom"
+            }
+
+            throw "Sanitized fixture provenance failed: $($result.FailureClass)"
+          }
+          $eolPaths = @($result.EolReconciledPaths) -join ','
+          Write-Host "FIXTURE_PROVENANCE_RESULT=PASS TREE=$($result.FixtureGitTreeSha) ENTRIES=$($result.EntryCount) FILES=$($result.ActualFileCount) VERIFIED=$($result.VerifiedCount) HASH_SEMANTICS=SANITIZED_IMPORT_BYTES_WITH_EXPLICIT_GIT_EOL_RECONCILIATION EOL_RECONCILED=$($result.EolReconciledCount) EOL_PATHS=$eolPaths"
+
+      - name: Run Pester DEEP provenance regressions
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Import-Module Pester -RequiredVersion 5.9.0 -Force -ErrorAction Stop
+          $testPath = Join-Path $env:GITHUB_WORKSPACE '.pncc-dev\pester-deep'
+          $result = Invoke-Pester -Path $testPath -PassThru -Output Detailed
+          if ($result.FailedCount -gt 0) {
+            throw "DEEP Pester failures: $($result.FailedCount)"
+          }
+          if ($result.TotalCount -lt 12) {
+            throw "DEEP Pester test-count floor violated: expected >=12, got $($result.TotalCount)"
+          }
+          Write-Host "DEEP_PESTER_RESULT=PASS TOTAL=$($result.TotalCount) PASSED=$($result.PassedCount) FAILED=$($result.FailedCount)"
