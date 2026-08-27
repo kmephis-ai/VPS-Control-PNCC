@@ -95,20 +95,9 @@ jobs:
       - name: Enforce new-source PuTTY password transport
         shell: python
         run: |
-          from pathlib import Path
-          import re, subprocess, sys
-          bad = []
-          literal_pw = re.compile(r"(?i)(['\"])\-pw\1")
-          for raw in subprocess.check_output(["git", "ls-files", "*.ps1", "*.psm1"], text=True).splitlines():
-              p = Path(raw)
-              if "legacy" in p.parts:
-                  continue
-              text = p.read_text(encoding="utf-8-sig")
-              if literal_pw.search(text):
-                  bad.append(raw)
-          if bad:
-              raise SystemExit("Plaintext PuTTY -pw token is forbidden in new product source:\n" + "\n".join(bad))
-          print("New-source PuTTY transport contract PASS.")
+          import subprocess
+          subprocess.run(["python", ".pncc-dev/scripts/check_putty_password_transport.py", "--repository-root", "."], check=True)
+          print("New-source PuTTY executable-argv transport contract PASS.")
 
   powershell-static:
     name: powershell-static
