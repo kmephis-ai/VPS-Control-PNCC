@@ -1,0 +1,63 @@
+name: candidate-build-input-readiness
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  candidate-build-input-readiness:
+    name: candidate-build-input-readiness
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Compile readiness evaluator and regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile .pncc-dev/scripts/evaluate_candidate_build_input.py .pncc-dev/tests/test_candidate_build_input.py
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          path = Path('.pncc-dev/contracts/candidate-build-input-policy.json')
+          json.loads(path.read_text(encoding='utf-8-sig'))
+          print(f'JSON_PARSE=PASS PATH={path}')
+          PY
+
+      - name: Run build-input readiness regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s .pncc-dev/tests -p 'test_candidate_build_input.py' -v
+
+      - name: Prove current repository is explicitly blocked
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .pncc-dev/scripts/evaluate_candidate_build_input.py --repository-root . --expect-state BLOCKED_MISSING_SOURCE_DECLARATION
+
+      - name: Prove future builder guard fails closed
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          output="$(python .pncc-dev/scripts/evaluate_candidate_build_input.py --repository-root . --require-ready 2>&1)"
+          code=$?
+          set -e
+          printf '%s\n' "$output"
+          if [ "$code" -ne 3 ]; then
+            echo "Expected --require-ready to exit 3 while canonical product source is absent; got $code" >&2
+            exit 1
+          fi
+          printf '%s\n' "$output" | grep -F 'CANDIDATE_BUILD_INPUT_STATE=BLOCKED_MISSING_SOURCE_DECLARATION'
+          printf '%s\n' "$output" | grep -F 'CANDIDATE_BUILD_BLOCKED state=BLOCKED_MISSING_SOURCE_DECLARATION'
+          echo 'CANDIDATE_BUILD_GUARD=PASS EXPECTED_STATE=BLOCKED_MISSING_SOURCE_DECLARATION CAN_BUILD=false'
