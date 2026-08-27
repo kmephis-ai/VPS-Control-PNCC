@@ -2,7 +2,7 @@
 
 Status: Wave 2 implementation contract.
 
-Tracking: #6. Completed units: #19 (`PIPE-WU-003`), #21 (`PIPE-WU-004`), #23 (`PIPE-WU-005`). Active unit: #25 (`PIPE-WU-006`).
+Tracking: #6. Completed units: #19 (`PIPE-WU-003`), #21 (`PIPE-WU-004`), #23 (`PIPE-WU-005`), #25 (`PIPE-WU-006`). Active unit: #27 (`PIPE-WU-007`).
 
 ## Purpose
 
@@ -21,13 +21,13 @@ Dependencies are intentionally fail-closed and version-pinned to modules already
 
 The workflow does not install packages or float to a newer module version. If the runner image no longer provides the pinned version, the gate blocks until an explicit reviewed dependency update is made.
 
-`quality-fast` analyzes all `.pncc-dev/quality` modules for PSScriptAnalyzer Error/Warning findings and runs the complete `.pncc-dev/pester` suite with a monotonic floor of **35 tests**.
+`quality-fast` analyzes all `.pncc-dev/quality` modules for PSScriptAnalyzer Error/Warning findings and runs the complete `.pncc-dev/pester` suite with a monotonic floor of **54 tests**.
 
 FAST is for low-latency behavioral feedback. Tests requiring a complete fixture inventory/provenance walk belong in DEEP rather than being silently added to the FAST count.
 
 ## DEEP quality baseline
 
-`PIPE-WU-006` introduces an isolated `quality-deep` workflow on GitHub-hosted Windows infrastructure. DEEP uses Windows PowerShell 5.1 and pinned Pester 5.9.0, but executes only `.pncc-dev/pester-deep` plus the explicit sanitized-fixture provenance verification.
+`PIPE-WU-006` established an isolated `quality-deep` workflow on GitHub-hosted Windows infrastructure. DEEP uses Windows PowerShell 5.1 and pinned Pester 5.9.0, but executes only `.pncc-dev/pester-deep` plus the explicit sanitized-fixture provenance verification.
 
 The DEEP layer is deterministic and secret-free. It does not execute a live SSH tunnel, Proxifier, DPAPI store, host-key store, VPS, Keenetic or owner Windows node.
 
@@ -111,10 +111,39 @@ The suite also checks source ordering in the sanitized tunnel manager: trusted h
 
 These are engineering regression claims only. They do not prove that a real tunnel, host key, DPAPI store, process ACL or network identity behaves correctly on a physical Windows node.
 
+## Process identity and dirty-baseline evidence
+
+`PIPE-WU-007` introduces a pure engineering-control-plane process identity/baseline contract for future validator, harness and runtime-qualification consumers. The machine-readable contract is `.pncc-dev/contracts/process-identity-baseline.json`; the reusable PowerShell 5.1 classifier is `.pncc-dev/quality/PNCC.ProcessIdentity.psm1`.
+
+The fundamental rule is: **PID alone is never ownership proof**.
+
+Exact PID ownership evidence requires all of the following to agree:
+
+- positive process ID;
+- process name;
+- normalized executable path;
+- required command-line identity markers;
+- process creation identity/time.
+
+The classifier therefore treats a reused PID, foreign executable/name/command identity, duplicate PID observation, or incomplete/contradictory metadata as non-owned. Missing or ambiguous evidence cannot silently become cleanup permission.
+
+Ownership states are `OWNED`, `FOREIGN`, `NOT_RUNNING`, and `BLOCKED_AMBIGUOUS`. Baseline states are `CLEAN`, `DIRTY_OWNED`, `DIRTY_FOREIGN`, and `BLOCKED_AMBIGUOUS`.
+
+Cleanup authority is fail-closed:
+
+- an entirely owned baseline may yield `OWNED_PROCESS_ONLY` for the explicitly identified managed processes;
+- any foreign or ambiguous managed-process evidence yields `NONE`;
+- a mixed owned + foreign or owned + ambiguous baseline yields `NONE`;
+- no function in this engineering module starts, stops, kills or otherwise mutates a real process.
+
+The FAST regressions use synthetic objects only. They cover exact identity, PID absence, PID reuse, path/name/command mismatch, incomplete metadata, PID-only expected evidence, duplicate observations, clean baseline, dirty-owned baseline, dirty-foreign baseline, ambiguous baseline and mixed-baseline fail-closed behavior.
+
+This contract is evidence infrastructure, not runtime qualification. It does not prove ownership of any real watchdog, Proxifier, PuTTY or PowerShell process on an owner Windows node and does not itself authorize cleanup there.
+
 ## Execution-plane boundary
 
 FAST and DEEP both run on GitHub-hosted infrastructure. The private Windows runtime node is not a CI runner. Tests requiring real Proxifier, SSH tunnel, DPAPI, host-key, network exit identity or physical process lifecycle evidence remain runtime qualification work and cannot be inferred from either hosted quality layer.
 
 ## Next maturity steps
 
-After `PIPE-WU-006` is protected-merge and post-merge verified, reassess whether Wave 2 has enough deterministic coverage to close the remaining process-ownership/dirty-baseline/watchdog/cleanup regression domains or whether the next smallest unit should prepare the Wave 3 candidate-manifest boundary. Provider and runtime truth decide; roadmap text alone does not.
+After `PIPE-WU-007` is protected-merge and post-merge verified, reassess the remaining Wave 2 gap around watchdog lifecycle and Proxifier cleanup/resource-leak evidence. If the remaining behavior cannot be meaningfully proven without a trusted physical Windows runtime, stop expanding hosted simulation and move the next smallest Work Unit to the Wave 3 candidate-artifact boundary. Provider and runtime truth decide; roadmap text alone does not.
