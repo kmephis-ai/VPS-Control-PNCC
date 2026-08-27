@@ -1,0 +1,93 @@
+{
+  "SchemaVersion": 1,
+  "ContractVersion": "7.0.0-rc14.38",
+  "DefaultRoutingTunnelId": "PRIMARY_AUTO",
+  "AutomaticRouteFailoverToReserve": false,
+  "AllCurrentAndFutureCapabilitiesApplyToBothTunnels": true,
+  "Tunnels": [
+    {
+      "Id": "PRIMARY_AUTO",
+      "DisplayName": "Основной AUTO",
+      "Host": "127.0.0.1",
+      "Port": 1081,
+      "ProxyId": 100,
+      "LifecycleMode": "AUTO",
+      "Required": true,
+      "RoutingEligible": true,
+      "ManualStart": true,
+      "ManualStop": true,
+      "AutoStart": true,
+      "AutoRecovery": true,
+      "AutoStop": false
+    },
+    {
+      "Id": "RESERVE_MANUAL",
+      "DisplayName": "Резервный ручной",
+      "Host": "127.0.0.1",
+      "Port": 1080,
+      "ProxyId": 101,
+      "LifecycleMode": "MANUAL_ONLY",
+      "Required": false,
+      "RoutingEligible": true,
+      "ManualStart": true,
+      "ManualStop": true,
+      "AutoStart": false,
+      "AutoRecovery": false,
+      "AutoStop": false
+    }
+  ],
+  "Invariants": {
+    "ReserveManualMayBeOff": true,
+    "ReserveMustNeverBeStartedAutomatically": true,
+    "ReserveMustNeverBeStoppedAutomatically": true,
+    "ReserveMustNeverBeRecoveredAutomatically": true,
+    "PrimaryAutomaticLifecycleMustNotMutateReserve": true,
+    "DiagnosticsTelemetryHistoryEvidenceMustIncludeBoth": true,
+    "FutureCapabilitiesDefaultScope": "BOTH_UNLESS_EXPLICIT_LIFECYCLE_EXCEPTION"
+  },
+  "ReserveManualOwnershipPolicy": {
+    "ExternallyStartedReserveMayBeAdopted": true,
+    "AcceptedOwnershipModes": [
+      "VCC_MANUAL_EXPLICIT",
+      "USER_MANUAL_SAVEDSESSION",
+      "USER_MANUAL_EXTERNAL_VERIFIED"
+    ],
+    "RouteSelectionRequiresExpectedIdentity": true,
+    "ManualStopRequiresProvenReserveOwnership": true,
+    "AutomaticLifecycleRemainsForbidden": true,
+    "AdoptionNeverTransfersAutomaticLifecycleAuthority": true
+  },
+  "ManagedPuttyHostKeyTrust": {
+    "Mode": "PORTABLE_TRUST_TO_OFFICIAL_REGISTRY",
+    "Source": "ACTIVE_VPS_PORTABLE_SshHostKeys",
+    "Destination": "HKCU\\Software\\SimonTatham\\PuTTY\\SshHostKeys",
+    "TargetScope": "ACTIVE_VPS_HOST_AND_SSH_PORT_ONLY",
+    "MissingPortableTrust": "FAIL_CLOSED",
+    "RegistryConflict": "FAIL_CLOSED_NO_OVERWRITE",
+    "ExistingIdenticalRegistryValue": "PASS",
+    "RegistryWriteAllowed": true,
+    "UnknownHostKeyAcceptanceAllowed": false,
+    "HostKeyVerificationDisableAllowed": false,
+    "PowerShell51ParserSafeImplementation": true,
+    "ParserForensicFix": "RC14.33_EXPLICIT_HOST_PORT_VARIABLES"
+  },
+  "CredentialTransport": {
+    "AtRest": "DPAPI",
+    "PuttyArgument": "-pwfile",
+    "PlaintextPwArgumentAllowed": false,
+    "TemporaryRoot": "%LOCALAPPDATA%\\VPS-Control-v6.3\\secure-credentials",
+    "CloudSyncedTemporaryStorageAllowed": false,
+    "AclApplication": "FILE_SECURITY_AT_CREATION",
+    "SetAclPostCreationAllowed": false,
+    "SetOwnerRequired": false,
+    "RequiredAccessSids": [
+      "CURRENT_USER",
+      "SYSTEM"
+    ],
+    "InheritanceDisabled": true,
+    "DeleteAfterTunnelIdentityGate": true,
+    "SecureStringConstruction": "APPEND_CHAR_MAKE_READ_ONLY",
+    "ConvertToSecureStringAsPlainTextAllowed": false,
+    "EncryptedStorage": "CONVERT_FROM_SECURESTRING_DPAPI_COMPATIBLE"
+  }
+}
