@@ -1,0 +1,67 @@
+name: runtime-stage-a
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  runtime-stage-a:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: PowerShell 5.1 parse and BOM preflight
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $path='tools/runtime-agent/Invoke-PnccRuntimeQualificationStageA.ps1'
+          $bytes=[IO.File]::ReadAllBytes((Resolve-Path $path))
+          if($bytes.Length -lt 3 -or $bytes[0]-ne 0xEF -or $bytes[1]-ne 0xBB -or $bytes[2]-ne 0xBF){ throw 'UTF8 BOM required' }
+          $tokens=$null;$errors=$null
+          [Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path),[ref]$tokens,[ref]$errors)|Out-Null
+          if(@($errors).Count){$errors|ForEach-Object{Write-Error $_};exit 1}
+          'RUNTIME_STAGE_A_PARSE=PASS PS51=true'
+
+      - name: Assert Stage-A contains no lifecycle mutation primitive
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $text=Get-Content tools/runtime-agent/Invoke-PnccRuntimeQualificationStageA.ps1 -Raw
+          foreach($forbidden in @('Stop-Process','Start-Process','Restart-Service','Stop-Service','Start-Service','taskkill','netsh interface','Remove-Process')){if($text -match [regex]::Escape($forbidden)){throw "forbidden lifecycle primitive: $forbidden"}}
+          if($text -notmatch 'RUNTIME_MUTATION=false'){throw 'non-mutation telemetry missing'}
+          if($text -notmatch "'WATCHDOG_LIFECYCLE' 'NOT_EXECUTED'"){throw 'watchdog must remain not executed'}
+          if($text -notmatch "'PROXIFIER_DESCENDANT_CLEANUP' 'NOT_EXECUTED'"){throw 'proxifier cleanup must remain not executed'}
+          if($text -notmatch "'CREDENTIAL_HOSTKEY' 'NOT_EXECUTED'"){throw 'credential-hostkey must remain not executed in Stage A'}
+
+      - name: Execute fixture and validate partial result
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $workspace=Join-Path $env:RUNNER_TEMP 'stage-a-workspace'
+          $out=Join-Path $env:RUNNER_TEMP 'stage-a-out'
+          New-Item -ItemType Directory -Force -Path $workspace,$out|Out-Null
+          & ./tools/runtime-agent/Invoke-PnccRuntimeQualificationStageA.ps1 -WorkspacePath $workspace -OutputDirectory $out -Mode Fixture -FixturePath ./.pncc-dev/tests/runtime-stage-a-ready.fixture.json
+          if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
+          $r=Get-Content (Join-Path $out 'runtime-qualification-stage-a-result.json') -Raw|ConvertFrom-Json
+          if($r.qualification_state -ne 'BLOCKED'){throw 'Stage A must remain BLOCKED until lifecycle scopes execute'}
+          if($r.runtime_authority -or $r.promotion_eligible){throw 'Stage A cannot grant authority'}
+          $notExecuted=@($r.checks|Where-Object{$_.result -eq 'NOT_EXECUTED'})
+          if($notExecuted.Count -ne 3){throw "expected 3 NOT_EXECUTED scopes, got $($notExecuted.Count)"}
+          $failed=@($r.checks|Where-Object{$_.result -eq 'FAIL'})
+          if($failed.Count -ne 0){throw 'ready fixture unexpectedly failed'}
+          if((Get-FileHash (Join-Path $out 'stage-a-evidence.json') -Algorithm SHA256).Hash.ToLowerInvariant() -ne [string]$r.evidence_bundle.sha256){throw 'evidence hash mismatch'}
+          'RUNTIME_STAGE_A_FIXTURE=PASS BLOCKED_BY_DESIGN=true RUNTIME_AUTHORITY=false'
+
+      - name: Assert repository remains clean
+        shell: powershell
+        run: |
+          if(git status --porcelain --untracked-files=all){git status --short;throw 'repository became dirty'}
