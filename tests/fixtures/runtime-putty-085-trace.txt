@@ -1,0 +1,4 @@
+2026-08-28 00:40:35.023  [CREDENTIAL]  source=V7-DPAPI; decrypt=PASS; value=<redacted>
+2026-08-28 00:40:35.069  [SESSION_METADATA]  name=AdminVPS; source=PORTABLE; format=REG_OR_INI; found=true
+2026-08-28 00:40:35.132  [HOSTKEY_TRUST]  PASS imported=true source=portable
+2026-08-28 00:40:35.202  [PUTTY_START]  ABORT pwfile-unsupported
