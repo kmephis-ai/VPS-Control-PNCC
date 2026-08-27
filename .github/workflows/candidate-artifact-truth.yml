@@ -29,7 +29,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m py_compile .pncc-dev/scripts/validate_candidate_manifest.py .pncc-dev/tests/test_candidate_manifest.py
+          python -m py_compile \
+            .pncc-dev/scripts/validate_candidate_manifest.py \
+            .pncc-dev/scripts/validate_governed_candidate_manifest.py \
+            .pncc-dev/tests/test_candidate_manifest.py \
+            .pncc-dev/tests/test_governed_candidate_manifest.py
           python - <<'PY'
           import json
           from pathlib import Path
@@ -45,7 +49,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m unittest discover -s .pncc-dev/tests -p 'test_candidate_manifest.py' -v
+          python -m unittest discover -s .pncc-dev/tests -p 'test_*candidate_manifest.py' -v
 
       - name: Validate synthetic non-runtime candidate fixture
         shell: bash
