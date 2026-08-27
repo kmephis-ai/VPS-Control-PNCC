@@ -125,13 +125,19 @@ This deferral is not a PASS claim for physical lifecycle behavior.
 
 Bind every future runtime-qualified candidate to an exact source revision and deterministic artifact identity before trusted runtime qualification begins.
 
+### Completed Work Units
+
+- #29 — `PIPE-WU-008`: Candidate Artifact Truth Contract Foundation; protected squash merge/main `a39369f005086c5ef209c392032a435096265542`, fresh post-merge verification on all eight then-current hosted contexts, manifest regressions `21/21 PASS`, synthetic fixture remains `RUNTIME=NOT_VERIFIED` and non-promotable.
+
 ### Active Work Unit
 
-#29 — `PIPE-WU-008 — Candidate Artifact Truth Contract Foundation`.
+#31 — `PIPE-WU-009 — Candidate Build Input Readiness Boundary`.
 
-Exact base: `90a95b812eecdd72a4f1bbd9b638414e90baf6df`.
+Exact base: `a39369f005086c5ef209c392032a435096265542`.
 
-The Work Unit establishes the manifest/schema/validator/evidence contract only. It does not build RC14.39, does not create a deployable artifact and does not treat the public sanitized RC14.38 fixture as a runtime candidate.
+Source-truth discovery after WU-008 proved that the repository has no governed non-legacy product source declaration and no admitted candidate build recipe. Product-like historical source remains only under `legacy/v7-rc14.38-sanitized/`, which is migration/regression material and cannot be used as `RUNTIME_CANDIDATE` authority.
+
+WU-009 therefore creates a machine-readable fail-closed readiness boundary before any future builder may execute. It does not build RC14.39, does not create a deployable artifact, does not mutate product/legacy source and does not claim runtime qualification.
 
 ### Contract foundation
 
@@ -156,21 +162,48 @@ provenance.runtime_authority = false
 
 The synthetic example is explicitly `SYNTHETIC_TEST_FIXTURE`. A future `RUNTIME_CANDIDATE` must use exact source/build-output semantics; sanitized RC14.38 source identity/path is rejected.
 
-### Current core evidence
+### Build-input readiness semantics
 
-On executable-core HEAD `f2ed1bd0179544cf4bffe92a002422406a7007a9`:
+WU-009 adds:
 
-- new `candidate-artifact-truth` hosted gate SUCCESS;
-- validator regression suite: 21/21 PASS;
-- synthetic manifest validates with `RUNTIME=NOT_VERIFIED` and `PROMOTION_ELIGIBLE=false`;
-- all pre-existing hosted quality/truth/pipeline contexts remain SUCCESS.
+- `.pncc-dev/contracts/candidate-build-input-policy.json`;
+- `.pncc-dev/scripts/evaluate_candidate_build_input.py`;
+- `.pncc-dev/tests/test_candidate_build_input.py`;
+- `.github/workflows/candidate-build-input-readiness.yml`.
 
-This core evidence is not the final Work Unit evidence; protected merge and exact post-merge certification remain required.
+Current repository truth must be represented explicitly as:
+
+```text
+CANDIDATE_BUILD_INPUT_STATE=BLOCKED_MISSING_SOURCE_DECLARATION
+CAN_BUILD=false
+RUNTIME_AUTHORITY=false
+PROMOTION_AUTHORITY=false
+```
+
+A future `READY` result requires all declared product source/build inputs to be safe relative paths, Git-tracked, clean against exact HEAD, outside forbidden `legacy/`/docs/CI planes and under governed `src/` + `build/` prefixes. The separate `--require-ready` guard exits nonzero for every blocked state.
+
+A green readiness workflow proves only that classification and fail-closed guarding are correct. It does not mean a candidate is build-ready.
+
+### Current WU-009 executable evidence
+
+On exact head `7a80e9bb5dbe1e427c7c7278c7953b1d52adae7e` after correcting the PR checkout to the exact head SHA:
+
+- all nine hosted contexts reached SUCCESS;
+- readiness regressions: `18/18 PASS`;
+- exact checkout/evaluator subject SHA: `7a80e9bb5dbe1e427c7c7278c7953b1d52adae7e`;
+- current state: `BLOCKED_MISSING_SOURCE_DECLARATION`;
+- `CAN_BUILD=false`;
+- `RUNTIME_AUTHORITY=false`;
+- `PROMOTION_AUTHORITY=false`;
+- `--require-ready` returned the expected blocked exit path and the workflow treated that as proof of fail-closed behavior, not build readiness.
+
+Documentation/roadmap reconciliation changes the final candidate HEAD, so full final-head and post-merge verification remain required before WU-009 can be `DONE`.
 
 ### Deliverables across Wave 3
 
 - candidate-manifest contract and semantic validator;
-- candidate builder once exact governed non-sanitized build inputs exist;
+- explicit candidate build-input readiness boundary;
+- candidate builder only after exact governed non-sanitized build inputs reach `READY`;
 - deterministic artifact SHA-256 and size capture;
 - exact source commit identity;
 - engineering test summary bound to source SHA;
@@ -184,12 +217,13 @@ This core evidence is not the final Work Unit evidence; protected merge and exac
 - candidate references exact source SHA and CI/build identity;
 - rebuilt/replaced artifacts cannot silently inherit prior runtime evidence;
 - public sanitized fixture cannot be elevated into runtime candidate authority;
+- candidate builder cannot run while build-input readiness is blocked;
 - promotion decisions are traceable to exact candidate identity;
 - hosted candidate creation cannot claim runtime verification.
 
 ### State
 
-`ACTIVE / CONTRACT_FOUNDATION`
+`ACTIVE / BUILD_INPUT_READINESS`
 
 ---
 
@@ -298,6 +332,7 @@ L6 Human-by-Exception          ← Wave 6 target
 - Do not manufacture runtime evidence from hosted simulation.
 - Do not build a runtime candidate from the sanitized RC14.38 fixture.
 - Do not conflate candidate identity with runtime qualification.
+- Do not let a green readiness workflow imply build readiness when `CAN_BUILD=false`.
 - Do not weaken fixed tunnel, credential, host-key or V6.3.1 contracts.
 - Prefer generic capabilities upstream in ADWF and PNCC-specific policy/tests in this repository.
 - Reassess the roadmap at natural boundaries using fresh provider/runtime truth.
