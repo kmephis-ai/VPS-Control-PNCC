@@ -29,17 +29,27 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
 
-      - name: Compile deterministic builder contracts
+      - name: Compile deterministic builder contracts without filesystem side effects
         shell: bash
         run: |
           set -euo pipefail
-          python -m py_compile \
-            build/build_candidate.py \
-            build/verify_candidate_reproducibility.py \
-            .pncc-dev/scripts/collect_engineering_checks.py \
-            .pncc-dev/scripts/generate_candidate_manifest.py \
-            .pncc-dev/scripts/validate_governed_candidate_manifest.py \
-            .pncc-dev/tests/test_governed_candidate_manifest.py
+          python - <<'PY'
+          from pathlib import Path
+          paths = (
+              'build/build_candidate.py',
+              'build/verify_candidate_reproducibility.py',
+              '.pncc-dev/scripts/collect_engineering_checks.py',
+              '.pncc-dev/scripts/generate_candidate_manifest.py',
+              '.pncc-dev/scripts/validate_governed_candidate_manifest.py',
+              '.pncc-dev/tests/test_governed_candidate_manifest.py',
+          )
+          for raw in paths:
+              path = Path(raw)
+              compile(path.read_text(encoding='utf-8-sig'), str(path), 'exec')
+              print(f'PY_COMPILE=PASS PATH={path}')
+          PY
+          test -z "$(git status --porcelain --untracked-files=all)"
+          echo 'REPOSITORY_CLEAN_AFTER_COMPILE=PASS'
 
       - name: Prove exact build inputs are READY
         shell: bash
@@ -52,6 +62,7 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf "${RUNNER_TEMP}/pncc-build-a" "${RUNNER_TEMP}/pncc-build-b" "${RUNNER_TEMP}/pncc-repro"
+          test -z "$(git status --porcelain --untracked-files=all)"
           python build/build_candidate.py --repository-root . --output-dir "${RUNNER_TEMP}/pncc-build-a"
           python build/build_candidate.py --repository-root . --output-dir "${RUNNER_TEMP}/pncc-build-b"
           python build/verify_candidate_reproducibility.py \
@@ -102,6 +113,7 @@ jobs:
           test "${GITHUB_REF}" = "refs/heads/main"
           test "${GITHUB_EVENT_NAME}" = "push"
           test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test -z "$(git status --porcelain --untracked-files=all)"
           python .pncc-dev/scripts/evaluate_candidate_build_input.py --repository-root . --require-ready
 
       - name: Build protected-main candidate independently twice
