@@ -124,7 +124,7 @@ function Test-PnccManagedRule {
     return $true
 }
 
-function New-PnccProcessEvidenceResult {
+function ConvertTo-PnccProcessEvidenceResult {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
@@ -166,7 +166,7 @@ function Resolve-PnccPidOwnership {
     )
 
     if (-not (Test-PnccExpectedIdentity -Identity $ExpectedIdentity)) {
-        return New-PnccProcessEvidenceResult -Status 'BLOCKED_AMBIGUOUS' -CleanupAuthority 'NONE' -Reason 'EXPECTED_IDENTITY_INCOMPLETE' -AmbiguousCount 1
+        return ConvertTo-PnccProcessEvidenceResult -Status 'BLOCKED_AMBIGUOUS' -CleanupAuthority 'NONE' -Reason 'EXPECTED_IDENTITY_INCOMPLETE' -AmbiguousCount 1
     }
 
     $expectedProcessId = [int](Get-PnccPropertyValue -InputObject $ExpectedIdentity -Name 'ProcessId')
@@ -177,42 +177,42 @@ function Resolve-PnccPidOwnership {
     })
 
     if ($matching.Count -eq 0) {
-        return New-PnccProcessEvidenceResult -Status 'NOT_RUNNING' -CleanupAuthority 'NONE' -Reason 'PID_NOT_PRESENT'
+        return ConvertTo-PnccProcessEvidenceResult -Status 'NOT_RUNNING' -CleanupAuthority 'NONE' -Reason 'PID_NOT_PRESENT'
     }
     if ($matching.Count -ne 1) {
-        return New-PnccProcessEvidenceResult -Status 'BLOCKED_AMBIGUOUS' -CleanupAuthority 'NONE' -Reason 'DUPLICATE_PID_OBSERVATION' -RelevantCount $matching.Count -AmbiguousCount $matching.Count
+        return ConvertTo-PnccProcessEvidenceResult -Status 'BLOCKED_AMBIGUOUS' -CleanupAuthority 'NONE' -Reason 'DUPLICATE_PID_OBSERVATION' -RelevantCount $matching.Count -AmbiguousCount $matching.Count
     }
 
     $observed = $matching[0]
     if (-not (Test-PnccObservedIdentity -Identity $observed)) {
-        return New-PnccProcessEvidenceResult -Status 'BLOCKED_AMBIGUOUS' -CleanupAuthority 'NONE' -Reason 'OBSERVED_IDENTITY_INCOMPLETE' -RelevantCount 1 -AmbiguousCount 1
+        return ConvertTo-PnccProcessEvidenceResult -Status 'BLOCKED_AMBIGUOUS' -CleanupAuthority 'NONE' -Reason 'OBSERVED_IDENTITY_INCOMPLETE' -RelevantCount 1 -AmbiguousCount 1
     }
 
     $expectedName = [string](Get-PnccPropertyValue -InputObject $ExpectedIdentity -Name 'ProcessName')
     $observedName = [string](Get-PnccPropertyValue -InputObject $observed -Name 'ProcessName')
     if (-not [string]::Equals($expectedName, $observedName, [StringComparison]::OrdinalIgnoreCase)) {
-        return New-PnccProcessEvidenceResult -Status 'FOREIGN' -CleanupAuthority 'NONE' -Reason 'PROCESS_NAME_MISMATCH' -RelevantCount 1 -ForeignCount 1
+        return ConvertTo-PnccProcessEvidenceResult -Status 'FOREIGN' -CleanupAuthority 'NONE' -Reason 'PROCESS_NAME_MISMATCH' -RelevantCount 1 -ForeignCount 1
     }
 
     $expectedPath = ConvertTo-PnccPathKey (Get-PnccPropertyValue -InputObject $ExpectedIdentity -Name 'ExecutablePath')
     $observedPath = ConvertTo-PnccPathKey (Get-PnccPropertyValue -InputObject $observed -Name 'ExecutablePath')
     if ($expectedPath -ne $observedPath) {
-        return New-PnccProcessEvidenceResult -Status 'FOREIGN' -CleanupAuthority 'NONE' -Reason 'EXECUTABLE_PATH_MISMATCH' -RelevantCount 1 -ForeignCount 1
+        return ConvertTo-PnccProcessEvidenceResult -Status 'FOREIGN' -CleanupAuthority 'NONE' -Reason 'EXECUTABLE_PATH_MISMATCH' -RelevantCount 1 -ForeignCount 1
     }
 
     $expectedCreationTick = ConvertTo-PnccUtcTick (Get-PnccPropertyValue -InputObject $ExpectedIdentity -Name 'CreationTimeUtc')
     $observedCreationTick = ConvertTo-PnccUtcTick (Get-PnccPropertyValue -InputObject $observed -Name 'CreationTimeUtc')
     if ($expectedCreationTick -ne $observedCreationTick) {
-        return New-PnccProcessEvidenceResult -Status 'FOREIGN' -CleanupAuthority 'NONE' -Reason 'PID_REUSED' -RelevantCount 1 -ForeignCount 1
+        return ConvertTo-PnccProcessEvidenceResult -Status 'FOREIGN' -CleanupAuthority 'NONE' -Reason 'PID_REUSED' -RelevantCount 1 -ForeignCount 1
     }
 
     $markers = @(Get-PnccPropertyValue -InputObject $ExpectedIdentity -Name 'CommandLineMarkers')
     $observedCommandLine = Get-PnccPropertyValue -InputObject $observed -Name 'CommandLine'
     if (-not (Test-PnccCommandMarker -Text $observedCommandLine -Markers $markers)) {
-        return New-PnccProcessEvidenceResult -Status 'FOREIGN' -CleanupAuthority 'NONE' -Reason 'COMMAND_LINE_MISMATCH' -RelevantCount 1 -ForeignCount 1
+        return ConvertTo-PnccProcessEvidenceResult -Status 'FOREIGN' -CleanupAuthority 'NONE' -Reason 'COMMAND_LINE_MISMATCH' -RelevantCount 1 -ForeignCount 1
     }
 
-    return New-PnccProcessEvidenceResult -Status 'OWNED' -CleanupAuthority 'OWNED_PROCESS_ONLY' -Reason 'EXACT_IDENTITY_MATCH' -RelevantCount 1 -OwnedCount 1 -OwnedProcessIds @($expectedProcessId)
+    return ConvertTo-PnccProcessEvidenceResult -Status 'OWNED' -CleanupAuthority 'OWNED_PROCESS_ONLY' -Reason 'EXACT_IDENTITY_MATCH' -RelevantCount 1 -OwnedCount 1 -OwnedProcessIds @($expectedProcessId)
 }
 
 function Test-PnccProcessBaseline {
@@ -223,12 +223,12 @@ function Test-PnccProcessBaseline {
     )
 
     if ($ManagedRules.Count -eq 0) {
-        return New-PnccProcessEvidenceResult -Status 'BLOCKED_AMBIGUOUS' -CleanupAuthority 'NONE' -Reason 'MANAGED_RULE_SET_EMPTY' -AmbiguousCount 1
+        return ConvertTo-PnccProcessEvidenceResult -Status 'BLOCKED_AMBIGUOUS' -CleanupAuthority 'NONE' -Reason 'MANAGED_RULE_SET_EMPTY' -AmbiguousCount 1
     }
 
     foreach ($rule in $ManagedRules) {
         if (-not (Test-PnccManagedRule -Rule $rule)) {
-            return New-PnccProcessEvidenceResult -Status 'BLOCKED_AMBIGUOUS' -CleanupAuthority 'NONE' -Reason 'MANAGED_RULE_INCOMPLETE' -AmbiguousCount 1
+            return ConvertTo-PnccProcessEvidenceResult -Status 'BLOCKED_AMBIGUOUS' -CleanupAuthority 'NONE' -Reason 'MANAGED_RULE_INCOMPLETE' -AmbiguousCount 1
         }
     }
 
@@ -285,16 +285,16 @@ function Test-PnccProcessBaseline {
     }
 
     if ($ambiguousCount -gt 0) {
-        return New-PnccProcessEvidenceResult -Status 'BLOCKED_AMBIGUOUS' -CleanupAuthority 'NONE' -Reason 'AMBIGUOUS_PROCESS_PRESENT' -RelevantCount $relevantCount -OwnedCount $ownedCount -ForeignCount $foreignCount -AmbiguousCount $ambiguousCount -OwnedProcessIds @($ownedIds)
+        return ConvertTo-PnccProcessEvidenceResult -Status 'BLOCKED_AMBIGUOUS' -CleanupAuthority 'NONE' -Reason 'AMBIGUOUS_PROCESS_PRESENT' -RelevantCount $relevantCount -OwnedCount $ownedCount -ForeignCount $foreignCount -AmbiguousCount $ambiguousCount -OwnedProcessIds @($ownedIds)
     }
     if ($foreignCount -gt 0) {
-        return New-PnccProcessEvidenceResult -Status 'DIRTY_FOREIGN' -CleanupAuthority 'NONE' -Reason 'FOREIGN_PROCESS_PRESENT' -RelevantCount $relevantCount -OwnedCount $ownedCount -ForeignCount $foreignCount -OwnedProcessIds @($ownedIds)
+        return ConvertTo-PnccProcessEvidenceResult -Status 'DIRTY_FOREIGN' -CleanupAuthority 'NONE' -Reason 'FOREIGN_PROCESS_PRESENT' -RelevantCount $relevantCount -OwnedCount $ownedCount -ForeignCount $foreignCount -OwnedProcessIds @($ownedIds)
     }
     if ($ownedCount -gt 0) {
-        return New-PnccProcessEvidenceResult -Status 'DIRTY_OWNED' -CleanupAuthority 'OWNED_PROCESS_ONLY' -Reason 'OWNED_PROCESS_PRESENT' -RelevantCount $relevantCount -OwnedCount $ownedCount -OwnedProcessIds @($ownedIds)
+        return ConvertTo-PnccProcessEvidenceResult -Status 'DIRTY_OWNED' -CleanupAuthority 'OWNED_PROCESS_ONLY' -Reason 'OWNED_PROCESS_PRESENT' -RelevantCount $relevantCount -OwnedCount $ownedCount -OwnedProcessIds @($ownedIds)
     }
 
-    return New-PnccProcessEvidenceResult -Status 'CLEAN' -CleanupAuthority 'NONE' -Reason 'BASELINE_CLEAN'
+    return ConvertTo-PnccProcessEvidenceResult -Status 'CLEAN' -CleanupAuthority 'NONE' -Reason 'BASELINE_CLEAN'
 }
 
 Export-ModuleMember -Function Resolve-PnccPidOwnership, Test-PnccProcessBaseline
