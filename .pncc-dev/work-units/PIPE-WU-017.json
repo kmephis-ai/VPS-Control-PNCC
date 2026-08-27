@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "work_unit_id": "PIPE-WU-017",
+  "title": "Owner Windows Bootstrap + Exact Artifact Acquisition",
+  "state": "ACTIVE",
+  "base_sha": "0e87befcd25164dda39cd1bc90c2774bc29a6d32",
+  "branch": "agent/PIPE-WU-017-owner-bootstrap-a1",
+  "conflict_domain": "owner-runtime-bootstrap",
+  "runtime_required": false,
+  "product_runtime_source_mutation": false,
+  "runtime_mutation_permitted": false,
+  "runtime_authority": false,
+  "promotion_eligible": false
+}
