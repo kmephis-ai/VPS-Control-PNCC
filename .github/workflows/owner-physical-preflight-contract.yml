@@ -18,6 +18,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
+
       - name: PowerShell 5.1 parse and BOM preflight
         shell: powershell
         run: |
@@ -28,12 +29,24 @@ jobs:
           $tokens=$null; $errors=$null
           [Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path),[ref]$tokens,[ref]$errors)|Out-Null
           if($errors.Count){ $errors | % { Write-Error $_ }; exit 1 }
-      - name: Assert physical orchestrator remains non-mutating
-        shell: pwsh
+          'OWNER_PHYSICAL_PREFLIGHT_PARSE=PASS PS51=true'
+
+      - name: Assert physical orchestrator remains non-mutating and pinned to corrected harness
+        shell: powershell
         run: |
+          $ErrorActionPreference='Stop'
           $text=Get-Content tools/runtime-agent/Invoke-PnccOwnerPhysicalPreflight.ps1 -Raw
-          foreach($forbidden in @('Stop-Process','Start-Process','Restart-Service','Stop-Service','Start-Service','taskkill','netsh interface')){ if($text -match [regex]::Escape($forbidden)){ throw "forbidden lifecycle primitive: $forbidden" } }
+          foreach($forbidden in @('Stop-Process','Restart-Service','Stop-Service','Start-Service','taskkill','netsh interface')){ if($text -match [regex]::Escape($forbidden)){ throw "forbidden lifecycle primitive: $forbidden" } }
           if($text -notmatch 'RUNTIME_MUTATION=false'){ throw 'non-mutation assertion missing' }
           if($text -notmatch 'PREFLIGHT_STATE='){ throw 'preflight state telemetry missing' }
-          if($text -notmatch 'd1c2b9001dfd5db9ca81ff60ec3857671f19a56e'){ throw 'exact authoritative repository SHA pin missing' }
+          $pin='010c44db41094c79a6c0df96c95a70a36da868c0'
+          if($text -notmatch $pin){ throw 'corrected exact harness SHA pin missing' }
+          if($text -notmatch 'Invoke-NativeCaptured'){ throw 'PS5.1-safe native capture helper missing' }
+          if($text -match 'powershell\.exe @args 2>&1'){ throw 'unsafe direct child stderr merge still present' }
+          $pinned=git show "$pin`:tools/runtime-agent/Invoke-PnccPrivateRuntimePreflight.ps1"
+          if($LASTEXITCODE -ne 0){ throw 'unable to inspect pinned preflight harness' }
+          $pinnedText=$pinned -join "`n"
+          if($pinnedText -notmatch 'gh auth status 1>\$null 2>\$null'){ throw 'pin does not contain WU-020 gh stderr fix' }
+          if($pinnedText -match '\(if\('){ throw 'pin still contains PS5.1-incompatible inline if expression' }
           if(git status --porcelain --untracked-files=all){ throw 'repository became dirty' }
+          'OWNER_PHYSICAL_PREFLIGHT_PIN=PASS PIN_CONTAINS_WU020_FIX=true'
