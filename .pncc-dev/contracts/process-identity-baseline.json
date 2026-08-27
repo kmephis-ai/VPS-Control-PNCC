@@ -1,0 +1,50 @@
+{
+  "SchemaVersion": 1,
+  "ContractId": "PNCC_PROCESS_IDENTITY_BASELINE_V1",
+  "PidAloneAuthoritative": false,
+  "ExpectedIdentityFields": [
+    "ProcessId",
+    "ProcessName",
+    "ExecutablePath",
+    "CommandLineMarkers",
+    "CreationTimeUtc"
+  ],
+  "ObservedIdentityFields": [
+    "ProcessId",
+    "ProcessName",
+    "ExecutablePath",
+    "CommandLine",
+    "CreationTimeUtc"
+  ],
+  "ManagedRuleFields": [
+    "Role",
+    "ProcessName",
+    "ExecutablePath",
+    "CommandLineMarkers"
+  ],
+  "OwnershipStates": [
+    "OWNED",
+    "FOREIGN",
+    "NOT_RUNNING",
+    "BLOCKED_AMBIGUOUS"
+  ],
+  "BaselineStates": [
+    "CLEAN",
+    "DIRTY_OWNED",
+    "DIRTY_FOREIGN",
+    "BLOCKED_AMBIGUOUS"
+  ],
+  "CleanupAuthorities": [
+    "NONE",
+    "OWNED_PROCESS_ONLY"
+  ],
+  "ForeignOrAmbiguousCleanupAuthority": "NONE",
+  "RuntimeMutationAuthority": false,
+  "Semantics": {
+    "PidReuseDetectionRequiresCreationIdentity": true,
+    "ExecutablePathMatchRequired": true,
+    "CommandLineMarkerMatchRequired": true,
+    "NoProcessMutation": true,
+    "HostedCiIsRuntimeTruth": false
+  }
+}
