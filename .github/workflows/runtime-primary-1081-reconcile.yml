@@ -26,11 +26,10 @@ jobs:
         shell: powershell
         run: |
           $raw=Get-Content 'tools/runtime-agent/Invoke-PnccPrimary1081BaselineReconcile.ps1' -Raw
-          foreach($needle in @("`$ReservePort=1080","`$PrimaryPort=1081","RESERVE_1080_MUTATION=false","plaintext -pw fallback","Ensure-V7OfficialPuttyHostKeyTrust","-pwfile","-Action RestartTunnel","-Action Watchdog")){if($raw -notlike "*$needle*"){throw "missing safety marker: $needle"}}
+          foreach($pattern in @('\$ReservePort\s*=\s*1080','\$PrimaryPort\s*=\s*1081','RESERVE_1080_MUTATION=false','plaintext -pw fallback','Ensure-V7OfficialPuttyHostKeyTrust','-pwfile','-Action RestartTunnel','-Action Watchdog')){if($raw -notmatch $pattern){throw "missing safety marker pattern: $pattern"}}
           if($raw -match '(?i)Stop-Process\s+.*1080'){throw 'direct reserve stop forbidden'}
           if($raw -match '(?i)-D\s+.*1080'){throw 'reserve tunnel launch forbidden'}
           if($raw -match '(?i)\$Pid\b'){throw 'reserved $PID collision forbidden'}
-          if($raw -match '(?i)(?:^|\s)-pw\s+[^<]'){Write-Host 'Source contains regex/text references to -pw only; runtime construction must remain pwfile-only.'}
       - name: Execute non-mutating Plan mode under Windows PowerShell 5.1
         shell: powershell
         run: |
