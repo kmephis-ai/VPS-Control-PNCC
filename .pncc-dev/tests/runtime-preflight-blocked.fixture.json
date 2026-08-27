@@ -1,0 +1,13 @@
+{
+  "windows_baseline": true,
+  "powershell_baseline": true,
+  "candidate_identity": false,
+  "proxifier_present": false,
+  "gh_auth": true,
+  "rollback_identity": false,
+  "listeners": [
+    {"port": 1080, "listening": false, "owners": []},
+    {"port": 1081, "listening": false, "owners": []}
+  ],
+  "processes": []
+}
