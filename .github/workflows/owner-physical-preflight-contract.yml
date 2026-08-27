@@ -1,0 +1,38 @@
+name: owner-physical-preflight-contract
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  owner-physical-preflight-contract:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: PowerShell 5.1 parse and BOM preflight
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $path='tools/runtime-agent/Invoke-PnccOwnerPhysicalPreflight.ps1'
+          $bytes=[IO.File]::ReadAllBytes((Resolve-Path $path))
+          if($bytes.Length -lt 3 -or $bytes[0]-ne 0xEF -or $bytes[1]-ne 0xBB -or $bytes[2]-ne 0xBF){ throw 'UTF8 BOM required' }
+          $tokens=$null; $errors=$null
+          [Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path),[ref]$tokens,[ref]$errors)|Out-Null
+          if($errors.Count){ $errors | % { Write-Error $_ }; exit 1 }
+      - name: Assert physical orchestrator remains non-mutating
+        shell: pwsh
+        run: |
+          $text=Get-Content tools/runtime-agent/Invoke-PnccOwnerPhysicalPreflight.ps1 -Raw
+          foreach($forbidden in @('Stop-Process','Start-Process','Restart-Service','Stop-Service','Start-Service','taskkill','netsh interface')){ if($text -match [regex]::Escape($forbidden)){ throw "forbidden lifecycle primitive: $forbidden" } }
+          if($text -notmatch 'RUNTIME_MUTATION=false'){ throw 'non-mutation assertion missing' }
+          if($text -notmatch 'PREFLIGHT_STATE='){ throw 'preflight state telemetry missing' }
+          if(git status --porcelain --untracked-files=all){ throw 'repository became dirty' }
