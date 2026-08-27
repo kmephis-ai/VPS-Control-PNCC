@@ -1,0 +1,241 @@
+name: wu013-source-identity-activation
+
+on:
+  push:
+    branches:
+      - agent/PIPE-WU-013-build-input-activation-a1
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wu013-source-identity-activation
+  cancel-in-progress: false
+
+jobs:
+  activate:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact writer revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Assert writer/base boundary
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:GITHUB_REF_NAME -ne 'agent/PIPE-WU-013-build-input-activation-a1'){throw "Unexpected branch: $env:GITHUB_REF_NAME"}
+          git merge-base --is-ancestor 188051183bbb1a3a12cdb3dfa1295616aeb18a60 HEAD
+          if($LASTEXITCODE -ne 0){throw 'WU-013 exact base is not an ancestor'}
+          $msg=(git log -1 --pretty=%B)
+          if($msg -match '\[wu013-source-activated\]'){
+            Write-Host 'WU013_SOURCE_ACTIVATION=NOOP_ALREADY_COMMITTED'
+            exit 0
+          }
+
+      - name: Activate RC14.39 source identity
+        shell: python
+        run: |
+          from pathlib import Path
+          import sys
+          old='7.0.0-rc14.38'
+          new='7.0.0-rc14.39'
+          root=Path('src/windows-v7')
+          def read(path, enc='utf-8-sig'):
+              return path.read_text(encoding=enc)
+          def write_bom(path, text):
+              path.write_text(text, encoding='utf-8-sig', newline='')
+          def replace_exact(path, old_text, new_text, expected=1, bom=False):
+              text=read(path)
+              count=text.count(old_text)
+              if count!=expected:
+                  raise SystemExit(f'EXACT_REPLACE_COUNT_MISMATCH path={path} expected={expected} actual={count} needle={old_text!r}')
+              text=text.replace(old_text,new_text,expected)
+              if bom: write_bom(path,text)
+              else: path.write_text(text,encoding='utf-8',newline='')
+              print(f'REPLACE=PASS PATH={path} COUNT={expected}')
+          main=root/'VPS-Control-v7.ps1'
+          replace_exact(main, f'VPS Control Center v{old}', f'VPS Control Center v{new}', expected=1, bom=True)
+          replace_exact(main, f"$UiVersion = '{old}'", f"$UiVersion = '{new}'", expected=1, bom=True)
+          launch=root/'VPS-Control-v7-launch.ps1'
+          replace_exact(launch, f"$LauncherVersion = '{old}'", f"$LauncherVersion = '{new}'", expected=1, bom=True)
+          tunnel=root/'VPS-Control-v7-TUNNEL-CONTRACT.json'
+          replace_exact(tunnel, f'"ContractVersion": "{old}"', f'"ContractVersion": "{new}"', expected=1, bom=False)
+          current_blocks={
+              root/'VPS-Control-v7-README.txt': (
+                  f'VPS CONTROL CENTER v{new} — CANDIDATE BUILD INPUT ACTIVATION\n\n'
+                  f'RC14.39 source identity is the governed post-RC14.38 credential-remediation baseline. '
+                  'This source transaction creates no ZIP artifact and grants no runtime or promotion authority.\n\n'
+              ),
+              root/'VPS-Control-v7-ARCHITECTURE.md': (
+                  f'# VPS Control Center v{new} — Candidate build-input activation\n\n'
+                  'RC14.39 is the first governed candidate-source identity derived from the admitted post-RC14.38 '
+                  'credential-remediation baseline. The deterministic build recipe is declared separately; no '
+                  'candidate artifact is created by this source-identity transaction. Runtime/promotion authority remains false.\n\n'
+              ),
+              root/'VPS-Control-v7-CAPABILITY-TRUTH.md': (
+                  f'# VPS Control Center v{new} — Capability Truth\n\n'
+                  '## RC14.39 delta — governed build-input activation\n\n'
+                  '- source version aligned after the proven VPS/Keenetic `-pwfile` remediation;\n'
+                  '- deterministic candidate-build inputs may be READY in hosted engineering truth;\n'
+                  '- no RC14.39 ZIP exists in this transaction;\n'
+                  '- runtime and promotion authority remain false;\n'
+                  '- `1081=PRIMARY_AUTO`, `1080=RESERVE_MANUAL/MANUAL_ONLY`, V6.3.1 immutable.\n\n'
+              ),
+          }
+          for path,prefix in current_blocks.items():
+              text=read(path)
+              if text.startswith(prefix):
+                  print(f'CURRENT_HEADING=ALREADY_PRESENT PATH={path}')
+                  continue
+              if new in next((line for line in text.splitlines() if line.strip()),''):
+                  raise SystemExit(f'UNEXPECTED_CURRENT_HEADING_ALREADY_VERSIONED path={path}')
+              path.write_text(prefix+text,encoding='utf-8',newline='')
+              print(f'CURRENT_HEADING=PREPENDED PATH={path}')
+          executable_ext={'.ps1','.psm1','.psd1','.cmd','.vbs','.json'}
+          residual=[]
+          for path in root.rglob('*'):
+              if not path.is_file() or path.suffix.lower() not in executable_ext: continue
+              try: text=read(path)
+              except UnicodeDecodeError: continue
+              if old in text: residual.append(path.as_posix())
+          if residual: raise SystemExit('RESIDUAL_PREVIOUS_VERSION_IN_EXECUTABLE_OR_CONFIG='+';'.join(residual))
+          for rel in ('VPS-Control-v7-README.txt','VPS-Control-v7-ARCHITECTURE.md','VPS-Control-v7-CAPABILITY-TRUTH.md'):
+              text=read(root/rel); first=next((line.strip() for line in text.splitlines() if line.strip()),'')
+              if new not in first: raise SystemExit(f'CURRENT_HEADING_MISMATCH path={rel} first={first!r}')
+          print('WU013_VERSION_SURFACE=PASS VERSION='+new)
+
+      - name: Stage source and regenerate manifest from Git index blobs
+        shell: python
+        run: |
+          from pathlib import Path,PurePosixPath
+          import hashlib,subprocess
+          root='src/windows-v7'
+          manifest=f'{root}/VPS-Control-v7-SHA256.txt'
+          subprocess.run(['git','add',root],check=True)
+          tracked=subprocess.check_output(['git','ls-files',root],text=True).splitlines()
+          rows=[]
+          for path in sorted(tracked,key=lambda x:x.encode('utf-8')):
+              if path==manifest: continue
+              blob=subprocess.check_output(['git','show',f':{path}'])
+              rel=PurePosixPath(path).relative_to(PurePosixPath(root)).as_posix().replace('/','\\')
+              rows.append(f'{hashlib.sha256(blob).hexdigest()}  {rel}')
+          if len(rows)!=31: raise SystemExit(f'EXPECTED_MANIFEST_ROWS=31 ACTUAL={len(rows)}')
+          text='# VPS Control Center v7.0.0-rc14.39 deterministic canonical Git-blob source manifest\n'+'\n'.join(rows)+'\n'
+          Path(manifest).write_text(text,encoding='utf-8',newline='')
+          subprocess.run(['git','add',manifest],check=True)
+          staged=subprocess.check_output(['git','diff','--cached','--name-only'],text=True).splitlines()
+          unexpected=[p for p in staged if not p.startswith(root+'/')]
+          if unexpected: raise SystemExit('UNEXPECTED_STAGED_BEFORE_PROVENANCE='+';'.join(unexpected))
+          print(f'WU013_MANIFEST=PASS ROWS={len(rows)}')
+
+      - name: Regenerate canonical provenance from staged Git blobs
+        shell: python
+        run: |
+          from pathlib import Path,PurePosixPath
+          import hashlib,json,subprocess
+          source_root='src/windows-v7'
+          prov_path=Path('.pncc-dev/provenance/canonical-source-post-rc14.38.json')
+          previous=json.loads(subprocess.check_output(['git','show',f'HEAD:{prov_path.as_posix()}']).decode('utf-8-sig'))
+          tracked=subprocess.check_output(['git','ls-files',source_root],text=True).splitlines()
+          inventory=[]
+          for path in sorted(tracked,key=lambda x:x.encode('utf-8')):
+              blob=subprocess.check_output(['git','show',f':{path}'])
+              rel=PurePosixPath(path).relative_to(PurePosixPath(source_root)).as_posix()
+              inventory.append({'bytes':len(blob),'path':rel,'sha256':hashlib.sha256(blob).hexdigest()})
+          if len(inventory)!=32: raise SystemExit(f'EXPECTED_PROVENANCE_FILES=32 ACTUAL={len(inventory)}')
+          old_base=previous.get('baseline',{})
+          parent=previous.get('parent',{})
+          helper_sha={}
+          for rel in ('VPS-Control-v7-vps-manager.ps1','VPS-Control-v7-keenetic.ps1'):
+              blob=subprocess.check_output(['git','show',f':{source_root}/{rel}'])
+              helper_sha[rel]=hashlib.sha256(blob).hexdigest()
+          provenance={
+              'schema_version':3,
+              'provenance_id':'PNCC_CANONICAL_SOURCE_RC14_39_BUILD_INPUT_ACTIVATION_V1',
+              'hash_semantics':'CANONICAL_GIT_BLOB_BYTES',
+              'source_root':source_root,
+              'source_identity_semantic':'UNBUILT_RC14_39_CANDIDATE_SOURCE_BASELINE',
+              'parent':parent,
+              'baseline':{
+                  'previous_runtime_version':'7.0.0-rc14.38',
+                  'embedded_version':'7.0.0-rc14.39',
+                  'activated_candidate_version':'7.0.0-rc14.39',
+                  'requires_version_bump_before_build':False,
+                  'preimport_evidence_zip_sha256':old_base.get('preimport_evidence_zip_sha256'),
+                  'remediation_class':old_base.get('remediation_class'),
+                  'remediated_files':['VPS-Control-v7-vps-manager.ps1','VPS-Control-v7-keenetic.ps1'],
+                  'remediated_file_sha256':helper_sha,
+              },
+              'activation':{
+                  'work_unit':'PIPE-WU-013',
+                  'exact_base_main_sha':'188051183bbb1a3a12cdb3dfa1295616aeb18a60',
+                  'candidate_artifact_generated':False,
+                  'builder_introduced':False,
+              },
+              'inventory':inventory,
+              'safety':{
+                  'build_input_ready':True,
+                  'build_authority':False,
+                  'artifact_exists':False,
+                  'runtime_authority':False,
+                  'promotion_authority':False,
+                  'stable_done':False,
+                  'ci_is_runtime_truth':False,
+              },
+          }
+          if not provenance['baseline']['preimport_evidence_zip_sha256'] or not provenance['baseline']['remediation_class']:
+              raise SystemExit('PARENT_BASELINE_PROVENANCE_FIELDS_MISSING')
+          prov_path.write_text(json.dumps(provenance,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='')
+          subprocess.run(['git','add',prov_path.as_posix()],check=True)
+          staged=subprocess.check_output(['git','diff','--cached','--name-only'],text=True).splitlines()
+          unexpected=[p for p in staged if not (p.startswith(source_root+'/') or p==prov_path.as_posix())]
+          if unexpected: raise SystemExit('WU013_SCOPE_VIOLATION='+';'.join(unexpected))
+          print(f'WU013_PROVENANCE=PASS FILES={len(inventory)}')
+
+      - name: Verify staged source identity before commit
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          if($PSVersionTable.PSVersion.Major -ne 5 -or $PSVersionTable.PSVersion.Minor -ne 1){throw "Windows PowerShell 5.1 required"}
+          $root=Join-Path $env:GITHUB_WORKSPACE 'src\windows-v7'
+          $files=@(Get-ChildItem -LiteralPath $root -Filter '*.ps1' -File -Recurse)
+          if($files.Count -ne 23){throw "Expected 23 PS1 files, got $($files.Count)"}
+          $errors=New-Object Collections.ArrayList
+          foreach($file in $files){
+            $tokens=$null;$parseErrors=$null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($file.FullName,[ref]$tokens,[ref]$parseErrors)
+            foreach($e in @($parseErrors)){[void]$errors.Add("AST $($file.FullName):$($e.Extent.StartLineNumber): $($e.Message)")}
+            $bytes=[IO.File]::ReadAllBytes($file.FullName)
+            $bom=$bytes.Length -ge 3 -and $bytes[0]-eq 0xEF -and $bytes[1]-eq 0xBB -and $bytes[2]-eq 0xBF
+            if(-not $bom){[void]$errors.Add("UTF8_BOM_REQUIRED: $($file.FullName)")}
+          }
+          if($errors.Count -gt 0){$errors|ForEach-Object{Write-Error $_};throw "WU013 PS5.1 gate failed: $($errors.Count)"}
+          python .pncc-dev/scripts/check_putty_password_transport.py --repository-root .
+          if($LASTEXITCODE -ne 0){throw "Credential scanner failed rc=$LASTEXITCODE"}
+          Write-Host 'WU013_PS51_AND_CREDENTIAL=PASS AST=23 BOM=23'
+
+      - name: Commit source/provenance only and prove READY
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $staged=@(git diff --cached --name-only)
+          $bad=@($staged|Where-Object{($_ -notlike 'src/windows-v7/*') -and ($_ -ne '.pncc-dev/provenance/canonical-source-post-rc14.38.json')})
+          if($bad.Count -gt 0){throw "Unexpected staged path(s): $($bad -join ', ')"}
+          git config user.name 'PNCC GitHub Build Input'
+          git config user.email 'pncc-build-input@users.noreply.github.com'
+          git commit -m 'PIPE-WU-013: activate RC14.39 build-input source identity [wu013-source-activated]'
+          if($LASTEXITCODE -ne 0){throw "git commit failed rc=$LASTEXITCODE"}
+          python .pncc-dev/scripts/evaluate_candidate_build_input.py --repository-root . --require-ready
+          if($LASTEXITCODE -ne 0){throw "Post-commit readiness failed rc=$LASTEXITCODE"}
+          python .pncc-dev/scripts/check_putty_password_transport.py --repository-root .
+          if($LASTEXITCODE -ne 0){throw "Post-commit credential scan failed rc=$LASTEXITCODE"}
+          if((git status --porcelain)){throw 'Working tree not clean after source activation commit'}
+          git push origin "HEAD:agent/PIPE-WU-013-build-input-activation-a1"
+          if($LASTEXITCODE -ne 0){throw "git push failed rc=$LASTEXITCODE"}
+          Write-Host "WU013_SOURCE_ACTIVATION=PASS HEAD=$(git rev-parse HEAD)"

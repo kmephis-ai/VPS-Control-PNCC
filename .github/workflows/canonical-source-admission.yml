@@ -28,33 +28,48 @@ jobs:
         run: |
           from pathlib import Path
           import hashlib,json,subprocess,re
+          version='7.0.0-rc14.39'
+          root='src/windows-v7'
           prov_path=Path('.pncc-dev/provenance/canonical-source-post-rc14.38.json')
           if not prov_path.is_file(): raise SystemExit('canonical provenance missing')
           prov=json.loads(prov_path.read_text(encoding='utf-8'))
-          if prov.get('source_root')!='src/windows-v7': raise SystemExit('unexpected source_root')
+          if prov.get('hash_semantics')!='CANONICAL_GIT_BLOB_BYTES': raise SystemExit('unexpected hash_semantics')
+          if prov.get('source_root')!=root: raise SystemExit('unexpected source_root')
           inv=prov.get('inventory',[])
           if len(inv)!=32: raise SystemExit(f'expected 32 provenance entries, got {len(inv)}')
           def blob(path): return subprocess.check_output(['git','show',f'HEAD:{path}'])
+          actual_paths=[]
           for rec in inv:
-              rel=rec['path']; b=blob('src/windows-v7/'+rel)
+              rel=rec['path']; b=blob(root+'/'+rel)
               if len(b)!=rec['bytes'] or hashlib.sha256(b).hexdigest()!=rec['sha256']:
                   raise SystemExit('provenance Git-blob mismatch: '+rel)
-          manifest=blob('src/windows-v7/VPS-Control-v7-SHA256.txt').decode('utf-8-sig').splitlines()
+              actual_paths.append(rel)
+          tracked=subprocess.check_output(['git','ls-files',root],text=True).splitlines()
+          expected=[Path(x).relative_to(root).as_posix() for x in tracked]
+          if sorted(actual_paths)!=sorted(expected): raise SystemExit('provenance inventory coverage mismatch')
+          manifest=blob(root+'/VPS-Control-v7-SHA256.txt').decode('utf-8-sig').splitlines()
+          first=next((x.strip() for x in manifest if x.strip()),'')
+          if version not in first: raise SystemExit('manifest current-version heading mismatch')
           rows=[x for x in manifest if x and not x.startswith('#')]
           if len(rows)!=31: raise SystemExit(f'expected 31 package manifest entries, got {len(rows)}')
+          manifest_paths=[]
           for row in rows:
               m=re.match(r'^([0-9a-f]{64})  (.+)$',row)
               if not m: raise SystemExit('malformed manifest row')
               rel=m.group(2).replace('\\','/')
-              b=blob('src/windows-v7/'+rel)
+              b=blob(root+'/'+rel)
               if hashlib.sha256(b).hexdigest()!=m.group(1): raise SystemExit('package manifest mismatch: '+rel)
+              manifest_paths.append(rel)
+          expected_manifest=sorted(x for x in expected if x!='VPS-Control-v7-SHA256.txt')
+          if sorted(manifest_paths)!=expected_manifest: raise SystemExit('package manifest coverage mismatch')
           base=prov.get('baseline',{})
-          if base.get('embedded_version')!='7.0.0-rc14.38' or not base.get('requires_version_bump_before_build') or base.get('next_candidate_minimum_version')!='7.0.0-rc14.39':
-              raise SystemExit('version/build boundary provenance invalid')
+          if base.get('previous_runtime_version')!='7.0.0-rc14.38': raise SystemExit('previous runtime version provenance invalid')
+          if base.get('embedded_version')!=version or base.get('activated_candidate_version')!=version: raise SystemExit('activated candidate version provenance invalid')
+          if base.get('requires_version_bump_before_build') is not False: raise SystemExit('version bump boundary not cleared')
           safety=prov.get('safety',{})
-          if any(safety.get(k) for k in ('build_authority','runtime_authority','promotion_authority','stable_done')):
-              raise SystemExit('provenance grants forbidden authority')
-          print('CANONICAL_GIT_BLOB_PROVENANCE=PASS FILES=32 MANIFEST=31 BUILD_AUTHORITY=false')
+          if safety.get('build_input_ready') is not True or safety.get('artifact_exists') is not False: raise SystemExit('build-input/artifact truth invalid')
+          if any(safety.get(k) for k in ('runtime_authority','promotion_authority','stable_done')): raise SystemExit('provenance grants forbidden authority')
+          print('CANONICAL_GIT_BLOB_PROVENANCE=PASS FILES=32 MANIFEST=31 VERSION=7.0.0-rc14.39 ARTIFACT_EXISTS=false')
 
       - name: Verify Windows PowerShell 5.1 AST, BOM and credential transport
         shell: powershell
@@ -78,17 +93,23 @@ jobs:
           if($LASTEXITCODE -ne 0){throw "Credential transport scanner failed rc=$LASTEXITCODE"}
           Write-Host "CANONICAL_PS51=PASS AST=23 BOM=23 EXECUTABLE_PLAINTEXT_PW=0"
 
-      - name: Verify fixed tunnel and credential boundaries are unchanged
+      - name: Verify fixed tunnel, version and credential boundaries
         shell: python
         run: |
           from pathlib import Path
           import json
+          version='7.0.0-rc14.39'
           root=Path('src/windows-v7')
           c=json.loads((root/'VPS-Control-v7-TUNNEL-CONTRACT.json').read_text(encoding='utf-8-sig'))
+          if c.get('ContractVersion')!=version: raise SystemExit('tunnel ContractVersion mismatch')
           by={x['Id']:x for x in c['Tunnels']}
           p=by['PRIMARY_AUTO']; r=by['RESERVE_MANUAL']
           assert p['Port']==1081 and p['LifecycleMode']=='AUTO' and p['AutoStart'] and p['AutoRecovery']
           assert r['Port']==1080 and r['LifecycleMode']=='MANUAL_ONLY' and not r['AutoStart'] and not r['AutoRecovery'] and not r['AutoStop']
           assert c['CredentialTransport']['PuttyArgument']=='-pwfile' and not c['CredentialTransport']['PlaintextPwArgumentAllowed']
           assert not c['ManagedPuttyHostKeyTrust']['HostKeyVerificationDisableAllowed']
-          print('CANONICAL_FIXED_BOUNDARIES=PASS PRIMARY=1081 RESERVE=1080 PWFILE=true')
+          main=(root/'VPS-Control-v7.ps1').read_text(encoding='utf-8-sig')
+          launch=(root/'VPS-Control-v7-launch.ps1').read_text(encoding='utf-8-sig')
+          assert f"$UiVersion = '{version}'" in main
+          assert f"$LauncherVersion = '{version}'" in launch
+          print('CANONICAL_FIXED_BOUNDARIES=PASS PRIMARY=1081 RESERVE=1080 PWFILE=true VERSION=7.0.0-rc14.39')

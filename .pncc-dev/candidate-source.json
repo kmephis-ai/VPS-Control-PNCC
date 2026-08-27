@@ -1,0 +1,12 @@
+{
+  "schema_version": 2,
+  "source_identity_semantic": "EXACT_SOURCE_COMMIT",
+  "candidate_version": "7.0.0-rc14.39",
+  "source_roots": [
+    "src/windows-v7"
+  ],
+  "build_recipe": "build/windows-v7-candidate-recipe.json",
+  "provenance_path": ".pncc-dev/provenance/canonical-source-post-rc14.38.json",
+  "runtime_authority": false,
+  "promotion_authority": false
+}

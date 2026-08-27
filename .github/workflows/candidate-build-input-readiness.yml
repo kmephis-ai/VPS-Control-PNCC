@@ -20,8 +20,9 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
+          fetch-depth: 0
 
-      - name: Compile readiness evaluator and regressions
+      - name: Compile readiness evaluator and parse governed contracts
         shell: bash
         run: |
           set -euo pipefail
@@ -29,9 +30,15 @@ jobs:
           python - <<'PY'
           import json
           from pathlib import Path
-          path = Path('.pncc-dev/contracts/candidate-build-input-policy.json')
-          json.loads(path.read_text(encoding='utf-8-sig'))
-          print(f'JSON_PARSE=PASS PATH={path}')
+          for raw in (
+              '.pncc-dev/contracts/candidate-build-input-policy.json',
+              '.pncc-dev/candidate-source.json',
+              'build/windows-v7-candidate-recipe.json',
+              '.pncc-dev/provenance/canonical-source-post-rc14.38.json',
+          ):
+              path=Path(raw)
+              json.loads(path.read_text(encoding='utf-8-sig'))
+              print(f'JSON_PARSE=PASS PATH={path}')
           PY
 
       - name: Run build-input readiness regressions
@@ -40,25 +47,20 @@ jobs:
           set -euo pipefail
           python -m unittest discover -s .pncc-dev/tests -p 'test_candidate_build_input.py' -v
 
-      - name: Prove current repository is explicitly blocked
+      - name: Prove current repository build inputs are READY
         shell: bash
         run: |
           set -euo pipefail
-          python .pncc-dev/scripts/evaluate_candidate_build_input.py --repository-root . --expect-state BLOCKED_MISSING_SOURCE_DECLARATION
+          python .pncc-dev/scripts/evaluate_candidate_build_input.py --repository-root . --expect-state READY
 
-      - name: Prove future builder guard fails closed
+      - name: Prove future builder guard accepts only exact READY inputs
         shell: bash
         run: |
           set -euo pipefail
-          set +e
           output="$(python .pncc-dev/scripts/evaluate_candidate_build_input.py --repository-root . --require-ready 2>&1)"
-          code=$?
-          set -e
           printf '%s\n' "$output"
-          if [ "$code" -ne 3 ]; then
-            echo "Expected --require-ready to exit 3 while canonical product source is absent; got $code" >&2
-            exit 1
-          fi
-          printf '%s\n' "$output" | grep -F 'CANDIDATE_BUILD_INPUT_STATE=BLOCKED_MISSING_SOURCE_DECLARATION'
-          printf '%s\n' "$output" | grep -F 'CANDIDATE_BUILD_BLOCKED state=BLOCKED_MISSING_SOURCE_DECLARATION'
-          echo 'CANDIDATE_BUILD_GUARD=PASS EXPECTED_STATE=BLOCKED_MISSING_SOURCE_DECLARATION CAN_BUILD=false'
+          printf '%s\n' "$output" | grep -F 'CANDIDATE_BUILD_INPUT_STATE=READY'
+          printf '%s\n' "$output" | grep -F 'CAN_BUILD=true'
+          printf '%s\n' "$output" | grep -F 'RUNTIME_AUTHORITY=false'
+          printf '%s\n' "$output" | grep -F 'PROMOTION_AUTHORITY=false'
+          echo 'CANDIDATE_BUILD_GUARD=PASS STATE=READY CAN_BUILD=true RUNTIME_AUTHORITY=false PROMOTION_AUTHORITY=false'
