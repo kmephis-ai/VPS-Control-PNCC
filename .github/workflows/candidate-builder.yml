@@ -1,0 +1,197 @@
+name: candidate-builder
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  checks: read
+  actions: read
+
+concurrency:
+  group: candidate-builder-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  candidate-builder-reproducibility:
+    name: candidate-builder-reproducibility
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Compile deterministic builder contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile \
+            build/build_candidate.py \
+            build/verify_candidate_reproducibility.py \
+            .pncc-dev/scripts/collect_engineering_checks.py \
+            .pncc-dev/scripts/generate_candidate_manifest.py \
+            .pncc-dev/scripts/validate_governed_candidate_manifest.py \
+            .pncc-dev/tests/test_governed_candidate_manifest.py
+
+      - name: Prove exact build inputs are READY
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .pncc-dev/scripts/evaluate_candidate_build_input.py --repository-root . --require-ready
+
+      - name: Build candidate independently twice
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "${RUNNER_TEMP}/pncc-build-a" "${RUNNER_TEMP}/pncc-build-b" "${RUNNER_TEMP}/pncc-repro"
+          python build/build_candidate.py --repository-root . --output-dir "${RUNNER_TEMP}/pncc-build-a"
+          python build/build_candidate.py --repository-root . --output-dir "${RUNNER_TEMP}/pncc-build-b"
+          python build/verify_candidate_reproducibility.py \
+            --first-dir "${RUNNER_TEMP}/pncc-build-a" \
+            --second-dir "${RUNNER_TEMP}/pncc-build-b" \
+            --output "${RUNNER_TEMP}/pncc-repro/build-evidence.json"
+
+      - name: Run governed candidate manifest regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s .pncc-dev/tests -p 'test_*candidate_manifest.py' -v
+
+      - name: Assert PR build grants no runtime authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          p=Path(os.environ['RUNNER_TEMP'])/'pncc-repro'/'build-evidence.json'
+          e=json.loads(p.read_text(encoding='utf-8'))
+          assert e['reproducibility']['byte_identical'] is True
+          assert e['reproducibility']['independent_builds']==2
+          assert e['runtime_authority'] is False
+          assert e['promotion_authority'] is False
+          print('PR_CANDIDATE_BUILD=PASS REPRODUCIBLE=true RUNTIME_AUTHORITY=false PROMOTION_AUTHORITY=false ARTIFACT_PUBLISHED=false')
+          PY
+
+  candidate-builder-main:
+    name: candidate-builder-main
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [candidate-builder-reproducibility]
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout protected main exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Assert protected main build boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REF}" = "refs/heads/main"
+          test "${GITHUB_EVENT_NAME}" = "push"
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          python .pncc-dev/scripts/evaluate_candidate_build_input.py --repository-root . --require-ready
+
+      - name: Build protected-main candidate independently twice
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "${RUNNER_TEMP}/pncc-main-a" "${RUNNER_TEMP}/pncc-main-b" "${RUNNER_TEMP}/pncc-main-final" "${RUNNER_TEMP}/pncc-bundle"
+          python build/build_candidate.py --repository-root . --output-dir "${RUNNER_TEMP}/pncc-main-a"
+          python build/build_candidate.py --repository-root . --output-dir "${RUNNER_TEMP}/pncc-main-b"
+          mkdir -p "${RUNNER_TEMP}/pncc-main-final"
+          python build/verify_candidate_reproducibility.py \
+            --first-dir "${RUNNER_TEMP}/pncc-main-a" \
+            --second-dir "${RUNNER_TEMP}/pncc-main-b" \
+            --output "${RUNNER_TEMP}/pncc-main-final/build-evidence.json"
+          cp "${RUNNER_TEMP}/pncc-main-a/VPS-Control-v7.0.0-rc14.39.zip" "${RUNNER_TEMP}/pncc-main-final/"
+
+      - name: Collect exact-SHA engineering checks
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .pncc-dev/scripts/collect_engineering_checks.py \
+            --repository "${GITHUB_REPOSITORY}" \
+            --sha "${GITHUB_SHA}" \
+            --output "${RUNNER_TEMP}/pncc-main-final/engineering-checks.json" \
+            --timeout-seconds 900 \
+            --poll-seconds 5
+
+      - name: Generate and validate Candidate Artifact Truth
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .pncc-dev/scripts/generate_candidate_manifest.py \
+            --artifact "${RUNNER_TEMP}/pncc-main-final/VPS-Control-v7.0.0-rc14.39.zip" \
+            --build-evidence "${RUNNER_TEMP}/pncc-main-final/build-evidence.json" \
+            --engineering-checks "${RUNNER_TEMP}/pncc-main-final/engineering-checks.json" \
+            --output "${RUNNER_TEMP}/pncc-main-final/candidate-manifest.json" \
+            --source-sha "${GITHUB_SHA}"
+          python .pncc-dev/scripts/validate_candidate_manifest.py "${RUNNER_TEMP}/pncc-main-final/candidate-manifest.json"
+          python .pncc-dev/scripts/validate_governed_candidate_manifest.py "${RUNNER_TEMP}/pncc-main-final/candidate-manifest.json"
+
+      - name: Assemble governed provider artifact bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${RUNNER_TEMP}/pncc-bundle"
+          cp "${RUNNER_TEMP}/pncc-main-final/VPS-Control-v7.0.0-rc14.39.zip" "${RUNNER_TEMP}/pncc-bundle/"
+          cp "${RUNNER_TEMP}/pncc-main-final/candidate-manifest.json" "${RUNNER_TEMP}/pncc-bundle/"
+          cp "${RUNNER_TEMP}/pncc-main-final/build-evidence.json" "${RUNNER_TEMP}/pncc-bundle/"
+          git show HEAD:.pncc-dev/candidate-source.json > "${RUNNER_TEMP}/pncc-bundle/candidate-source.json"
+          git show HEAD:build/windows-v7-candidate-recipe.json > "${RUNNER_TEMP}/pncc-bundle/windows-v7-candidate-recipe.json"
+          python - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          root=Path(os.environ['RUNNER_TEMP'])/'pncc-bundle'
+          rows=[]
+          for p in sorted(root.iterdir(), key=lambda x:x.name.encode('utf-8')):
+              b=p.read_bytes()
+              rows.append({'name':p.name,'bytes':len(b),'sha256':hashlib.sha256(b).hexdigest()})
+          (root/'bundle-index.json').write_text(json.dumps({
+              'schema_version':1,
+              'bundle_id':'PNCC_RC14_39_GOVERNED_CANDIDATE_BUNDLE_V1',
+              'source_sha':os.environ['GITHUB_SHA'],
+              'files':rows,
+              'runtime_qualification':'NOT_VERIFIED',
+              'promotion_eligible':False
+          },indent=2,sort_keys=True)+'\n',encoding='utf-8')
+          print('GOVERNED_CANDIDATE_BUNDLE=READY FILES='+str(len(rows)+1))
+          PY
+
+      - name: Upload governed RC14.39 candidate bundle
+        id: upload
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: PNCC-RC14.39-${{ github.sha }}
+          path: ${{ runner.temp }}/pncc-bundle/
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+          overwrite: false
+          include-hidden-files: false
+
+      - name: Record provider artifact identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "GOVERNED_PROVIDER_ARTIFACT=PASS"
+          echo "ARTIFACT_ID=${{ steps.upload.outputs.artifact-id }}"
+          echo "ARTIFACT_DIGEST=${{ steps.upload.outputs.artifact-digest }}"
+          echo "SOURCE_SHA=${GITHUB_SHA}"
+          echo "RUNTIME=NOT_VERIFIED"
+          echo "PROMOTION_ELIGIBLE=false"
