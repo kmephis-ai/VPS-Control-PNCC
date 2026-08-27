@@ -5,7 +5,7 @@ function ConvertTo-PnccProvenanceResult {
     param(
         [Parameter(Mandatory=$true)][string]$Status,
         [Parameter(Mandatory=$true)][string]$FailureClass,
-        [Parameter(Mandatory=$true)][object[]]$Errors,
+        [Parameter(Mandatory=$true)][AllowEmptyCollection()][object[]]$Errors,
         [int]$EntryCount = 0,
         [int]$ActualFileCount = 0,
         [int]$VerifiedCount = 0,
