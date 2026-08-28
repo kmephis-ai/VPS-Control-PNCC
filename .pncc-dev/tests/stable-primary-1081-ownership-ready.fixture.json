@@ -1,0 +1,12 @@
+{
+  "primary_single": true,
+  "primary_putty": true,
+  "primary_binding": true,
+  "primary_pwfile": true,
+  "primary_no_plain_pw": true,
+  "watchdog_registered": true,
+  "watchdog_action": true,
+  "watchdog_fresh": true,
+  "watchdog_exact_engine": true,
+  "reserve_unchanged": true
+}
