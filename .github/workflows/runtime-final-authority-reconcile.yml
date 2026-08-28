@@ -1,0 +1,40 @@
+name: runtime-final-authority-reconcile
+on:
+  pull_request:
+    paths:
+      - 'tools/runtime-agent/Invoke-PnccFinalRuntimeAuthorityReconcile.ps1'
+      - 'tests/fixtures/runtime-final-authority-pass.json'
+      - '.github/workflows/runtime-final-authority-reconcile.yml'
+permissions:
+  contents: read
+jobs:
+  contract:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: PowerShell 5.1 parse and BOM preflight
+        shell: powershell
+        run: |
+          if ($PSVersionTable.PSVersion.Major -ne 5 -or $PSVersionTable.PSVersion.Minor -ne 1) { throw 'Windows PowerShell 5.1 required' }
+          $p='tools/runtime-agent/Invoke-PnccFinalRuntimeAuthorityReconcile.ps1'
+          $bytes=[IO.File]::ReadAllBytes($p)
+          if($bytes.Length -lt 3 -or $bytes[0] -ne 0xEF -or $bytes[1] -ne 0xBB -or $bytes[2] -ne 0xBF){throw 'UTF8 BOM required'}
+          $t=$null;$e=$null;[void][Management.Automation.Language.Parser]::ParseFile((Resolve-Path $p),[ref]$t,[ref]$e)
+          if($e -and $e.Count){throw (($e|ForEach-Object Message)-join '; ')}
+      - name: Assert fail-closed authority contract
+        shell: powershell
+        run: |
+          $raw=Get-Content 'tools/runtime-agent/Invoke-PnccFinalRuntimeAuthorityReconcile.ps1' -Raw
+          foreach($needle in @("PASS_SCOPES=9","RUNTIME_AUTHORITY=true","PROMOTION_ELIGIBLE=true","max_proxifier_descendants","immutable V6.3.1 identity mismatch","RESERVE_1080_MUTATION=false")){if(-not $raw.Contains($needle)){throw "missing contract token: $needle"}}
+          foreach($bad in @('Stop-Process','RestartTunnel','Start-PuttyTunnel')){if($raw.Contains($bad)){throw "forbidden mutation token: $bad"}}
+      - name: Execute Plan regression
+        shell: powershell
+        run: |
+          powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File tools/runtime-agent/Invoke-PnccFinalRuntimeAuthorityReconcile.ps1 -Mode Plan -FixturePath tests/fixtures/runtime-final-authority-pass.json -OutputDirectory "$env:RUNNER_TEMP\wu036-plan"
+          if($LASTEXITCODE -ne 0){throw "Plan regression failed rc=$LASTEXITCODE"}
+      - name: Assert repository remains clean
+        shell: powershell
+        run: |
+          if(git status --porcelain){throw 'repository mutated by Plan regression'}

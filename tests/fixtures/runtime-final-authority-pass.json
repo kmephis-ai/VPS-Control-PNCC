@@ -1,0 +1,8 @@
+{
+  "eight_of_nine_valid": true,
+  "proxifier_pass": true,
+  "zero_descendants": true,
+  "reserve_listening": true,
+  "primary_listening": true,
+  "rollback_identity": true
+}
