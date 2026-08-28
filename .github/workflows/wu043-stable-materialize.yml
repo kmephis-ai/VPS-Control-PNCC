@@ -26,8 +26,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "501bd5ebdb32e229d2fe546e9e35027d3a21e020"
+          BASE=501bd5ebdb32e229d2fe546e9e35027d3a21e020
+          test "$(git merge-base HEAD "$BASE")" = "$BASE"
           test -z "$(git status --porcelain --untracked-files=all)"
+          diff_names="$(git diff --name-only "$BASE"...HEAD)"
+          test "$diff_names" = ".github/workflows/wu043-stable-materialize.yml"
 
       - name: Apply exact version-only transition and regenerate manifest
         shell: bash
@@ -70,12 +73,23 @@ jobs:
               rows.append(f"{hashlib.sha256(p.read_bytes()).hexdigest()}  {rel}")
           manifest.write_text('# VPS Control Center v7.0.0 deterministic canonical Git-blob source manifest\n'+'\n'.join(rows)+'\n',encoding='utf-8',newline='')
 
-          for raw,count in expected.items():
-              data=Path(raw).read_bytes()
-              if old in data:
+          for raw in expected:
+              if old in Path(raw).read_bytes():
                   raise SystemExit(f'OLD_VERSION_REMAINS {raw}')
           print('WU043_VERSION_TRANSITION=PASS PRODUCT_FILES=7 PRODUCT_OCCURRENCES=8 CONTROL_FILES=3 CONTROL_OCCURRENCES=6')
           PY
+
+      - name: Commit locally before clean-tree build
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git add src/windows-v7 .pncc-dev/candidate-source.json build/windows-v7-candidate-recipe.json .github/workflows/candidate-builder.yml
+          test -n "$(git diff --cached --name-only)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "PIPE-WU-043: materialize Stable v7.0.0 candidate identity"
+          test -z "$(git status --porcelain --untracked-files=all)"
 
       - name: Verify deterministic stable candidate locally
         shell: bash
@@ -97,15 +111,8 @@ jobs:
           print('WU043_STABLE_LOCAL_BUILD=PASS RUNTIME_AUTHORITY=false PROMOTION_AUTHORITY=false')
           PY
 
-      - name: Commit exact authorized materialization
+      - name: Push exact authorized materialization
         shell: bash
         run: |
           set -euo pipefail
-          git diff --check
-          git status --short
-          git add src/windows-v7 .pncc-dev/candidate-source.json build/windows-v7-candidate-recipe.json .github/workflows/candidate-builder.yml
-          test -n "$(git diff --cached --name-only)"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "PIPE-WU-043: materialize Stable v7.0.0 candidate identity"
           git push origin HEAD:agent/PIPE-WU-043-stable-materialize-a1
