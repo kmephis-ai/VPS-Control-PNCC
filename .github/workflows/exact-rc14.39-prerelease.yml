@@ -1,0 +1,167 @@
+name: exact-rc14.39-prerelease
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '.pncc-dev/releases/rc14.39-prerelease-authorization.json'
+      - '.github/workflows/exact-rc14.39-prerelease.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - '.pncc-dev/releases/rc14.39-prerelease-authorization.json'
+      - '.github/workflows/exact-rc14.39-prerelease.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  validate-authorization:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Validate exact release authorization
+        shell: python
+        run: |
+          import json
+          from pathlib import Path
+          p = Path('.pncc-dev/releases/rc14.39-prerelease-authorization.json')
+          d = json.loads(p.read_text(encoding='utf-8-sig'))
+          expected = {
+            'schema_version': 1,
+            'contract_id': 'PNCC_EXACT_PRERELEASE_AUTHORIZATION_V1',
+            'work_unit_id': 'PIPE-WU-041',
+            'decision_base_sha': 'f48490074848e210d40b857640240b38ebee6fd9',
+            'candidate_id': 'PNCC-RC14.39-90C9E8698C64',
+            'tag': 'v7.0.0-rc14.39',
+            'release_kind': 'PRERELEASE',
+            'candidate_source_sha': '90c9e8698c6468d576aecbc60d940be9d5c6baab',
+            'artifact_filename': 'VPS-Control-v7.0.0-rc14.39.zip',
+            'artifact_sha256': '8caad796469886b90d9928fba385fc4a4f0f3d60bcb6ee6b7cb98c4c2e4390b3',
+            'artifact_size_bytes': 700961,
+            'provider_artifact_id': 9661221985,
+            'provider_artifact_digest': 'eaf9844e8901cce7b1ebc866550e37cfd72393afc67075c27cba6703a415b68e',
+            'provider_build_run_id': 33107824902,
+            'owner_authorized': True,
+            'rebuild_allowed': False,
+            'artifact_substitution_allowed': False,
+            'stable_declaration_allowed': False,
+          }
+          for k, v in expected.items():
+              if d.get(k) != v:
+                  raise SystemExit(f'authorization mismatch: {k}')
+          rq = d.get('runtime_qualification', {})
+          if rq != {'required_scopes': 9, 'pass_scopes': 9, 'runtime_authority': True, 'promotion_eligible': True}:
+              raise SystemExit('runtime qualification authorization mismatch')
+          print('PRERELEASE_AUTHORIZATION=PASS')
+          print('REBUILD_ALLOWED=false')
+          print('STABLE_DECLARATION_ALLOWED=false')
+      - name: Verify provider artifact still exists and is exact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          meta="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/artifacts/9661221985")"
+          test "$(jq -r '.expired' <<<"$meta")" = "false"
+          test "$(jq -r '.workflow_run.head_sha' <<<"$meta")" = "90c9e8698c6468d576aecbc60d940be9d5c6baab"
+          test "$(jq -r '.digest' <<<"$meta")" = "sha256:eaf9844e8901cce7b1ebc866550e37cfd72393afc67075c27cba6703a415b68e"
+          echo 'PROVIDER_ARTIFACT=PASS'
+
+  publish-prerelease:
+    if: github.event_name == 'push'
+    needs: validate-authorization
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: v7.0.0-rc14.39
+      TARGET_SHA: 90c9e8698c6468d576aecbc60d940be9d5c6baab
+      ASSET: VPS-Control-v7.0.0-rc14.39.zip
+      ASSET_SHA256: 8caad796469886b90d9928fba385fc4a4f0f3d60bcb6ee6b7cb98c4c2e4390b3
+      ASSET_SIZE: '700961'
+      PROVIDER_ARTIFACT_ID: '9661221985'
+      PROVIDER_ARTIFACT_SHA256: eaf9844e8901cce7b1ebc866550e37cfd72393afc67075c27cba6703a415b68e
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Fail closed on existing tag or release
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh api "/repos/${GITHUB_REPOSITORY}/git/ref/tags/${TAG}" >/dev/null 2>&1; then
+            echo "Tag already exists: ${TAG}" >&2
+            exit 20
+          fi
+          if gh api "/repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" >/dev/null 2>&1; then
+            echo "Release already exists: ${TAG}" >&2
+            exit 21
+          fi
+          echo 'PREEXISTING_RELEASE_STATE=ABSENT'
+      - name: Download exact governed provider artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${PROVIDER_ARTIFACT_ID}/zip" \
+            -o provider-artifact.zip
+          echo "${PROVIDER_ARTIFACT_SHA256}  provider-artifact.zip" | sha256sum -c -
+          mkdir provider
+          unzip -q provider-artifact.zip -d provider
+          test -f "provider/${ASSET}"
+          echo "${ASSET_SHA256}  provider/${ASSET}" | sha256sum -c -
+          actual_size="$(stat -c '%s' "provider/${ASSET}")"
+          test "$actual_size" = "$ASSET_SIZE"
+          echo "EXACT_RELEASE_ASSET=PASS SHA256=${ASSET_SHA256} SIZE=${ASSET_SIZE}"
+      - name: Create exact prerelease from qualified bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > release-notes.md <<'EOF'
+          # VPS Control v7.0.0-rc14.39
+
+          Runtime-qualified prerelease of exact governed candidate `PNCC-RC14.39-90C9E8698C64`.
+
+          - Exact candidate source SHA: `90c9e8698c6468d576aecbc60d940be9d5c6baab`
+          - Exact asset: `VPS-Control-v7.0.0-rc14.39.zip`
+          - SHA-256: `8caad796469886b90d9928fba385fc4a4f0f3d60bcb6ee6b7cb98c4c2e4390b3`
+          - Size: `700961` bytes
+          - PRIVATE_RUNTIME qualification: `9/9 PASS`
+          - Runtime authority: `true`
+          - Promotion eligibility: `true`
+          - Release status: `prerelease`
+          - Stable/DONE: **not declared**
+
+          The asset is uploaded directly from governed GitHub Actions artifact `9661221985`; it is not rebuilt, recompressed, renamed, or substituted by this release transaction.
+          EOF
+          gh release create "${TAG}" "provider/${ASSET}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --target "${TARGET_SHA}" \
+            --title 'VPS Control v7.0.0-rc14.39 — runtime-qualified prerelease' \
+            --notes-file release-notes.md \
+            --prerelease
+      - name: Verify published tag, release and downloaded asset
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag_sha="$(gh api "/repos/${GITHUB_REPOSITORY}/git/ref/tags/${TAG}" --jq '.object.sha')"
+          test "$tag_sha" = "$TARGET_SHA"
+          release="$(gh api "/repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}")"
+          test "$(jq -r '.prerelease' <<<"$release")" = "true"
+          test "$(jq -r '.draft' <<<"$release")" = "false"
+          test "$(jq -r '.tag_name' <<<"$release")" = "$TAG"
+          asset_count="$(jq --arg n "$ASSET" '[.assets[] | select(.name==$n)] | length' <<<"$release")"
+          test "$asset_count" = '1'
+          mkdir release-download
+          gh release download "${TAG}" --repo "${GITHUB_REPOSITORY}" --pattern "${ASSET}" --dir release-download
+          echo "${ASSET_SHA256}  release-download/${ASSET}" | sha256sum -c -
+          test "$(stat -c '%s' "release-download/${ASSET}")" = "$ASSET_SIZE"
+          echo "PNCC_PRERELEASE_PUBLICATION=PASS TAG=${TAG} TARGET_SHA=${TARGET_SHA} ASSET_SHA256=${ASSET_SHA256} STABLE_DECLARED=false"
