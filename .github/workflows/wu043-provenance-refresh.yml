@@ -20,6 +20,30 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
+      - name: Admit Stable SemVer in build-input evaluator
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('.pncc-dev/scripts/evaluate_candidate_build_input.py')
+          text=p.read_text(encoding='utf-8')
+          old='VERSION_RX = re.compile(r"^[0-9]+\\.[0-9]+\\.[0-9]+-rc[0-9]+\\.[0-9]+$")'
+          new='VERSION_RX = re.compile(r"^[0-9]+\\.[0-9]+\\.[0-9]+(?:-rc[0-9]+\\.[0-9]+)?$")'
+          if text.count(old) != 1:
+              raise SystemExit('VERSION_RX_PATCH_PRECONDITION_FAILED')
+          p.write_text(text.replace(old,new),encoding='utf-8',newline='')
+          print('WU043_STABLE_SEMVER_ADMISSION=READY RC_COMPATIBLE=true')
+          PY
+          git diff --check
+          git add .pncc-dev/scripts/evaluate_candidate_build_input.py .pncc-dev/tests/test_candidate_build_input_stable_version.py
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if ! git diff --cached --quiet; then
+            git commit -m 'PIPE-WU-043: admit Stable SemVer candidate build input'
+          fi
+          python -m unittest .pncc-dev/tests/test_candidate_build_input_stable_version.py -v
+
       - name: Rebuild canonical source manifest from committed Git blob bytes
         shell: bash
         run: |
@@ -42,8 +66,6 @@ jobs:
           PY
           git diff --check
           git add src/windows-v7/VPS-Control-v7-SHA256.txt
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           if ! git diff --cached --quiet; then
             git commit -m 'PIPE-WU-043: regenerate stable manifest from canonical Git blobs'
           fi
@@ -95,13 +117,14 @@ jobs:
           set -euo pipefail
           test -z "$(git status --porcelain --untracked-files=all)"
           python .pncc-dev/scripts/evaluate_candidate_build_input.py --repository-root . --require-ready
+          python -m unittest discover -s .pncc-dev/tests -p 'test_candidate_build_input*.py' -v
           rm -rf "${RUNNER_TEMP}/stable-a" "${RUNNER_TEMP}/stable-b" "${RUNNER_TEMP}/stable-repro"
           python build/build_candidate.py --repository-root . --output-dir "${RUNNER_TEMP}/stable-a"
           python build/build_candidate.py --repository-root . --output-dir "${RUNNER_TEMP}/stable-b"
           python build/verify_candidate_reproducibility.py --first-dir "${RUNNER_TEMP}/stable-a" --second-dir "${RUNNER_TEMP}/stable-b" --output "${RUNNER_TEMP}/stable-repro/build-evidence.json"
           sha256sum "${RUNNER_TEMP}/stable-a/VPS-Control-v7.0.0.zip"
 
-      - name: Push manifest and provenance reconciliation
+      - name: Push evaluator, manifest and provenance reconciliation
         shell: bash
         run: |
           set -euo pipefail
