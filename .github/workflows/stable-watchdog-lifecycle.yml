@@ -1,0 +1,61 @@
+name: stable-watchdog-lifecycle
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  stable-watchdog-lifecycle:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: PowerShell 5.1 parse and BOM preflight
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $path='tools/runtime-agent/Test-PnccStableWatchdogLifecycle.ps1'
+          $bytes=[IO.File]::ReadAllBytes((Resolve-Path $path))
+          if($bytes.Length -lt 3 -or $bytes[0]-ne 0xEF -or $bytes[1]-ne 0xBB -or $bytes[2]-ne 0xBF){throw 'UTF8 BOM required'}
+          $tokens=$null;$errors=$null
+          [Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path),[ref]$tokens,[ref]$errors)|Out-Null
+          if(@($errors).Count){$errors|ForEach-Object{Write-Error $_};exit 1}
+          'STABLE_WATCHDOG_LIFECYCLE_PARSE=PASS PS51=true'
+
+      - name: Assert read-only lifecycle qualification boundary
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $text=Get-Content tools/runtime-agent/Test-PnccStableWatchdogLifecycle.ps1 -Raw
+          foreach($required in @('PNCC_STABLE_WATCHDOG_LIFECYCLE_V1','WATCHDOG_LIFECYCLE_CONTRACT_ADMITTED','WATCHDOG_OBSERVATION_ADMITTED','heartbeat did not advance','watchdog exact identity changed during observation','CRITICAL 1080 snapshot changed during read-only observation','runtime_authority=$false','promotion_eligible=$false')){if(-not$text.Contains($required)){throw "required contract marker missing: $required"}}
+          foreach($forbidden in @('Stop-Process','taskkill','RestartTunnel','Restart-Service','Stop-Service','Start-Service','-Action StartReserve','-Action StopReserve','SelectReserveRoute')){if($text -match [regex]::Escape($forbidden)){throw "forbidden mutation primitive in read-only contract: $forbidden"}}
+          if($text -match '(?i)(?:^|\s)-pw(?:\s|=)'){throw 'plaintext -pw marker forbidden'}
+          if($text -match '(?i)hostkey.*(?:disable|bypass|ignore)'){throw 'host-key bypass marker forbidden'}
+          'STABLE_WATCHDOG_LIFECYCLE_BOUNDARY=PASS READ_ONLY=true'
+
+      - name: Execute admitted fixture under Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $out=Join-Path $env:RUNNER_TEMP 'stable-watchdog-lifecycle'
+          New-Item -ItemType Directory -Force -Path $out|Out-Null
+          powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\tools\runtime-agent\Test-PnccStableWatchdogLifecycle.ps1 -Mode Fixture -FixturePath .\.pncc-dev\tests\stable-watchdog-lifecycle-ready.fixture.json -OutputDirectory $out
+          if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
+          $r=Get-Content (Join-Path $out 'stable-watchdog-lifecycle-result.json') -Raw|ConvertFrom-Json
+          if($r.contract_id -ne 'PNCC_STABLE_WATCHDOG_LIFECYCLE_V1' -or $r.state -ne 'WATCHDOG_LIFECYCLE_CONTRACT_ADMITTED'){throw 'fixture contract/state mismatch'}
+          if([bool]$r.physical_execution_allowed -or [bool]$r.runtime_mutation -or [bool]$r.runtime_authority -or [bool]$r.promotion_eligible){throw 'fixture authority/mutation invariant failed'}
+          'STABLE_WATCHDOG_LIFECYCLE_FIXTURE=PASS'
+
+      - name: Assert repository remains clean
+        shell: powershell
+        run: |
+          if(git status --porcelain --untracked-files=all){git status --short;throw 'repository became dirty'}
