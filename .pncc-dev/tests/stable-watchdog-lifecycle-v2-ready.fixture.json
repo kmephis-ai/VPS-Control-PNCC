@@ -1,0 +1,15 @@
+{
+  "registered_single_watchdog": true,
+  "exact_watchdog_action": true,
+  "exact_stable_engine": true,
+  "heartbeat_timestamp_fresh": true,
+  "heartbeat_pid_bound": true,
+  "post_start_heartbeat_must_bind_new_pid": true,
+  "post_start_timestamp_must_be_after_start": true,
+  "reserve_1080_untouched": true,
+  "primary_1081_observation_only": true,
+  "broad_process_kill_forbidden": true,
+  "owner_one_shot_required": true,
+  "runtime_authority_false": true,
+  "promotion_eligible_false": true
+}
