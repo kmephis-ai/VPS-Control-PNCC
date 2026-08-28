@@ -1,4 +1,4 @@
-# VPS Control Center v7.0.0-rc14.39 — Capability Truth
+# VPS Control Center v7.0.0 — Capability Truth
 
 ## RC14.39 delta — governed build-input activation
 

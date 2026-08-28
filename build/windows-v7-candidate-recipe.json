@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "recipe_id": "PNCC_WINDOWS_V7_DETERMINISTIC_ZIP_V1",
-  "candidate_version": "7.0.0-rc14.39",
+  "candidate_version": "7.0.0",
   "source_root": "src/windows-v7",
   "source_bytes_semantic": "GIT_BLOB_BYTES",
   "input_selection": "ALL_TRACKED_FILES_RECURSIVE",
@@ -13,7 +13,7 @@
   "zip_create_system": "MSDOS",
   "zip_external_attr": "DOS_ARCHIVE",
   "manifest_path": "src/windows-v7/VPS-Control-v7-SHA256.txt",
-  "output_filename": "VPS-Control-v7.0.0-rc14.39.zip",
+  "output_filename": "VPS-Control-v7.0.0.zip",
   "runtime_authority": false,
   "promotion_authority": false
 }
