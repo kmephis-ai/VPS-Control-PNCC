@@ -12,12 +12,11 @@ param(
 Set-StrictMode -Version 2.0
 $ErrorActionPreference='Stop'
 
-$ExpectedArtifactName='VPS-Control-v7.0.0-rc14.39.zip'
-$ExpectedArtifactSha='8caad796469886b90d9928fba385fc4a4f0f3d60bcb6ee6b7cb98c4c2e4390b3'
-$ExpectedArtifactSize=700961L
 $ExpectedV631Sha='385e5178f10e79b0b234376e6a6671b64ce523a3971b2b4341ec94ce1efee11e'
-$PrimaryPort=1081
-$ReservePort=1080
+$ExpectedPrimaryPort=1081
+$ExpectedReservePort=1080
+$ExpectedReserveLifecycle='MANUAL_ONLY'
+$ExpectedPuttyPasswordArgument='-pwfile'
 $StateDir=Join-Path $env:LOCALAPPDATA 'VPS-Control-v6.3'
 $WatchdogPidFile=Join-Path $StateDir 'watchdog.pid'
 $WatchdogHeartbeatFile=Join-Path $StateDir 'watchdog-heartbeat.json'
@@ -50,7 +49,7 @@ function Get-EnginePathFromCommandLine([string]$CommandLine){
     foreach($i in 1..3){if($m.Groups[$i].Success){return [string]$m.Groups[$i].Value}}
     return ''
 }
-function Get-PrimaryProcess {
+function Get-PrimaryProcess([int]$PrimaryPort){
     $rows=@(Get-NetTCPConnection -State Listen -LocalAddress '127.0.0.1' -LocalPort $PrimaryPort -ErrorAction SilentlyContinue)
     if($rows.Count -ne 1){return $null}
     try{return Get-CimInstance Win32_Process -Filter ('ProcessId='+[int]$rows[0].OwningProcess) -ErrorAction Stop}catch{return $null}
@@ -83,28 +82,60 @@ if($Mode -eq 'Fixture'){
     $observations.fixture='synthetic'
 }else{
     if($env:OS -ne 'Windows_NT'){throw 'Live mode requires Windows'}
+    $manifestPath=Join-Path $WorkspacePath 'workspace-manifest.json'
+    $requestPath=Join-Path $WorkspacePath 'request\runtime-qualification-request.json'
+    if(-not(Test-Path -LiteralPath $manifestPath -PathType Leaf)){throw 'workspace manifest missing'}
+    if(-not(Test-Path -LiteralPath $requestPath -PathType Leaf)){throw 'qualification request missing'}
+    $manifest=Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8|ConvertFrom-Json
+    $request=Get-Content -LiteralPath $requestPath -Raw -Encoding UTF8|ConvertFrom-Json
+    if([int]$manifest.schema_version -ne 2 -or [string]$manifest.bootstrap_id -cne 'PNCC_RUNTIME_WORKSPACE_BOOTSTRAP_V2'){throw 'Stable V2 workspace required'}
+
+    $requestId=[string]$request.request_id
+    $candidateId=[string]$request.candidate.candidate_id
+    $sourceSha=[string]$request.candidate.source_sha
+    $artifactName=[string]$request.candidate.artifact_filename
+    $artifactSha=[string]$request.candidate.artifact_sha256
+    $artifactSize=[long]$request.candidate.artifact_size_bytes
+    $primaryPort=[int]$request.expected_invariants.primary_auto_port
+    $reservePort=[int]$request.expected_invariants.reserve_manual_port
+    $reserveLifecycle=[string]$request.expected_invariants.reserve_manual_lifecycle
+    $v631Sha=[string]$request.expected_invariants.v6_3_1_sha256
+    $puttyPasswordArgument=[string]$request.expected_invariants.putty_password_argument
+    $plaintextAllowed=[bool]$request.expected_invariants.plaintext_pw_allowed
+    $hostkeyDisableAllowed=[bool]$request.expected_invariants.hostkey_verification_disable_allowed
+
+    if([string]::IsNullOrWhiteSpace($requestId)-or[string]::IsNullOrWhiteSpace($candidateId)-or[string]::IsNullOrWhiteSpace($sourceSha)){throw 'request identity incomplete'}
+    if($primaryPort -ne $ExpectedPrimaryPort -or $reservePort -ne $ExpectedReservePort -or $reserveLifecycle -cne $ExpectedReserveLifecycle){throw 'tunnel invariant mismatch'}
+    if($v631Sha -cne $ExpectedV631Sha){throw 'V6.3.1 invariant mismatch'}
+    if($puttyPasswordArgument -cne $ExpectedPuttyPasswordArgument -or $plaintextAllowed -or $hostkeyDisableAllowed){throw 'credential/hostkey invariant mismatch'}
+    if([string]$manifest.request_provider.request_id -cne $requestId){throw 'workspace/request request_id mismatch'}
+    if([string]$manifest.candidate.candidate_id -cne $candidateId -or [string]$manifest.candidate.source_sha -cne $sourceSha){throw 'workspace/request candidate identity mismatch'}
+    if([string]$manifest.candidate.artifact_filename -cne $artifactName -or [string]$manifest.candidate.artifact_sha256 -cne $artifactSha -or [long]$manifest.candidate.artifact_size_bytes -ne $artifactSize){throw 'workspace/request artifact identity mismatch'}
+
     $stageAPath=Get-StageAPath
     if(-not$stageAPath-or-not(Test-Path -LiteralPath $stageAPath -PathType Leaf)){throw 'Stage-A result missing'}
     $stageA=Get-Content -LiteralPath $stageAPath -Raw -Encoding UTF8|ConvertFrom-Json
     $stageAFails=@($stageA.checks|Where-Object{$_.result -eq 'FAIL'})
     $requiredPass=@('WINDOWS_BASELINE','PROCESS_OWNERSHIP_BASELINE','PRIMARY_AUTO_1081','RESERVE_MANUAL_1080','NETWORK_QUALIFICATION','ROLLBACK_IDENTITY')
-    $stageAReady=($stageA.qualification_state -eq 'BLOCKED' -and $stageAFails.Count -eq 0)
+    $requiredNotExecuted=@('WATCHDOG_LIFECYCLE','PROXIFIER_DESCENDANT_CLEANUP','CREDENTIAL_HOSTKEY')
+    $stageAReady=([string]$stageA.request_id -cne '' -and [string]$stageA.request_id -ceq $requestId -and $stageA.qualification_state -eq 'BLOCKED' -and $stageAFails.Count -eq 0 -and -not[bool]$stageA.runtime_authority -and -not[bool]$stageA.promotion_eligible)
     foreach($scope in $requiredPass){if(@($stageA.checks|Where-Object{$_.scope -eq $scope -and $_.result -eq 'PASS'}).Count -ne 1){$stageAReady=$false}}
+    foreach($scope in $requiredNotExecuted){if(@($stageA.checks|Where-Object{$_.scope -eq $scope -and $_.result -eq 'NOT_EXECUTED'}).Count -ne 1){$stageAReady=$false}}
 
-    $artifact=Join-Path (Join-Path $WorkspacePath 'provider-artifact') $ExpectedArtifactName
+    $artifact=Join-Path (Join-Path $WorkspacePath 'candidate-provider-artifact') $artifactName
     $artifactOk=$false
-    if(Test-Path -LiteralPath $artifact -PathType Leaf){$info=Get-Item -LiteralPath $artifact;$artifactOk=([long]$info.Length -eq $ExpectedArtifactSize -and (Get-Sha256 $artifact) -eq $ExpectedArtifactSha)}
+    if(Test-Path -LiteralPath $artifact -PathType Leaf){$info=Get-Item -LiteralPath $artifact;$artifactOk=([long]$info.Length -eq $artifactSize -and (Get-Sha256 $artifact) -ceq $artifactSha)}
     $rollbackOk=$false
-    if($V631Path -and(Test-Path -LiteralPath $V631Path -PathType Leaf)){$rollbackOk=((Get-Sha256 $V631Path)-eq$ExpectedV631Sha)}
+    if($V631Path -and(Test-Path -LiteralPath $V631Path -PathType Leaf)){$rollbackOk=((Get-Sha256 $V631Path)-ceq$v631Sha)}
 
-    $reserveBefore=Snapshot-Port $ReservePort
-    $primaryBefore=Snapshot-Port $PrimaryPort
-    $primaryProc=Get-PrimaryProcess
+    $reserveBefore=Snapshot-Port $reservePort
+    $primaryBefore=Snapshot-Port $primaryPort
+    $primaryProc=Get-PrimaryProcess $primaryPort
     $primaryOwnerPutty=$false;$primaryBinding=$false;$plaintextPwAbsent=$false;$pwfilePresent=$false
     if($null-ne$primaryProc){
         $n=[string]$primaryProc.Name;$cmd=[string]$primaryProc.CommandLine
         $primaryOwnerPutty=($n -match '(?i)^(putty|putty_portable|plink)\.exe$')
-        $primaryBinding=($cmd -match '(?i)(?:^|\s)-D\s+(?:"?127\.0\.0\.1:1081"?)(?:\s|$)')
+        $primaryBinding=($cmd -match ('(?i)(?:^|\s)-D\s+(?:"?127\.0\.0\.1:{0}"?)(?:\s|$)' -f $primaryPort))
         $plaintextPwAbsent=($cmd -notmatch '(?i)(?:^|\s)-pw(?:\s|=)')
         $pwfilePresent=($cmd -match '(?i)(?:^|\s)-pwfile(?:\s|=)')
     }
@@ -142,7 +173,7 @@ if($Mode -eq 'Fixture'){
     if($liveEnginePath-and(Test-Path -LiteralPath $liveEnginePath -PathType Leaf)){$liveEngineSha=Get-Sha256 $liveEnginePath}
     $watchdogExactEngine=($watchdogPresent-and$watchdogAction-and$generatedEngineSha-and$liveEngineSha-and$generatedEngineSha-eq$liveEngineSha)
 
-    $reserveAfter=Snapshot-Port $ReservePort
+    $reserveAfter=Snapshot-Port $reservePort
     $reserveUnchanged=((Snapshot-Key $reserveBefore)-eq(Snapshot-Key $reserveAfter))
     $checks=[ordered]@{
         stage_a_ready=[bool]$stageAReady
@@ -158,7 +189,7 @@ if($Mode -eq 'Fixture'){
     }
     $ready=(@($checks.Values|Where-Object{-not$_}).Count -eq 0)
     if(-not$ready){$failure='ENVIRONMENT_OR_BASELINE_BLOCKER'}
-    $observations.stage_a_result=[IO.Path]::GetFileName($stageAPath)
+    $observations.request_id=$requestId;$observations.candidate_id=$candidateId;$observations.source_sha=$sourceSha;$observations.stage_a_result=[IO.Path]::GetFileName($stageAPath)
     $observations.reserve_before=$reserveBefore;$observations.reserve_after=$reserveAfter;$observations.primary_before=$primaryBefore
     $observations.primary_owner_putty=$primaryOwnerPutty;$observations.primary_binding_1081=$primaryBinding;$observations.plaintext_pw_absent=$plaintextPwAbsent;$observations.pwfile_present=$pwfilePresent
     $observations.watchdog_present=$watchdogPresent;$observations.watchdog_fresh=$watchdogFresh;$observations.watchdog_action_watchdog=$watchdogAction
@@ -166,10 +197,10 @@ if($Mode -eq 'Fixture'){
     Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue
 }
 
-$evidence=[ordered]@{schema_version=1;contract_id='PNCC_RUNTIME_STAGE_B_ADMISSION_EVIDENCE_V1';mode=$Mode;runtime_mutation=$false;reserve_manual_mutation=$false;primary_lifecycle_mutation=$false;checks=$checks;observations=$observations}
+$evidence=[ordered]@{schema_version=2;contract_id='PNCC_RUNTIME_STAGE_B_ADMISSION_EVIDENCE_V2';mode=$Mode;runtime_mutation=$false;reserve_manual_mutation=$false;primary_lifecycle_mutation=$false;checks=$checks;observations=$observations}
 Write-JsonUtf8Bom $evidence $evidencePath
 $state=if($ready){'READY_FOR_LIFECYCLE'}else{'BLOCKED'}
-$result=[ordered]@{schema_version=1;contract_id='PNCC_RUNTIME_STAGE_B_ADMISSION_V1';state=$state;failure_classification=$failure;evidence_sha256=(Get-Sha256 $evidencePath);runtime_mutation=$false;runtime_authority=$false;promotion_eligible=$false;next_action=if($ready){'CONTROLLED_PRIMARY_1081_RESTART'}else{'RESOLVE_ADMISSION_BLOCKERS'}}
+$result=[ordered]@{schema_version=2;contract_id='PNCC_RUNTIME_STAGE_B_ADMISSION_V2';state=$state;failure_classification=$failure;evidence_sha256=(Get-Sha256 $evidencePath);runtime_mutation=$false;runtime_authority=$false;promotion_eligible=$false;next_action=if($ready){'CONTROLLED_PRIMARY_1081_RESTART'}else{'RESOLVE_ADMISSION_BLOCKERS'}}
 Write-JsonUtf8Bom $result $resultPath
 Write-Output "PNCC_RUNTIME_STAGE_B_ADMISSION=$state MODE=$Mode RUNTIME_MUTATION=false RUNTIME_AUTHORITY=false PROMOTION_ELIGIBLE=false"
 Write-Output "STAGE_B_ADMISSION_RESULT=$resultPath"

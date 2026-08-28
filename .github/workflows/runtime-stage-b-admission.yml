@@ -12,7 +12,7 @@ permissions:
 jobs:
   runtime-stage-b-admission:
     runs-on: windows-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -31,17 +31,14 @@ jobs:
           if(@($errors).Count){$errors|ForEach-Object{Write-Error $_};exit 1}
           'RUNTIME_STAGE_B_ADMISSION_PARSE=PASS PS51=true'
 
-      - name: Assert admission is runtime-lifecycle non-mutating
+      - name: Assert admission is runtime-lifecycle non-mutating and Stable V2 request-bound
         shell: powershell
         run: |
           $ErrorActionPreference='Stop'
           $text=Get-Content tools/runtime-agent/Invoke-PnccRuntimeQualificationStageBAdmission.ps1 -Raw
           foreach($forbidden in @('Stop-Process','taskkill','Restart-Service','Stop-Service','Start-Service','-Action RestartTunnel','-Action StartReserve','-Action StopReserve','SelectReserveRoute','netsh interface')){if($text -match [regex]::Escape($forbidden)){throw "forbidden runtime mutation primitive: $forbidden"}}
-          if($text -notmatch 'primary_lifecycle_mutation=\$false'){throw 'primary lifecycle non-mutation evidence missing'}
-          if($text -notmatch 'reserve_manual_mutation=\$false'){throw 'reserve non-mutation evidence missing'}
-          if($text -notmatch 'watchdog_exact_engine'){throw 'exact engine admission check missing'}
-          if($text -notmatch 'generated_engine_sha256'){throw 'generated engine provenance evidence missing'}
-          if($text -notmatch "plaintext_pw_absent"){throw 'plaintext password guard missing'}
+          foreach($required in @('PNCC_RUNTIME_WORKSPACE_BOOTSTRAP_V2','candidate-provider-artifact','runtime-qualification-request.json','primary_lifecycle_mutation=$false','reserve_manual_mutation=$false','watchdog_exact_engine','generated_engine_sha256','plaintext_pw_absent')){if(-not$text.Contains($required)){throw "required Stable V2 admission token missing: $required"}}
+          foreach($stale in @('VPS-Control-v7.0.0-rc14.39.zip','8caad796469886b90d9928fba385fc4a4f0f3d60bcb6ee6b7cb98c4c2e4390b3',"Join-Path $WorkspacePath 'provider-artifact'")){if($text.Contains($stale)){throw "stale RC14.39 admission identity remains: $stale"}}
 
       - name: Execute ready fixture under Windows PowerShell 5.1
         shell: powershell
@@ -59,6 +56,37 @@ jobs:
           if($e.runtime_mutation -or $e.reserve_manual_mutation -or $e.primary_lifecycle_mutation){throw 'fixture evidence claims mutation'}
           if((Get-FileHash (Join-Path $out 'stage-b-admission-evidence.json') -Algorithm SHA256).Hash.ToLowerInvariant() -ne [string]$r.evidence_sha256){throw 'evidence hash mismatch'}
           'RUNTIME_STAGE_B_ADMISSION_FIXTURE=PASS READY_FOR_LIFECYCLE=true RUNTIME_AUTHORITY=false'
+
+      - name: Build exact Stable V2 workspace and exercise Live admission identity path
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:RUNNER_TEMP 'stage-b-stable-v2'
+          $bootstrapOut=Join-Path $root 'bootstrap'
+          $stageOut=Join-Path $root 'stage-b'
+          $stageAPath=Join-Path $root 'runtime-qualification-stage-a-result.json'
+          $v631=Join-Path $root 'VPS-Control-v6.3.1.ps1'
+          New-Item -ItemType Directory -Force -Path $root,$bootstrapOut,$stageOut|Out-Null
+          & .\tools\runtime-agent\Initialize-PnccRuntimeQualificationWorkspace.ps1 -OutputRoot $bootstrapOut -Mode Provider -RequestProviderArtifactId 9692080862 -RequestProviderBuildRunId 33186877990 -ExpectedRequestArtifactName 'PNCC-V7.0.0-RUNTIME-REQUEST-56f1e3798be0f5f034860adc04b609d0a07c2fc3' -ExpectedRequestProviderDigest 'sha256:a56c89028ba7a234fee78d2f27ce24e898d4abeb4f60eb4afd5410d70067a793' -ExpectedRequestSourceSha '56f1e3798be0f5f034860adc04b609d0a07c2fc3'
+          if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
+          $workspace=@(Get-ChildItem -LiteralPath $bootstrapOut -Directory | Where-Object{$_.Name -like 'PNCC-RUNTIME-QUALIFICATION-*'} | Sort-Object LastWriteTime -Descending | Select-Object -First 1)[0].FullName
+          $request=Get-Content (Join-Path $workspace 'request\runtime-qualification-request.json') -Raw|ConvertFrom-Json
+          $stageA=[ordered]@{schema_version=1;contract_id='PNCC_RUNTIME_QUALIFICATION_RESULT_V1';request_id=[string]$request.request_id;candidate=[ordered]@{};producer=[ordered]@{source_plane='PRIVATE_RUNTIME';agent_id='CI_STAGE_A_FIXTURE';runtime_agent_version='ci';validation_lab_version='ci'};environment=[ordered]@{windows_version='CI';powershell_version=$PSVersionTable.PSVersion.ToString()};checks=@();evidence_bundle=[ordered]@{sha256=('0'*64);private_location_ref='ci';sanitation_state='PRIVATE_ONLY_NOT_SANITIZED'};qualification_state='BLOCKED';failure_classification=$null;runtime_authority=$false;promotion_eligible=$false}
+          foreach($scope in @('WINDOWS_BASELINE','PROCESS_OWNERSHIP_BASELINE','PRIMARY_AUTO_1081','RESERVE_MANUAL_1080','NETWORK_QUALIFICATION','ROLLBACK_IDENTITY')){$stageA.checks += [ordered]@{scope=$scope;result='PASS';exit_code=0;failure_class=$null;evidence_refs=@()}}
+          foreach($scope in @('WATCHDOG_LIFECYCLE','PROXIFIER_DESCENDANT_CLEANUP','CREDENTIAL_HOSTKEY')){$stageA.checks += [ordered]@{scope=$scope;result='NOT_EXECUTED';exit_code=0;failure_class=$null;evidence_refs=@()}}
+          [IO.File]::WriteAllText($stageAPath,($stageA|ConvertTo-Json -Depth 10),(New-Object Text.UTF8Encoding($true)))
+          [IO.File]::WriteAllText($v631,'synthetic rollback placeholder',(New-Object Text.UTF8Encoding($true)))
+          & .\tools\runtime-agent\Invoke-PnccRuntimeQualificationStageBAdmission.ps1 -WorkspacePath $workspace -OutputDirectory $stageOut -Mode Live -V631Path $v631 -StageAResultPath $stageAPath
+          if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
+          $r=Get-Content (Join-Path $stageOut 'stage-b-admission-result.json') -Raw|ConvertFrom-Json
+          $e=Get-Content (Join-Path $stageOut 'stage-b-admission-evidence.json') -Raw|ConvertFrom-Json
+          if($r.state -ne 'BLOCKED'){throw "hosted Live admission must remain BLOCKED, got $($r.state)"}
+          if(-not[bool]$e.checks.stage_a_ready){throw 'Stable Stage-A request admission failed'}
+          if(-not[bool]$e.checks.candidate_identity){throw 'Stable candidate identity admission failed'}
+          if($e.runtime_mutation -or $e.reserve_manual_mutation -or $e.primary_lifecycle_mutation -or $r.runtime_authority -or $r.promotion_eligible){throw 'hosted admission violated non-authoritative boundary'}
+          'RUNTIME_STAGE_B_STABLE_V2_LIVE_PATH=PASS HOSTED_BLOCKED_BY_RUNTIME=true RUNTIME_AUTHORITY=false'
 
       - name: Assert repository remains clean
         shell: powershell
