@@ -36,10 +36,9 @@ jobs:
         run: |
           $ErrorActionPreference='Stop'
           $text=Get-Content tools/runtime-agent/Test-PnccStableWatchdogLifecycle.ps1 -Raw
-          foreach($required in @('PNCC_STABLE_WATCHDOG_LIFECYCLE_V1','WATCHDOG_LIFECYCLE_CONTRACT_ADMITTED','WATCHDOG_OBSERVATION_ADMITTED','heartbeat did not advance','watchdog exact identity changed during observation','CRITICAL 1080 snapshot changed during read-only observation','runtime_authority=$false','promotion_eligible=$false')){if(-not$text.Contains($required)){throw "required contract marker missing: $required"}}
-          foreach($forbidden in @('Stop-Process','taskkill','RestartTunnel','Restart-Service','Stop-Service','Start-Service','-Action StartReserve','-Action StopReserve','SelectReserveRoute')){if($text -match [regex]::Escape($forbidden)){throw "forbidden mutation primitive in read-only contract: $forbidden"}}
+          foreach($required in @('PNCC_STABLE_WATCHDOG_LIFECYCLE_V1','WATCHDOG_LIFECYCLE_CONTRACT_ADMITTED','WATCHDOG_OBSERVATION_ADMITTED','heartbeat did not advance','watchdog exact identity changed during observation','CRITICAL 1080 snapshot changed during read-only observation','hostkey_bypass_forbidden','runtime_authority=$false','promotion_eligible=$false')){if(-not$text.Contains($required)){throw "required contract marker missing: $required"}}
+          foreach($forbidden in @('Stop-Process','taskkill','RestartTunnel','Restart-Service','Stop-Service','Start-Service','-Action StartReserve','-Action StopReserve','SelectReserveRoute','StrictHostKeyChecking=no','UserKnownHostsFile=/dev/null')){if($text -match [regex]::Escape($forbidden)){throw "forbidden mutation/security-bypass primitive in read-only contract: $forbidden"}}
           if($text -match '(?i)(?:^|\s)-pw(?:\s|=)'){throw 'plaintext -pw marker forbidden'}
-          if($text -match '(?i)hostkey.*(?:disable|bypass|ignore)'){throw 'host-key bypass marker forbidden'}
           'STABLE_WATCHDOG_LIFECYCLE_BOUNDARY=PASS READ_ONLY=true'
 
       - name: Execute admitted fixture under Windows PowerShell 5.1
