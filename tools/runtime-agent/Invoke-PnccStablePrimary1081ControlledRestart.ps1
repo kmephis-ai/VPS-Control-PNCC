@@ -4,11 +4,12 @@ param(
     [ValidateSet('Fixture','Live')][string]$Mode='Fixture',
     [string]$FixturePath,
     [string]$OwnerAuthorizationPath,
-    [string]$RepositoryRoot=(Split-Path -Parent (Split-Path -Parent $PSScriptRoot)),
+    [string]$RepositoryRoot='',
     [string]$OutputDirectory='E:\!Chrome_Downloads\PNCC-STABLE-PRIMARY-1081-LIVE-RESTART'
 )
 Set-StrictMode -Version 2.0
 $ErrorActionPreference='Stop'
+if([string]::IsNullOrWhiteSpace($RepositoryRoot)){$RepositoryRoot=Split-Path -Parent (Split-Path -Parent $PSScriptRoot)}
 
 $ExpectedEngineSha='843c006b896607da19406998b54d4e6897fa8eb62d3e6bc92cc77255fe4833cf'
 $PrimaryPort=1081
@@ -80,7 +81,6 @@ $preRoute=SocksIdentity
 $again=Primary;if($again.Pid-ne$before.Pid-or$again.Exe-cne$before.Exe-or$again.Fingerprint-cne$before.Fingerprint){throw 'immediate pre-mutation target revalidation failed'}
 $wd2=Watchdog;if($wd2.Engine-cne$wd.Engine){throw 'Watchdog engine changed during authorization window'}
 $consumed=$OwnerAuthorizationPath+'.consumed';if(Test-Path -LiteralPath $consumed){throw 'owner token already consumed'};Move-Item -LiteralPath $OwnerAuthorizationPath -Destination $consumed -ErrorAction Stop
-$mutationStarted=$true
 $p=Start-Process $PsExe -ArgumentList ("-NoLogo -NoProfile -ExecutionPolicy Bypass -File `"$($wd2.Engine)`" -Action RestartTunnel -NoAppLaunch") -PassThru -WindowStyle Hidden
 if(-not$p.WaitForExit(120000)){try{$p.Kill()}catch{};throw 'RestartTunnel timeout'};$p.Refresh();if($p.ExitCode-ne0){throw "RestartTunnel failed rc=$($p.ExitCode)"}
 $deadline=(Get-Date).AddSeconds(45);$after=$null;while((Get-Date)-lt$deadline){try{$after=Primary;if($after){break}}catch{};Start-Sleep -Milliseconds 500};if($null-eq$after){throw 'post-restart 1081 listener missing'}
