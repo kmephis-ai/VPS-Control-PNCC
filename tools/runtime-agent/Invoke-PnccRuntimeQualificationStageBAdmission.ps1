@@ -161,13 +161,19 @@ if($Mode -eq 'Fixture'){
         Expand-Archive -LiteralPath $artifact -DestinationPath $extract -Force
         $upgrade=@(Get-ChildItem -LiteralPath $extract -Filter 'VPS-Control-v7-engine-upgrade.ps1' -File -Recurse|Select-Object -First 1)
         if($upgrade.Count -eq 1){
-            $generated=Join-Path $work 'VPS-Control-v6.5.generated.ps1'
+            $generatorDir=Join-Path $work 'generator-input'
+            New-Item -ItemType Directory -Force -Path $generatorDir|Out-Null
+            $stagedV631=Join-Path $generatorDir 'VPS-Control-v6.3.1.staged.ps1'
+            $generated=Join-Path $generatorDir 'VPS-Control-v6.5.generated.ps1'
+            Copy-Item -LiteralPath $V631Path -Destination $stagedV631 -Force
+            if((Get-Sha256 $stagedV631)-cne$v631Sha){throw 'Stage-B staged V6.3.1 identity mismatch'}
             $out=Join-Path $work 'generator.out.txt';$err=Join-Path $work 'generator.err.txt'
             $ps=Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
-            $args='-NoLogo -NoProfile -ExecutionPolicy Bypass -File "'+$upgrade[0].FullName+'" -SourcePath "'+$V631Path+'" -DestinationPath "'+$generated+'"'
+            $args='-NoLogo -NoProfile -ExecutionPolicy Bypass -File "'+$upgrade[0].FullName+'" -SourcePath "'+$stagedV631+'" -DestinationPath "'+$generated+'"'
             $proc=Start-Process -FilePath $ps -ArgumentList $args -WindowStyle Hidden -Wait -PassThru -RedirectStandardOutput $out -RedirectStandardError $err
             $proc.Refresh()
-            if($proc.ExitCode -eq 0-and(Test-Path -LiteralPath $generated -PathType Leaf)){$generatedEngineSha=Get-Sha256 $generated}
+            if($proc.ExitCode -ne 0-or-not(Test-Path -LiteralPath $generated -PathType Leaf)){throw 'Stage-B exact engine generation failed'}
+            $generatedEngineSha=Get-Sha256 $generated
         }
     }
     if($liveEnginePath-and(Test-Path -LiteralPath $liveEnginePath -PathType Leaf)){$liveEngineSha=Get-Sha256 $liveEnginePath}
@@ -199,10 +205,12 @@ if($Mode -eq 'Fixture'){
 
 $evidence=[ordered]@{schema_version=2;contract_id='PNCC_RUNTIME_STAGE_B_ADMISSION_EVIDENCE_V2';mode=$Mode;runtime_mutation=$false;reserve_manual_mutation=$false;primary_lifecycle_mutation=$false;checks=$checks;observations=$observations}
 Write-JsonUtf8Bom $evidence $evidencePath
-$state=if($ready){'READY_FOR_LIFECYCLE'}else{'BLOCKED'}
-$result=[ordered]@{schema_version=2;contract_id='PNCC_RUNTIME_STAGE_B_ADMISSION_V2';state=$state;failure_classification=$failure;evidence_sha256=(Get-Sha256 $evidencePath);runtime_mutation=$false;runtime_authority=$false;promotion_eligible=$false;next_action=if($ready){'CONTROLLED_PRIMARY_1081_RESTART'}else{'RESOLVE_ADMISSION_BLOCKERS'}}
+$evidenceSha=Get-Sha256 $evidencePath
+$state=$(if($ready){'READY_FOR_LIFECYCLE'}else{'BLOCKED'})
+$next=$(if($ready){'EXECUTE_CONTROLLED_LIFECYCLE_SCOPES'}else{'RESOLVE_ADMISSION_BLOCKERS'})
+$result=[ordered]@{schema_version=2;contract_id='PNCC_RUNTIME_STAGE_B_ADMISSION_V2';state=$state;failure_classification=$failure;evidence_sha256=$evidenceSha;runtime_mutation=$false;runtime_authority=$false;promotion_eligible=$false;next_action=$next}
 Write-JsonUtf8Bom $result $resultPath
-Write-Output "PNCC_RUNTIME_STAGE_B_ADMISSION=$state MODE=$Mode RUNTIME_MUTATION=false RUNTIME_AUTHORITY=false PROMOTION_ELIGIBLE=false"
+Write-Output ('PNCC_RUNTIME_STAGE_B_ADMISSION='+$state+' MODE='+$Mode+' RUNTIME_MUTATION=false RUNTIME_AUTHORITY=false PROMOTION_ELIGIBLE=false')
 Write-Output "STAGE_B_ADMISSION_RESULT=$resultPath"
 Write-Output "STAGE_B_ADMISSION_EVIDENCE=$evidencePath"
 exit 0
