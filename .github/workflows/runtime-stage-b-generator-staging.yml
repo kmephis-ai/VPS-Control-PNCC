@@ -1,0 +1,53 @@
+name: runtime-stage-b-generator-staging
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  runtime-stage-b-generator-staging:
+    runs-on: windows-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Assert Stage-B same-parent generator staging contract
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $path='tools/runtime-agent/Invoke-PnccRuntimeQualificationStageBAdmission.ps1'
+          $bytes=[IO.File]::ReadAllBytes((Resolve-Path $path))
+          if($bytes.Length -lt 3 -or $bytes[0]-ne 0xEF -or $bytes[1]-ne 0xBB -or $bytes[2]-ne 0xBF){throw 'UTF8 BOM required'}
+          $tokens=$null;$errors=$null
+          [Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path),[ref]$tokens,[ref]$errors)|Out-Null
+          if(@($errors).Count){$errors|ForEach-Object{Write-Error $_};exit 1}
+          $text=Get-Content -LiteralPath $path -Raw
+          foreach($required in @("$generatorDir=Join-Path $work 'generator-input'","$stagedV631=Join-Path $generatorDir 'VPS-Control-v6.3.1.staged.ps1'","$generated=Join-Path $generatorDir 'VPS-Control-v6.5.generated.ps1'",'Copy-Item -LiteralPath $V631Path -Destination $stagedV631 -Force','Stage-B staged V6.3.1 identity mismatch','-SourcePath \"''+$stagedV631+''\" -DestinationPath \"''+$generated+''\"','Stage-B exact engine generation failed')){if(-not$text.Contains($required)){throw "missing generator staging contract: $required"}}
+          foreach($forbidden in @('Stop-Process','taskkill','-Action RestartTunnel','-Action StartReserve','-Action StopReserve')){if($text.Contains($forbidden)){throw "forbidden runtime mutation primitive: $forbidden"}}
+          'RUNTIME_STAGE_B_GENERATOR_STAGING=PASS SAME_PARENT=true RUNTIME_MUTATION=false'
+
+      - name: Execute Stage-B ready fixture under Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $workspace=Join-Path $env:RUNNER_TEMP 'stage-b-generator-fixture-workspace'
+          $out=Join-Path $env:RUNNER_TEMP 'stage-b-generator-fixture-out'
+          New-Item -ItemType Directory -Force -Path $workspace,$out|Out-Null
+          powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\tools\runtime-agent\Invoke-PnccRuntimeQualificationStageBAdmission.ps1 -WorkspacePath $workspace -OutputDirectory $out -Mode Fixture -FixturePath .\.pncc-dev\tests\runtime-stage-b-admission-ready.fixture.json
+          if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
+          $r=Get-Content (Join-Path $out 'stage-b-admission-result.json') -Raw|ConvertFrom-Json
+          if($r.state -ne 'READY_FOR_LIFECYCLE' -or $r.runtime_mutation -or $r.runtime_authority -or $r.promotion_eligible){throw 'fixture boundary mismatch'}
+          'RUNTIME_STAGE_B_GENERATOR_FIXTURE=PASS'
+
+      - name: Assert repository remains clean
+        shell: powershell
+        run: |
+          if(git status --porcelain --untracked-files=all){git status --short;throw 'repository became dirty'}
