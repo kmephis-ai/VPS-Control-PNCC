@@ -29,19 +29,19 @@ jobs:
           $p='tools/runtime-agent/Test-PnccStablePrimary1081ControlledRestart.ps1'
           $raw=Get-Content $p -Raw
           foreach($required in @(
-            "PNCC_STABLE_PRIMARY_1081_MUTATION_AUTHORIZATION_V1",
-            "PNCC_STABLE_PRIMARY_1081_CONTROLLED_RESTART_V1",
-            "PHYSICAL_EXECUTION_ALLOWED=false",
-            "MUTATION_EXECUTED=false",
-            "runtime_mutation=$false",
-            "reserve_1080_mutation=$false",
-            "primary_1081_tunnel_mutation=$false",
-            "broad_process_kill_forbidden",
-            "parentage_not_authority",
-            "pid_only_not_authority",
-            "reserve_1080_snapshot_protected",
-            "exact_command_fingerprint",
-            "routed_identity_valid"
+            'PNCC_STABLE_PRIMARY_1081_MUTATION_AUTHORIZATION_V1',
+            'PNCC_STABLE_PRIMARY_1081_CONTROLLED_RESTART_V1',
+            'PHYSICAL_EXECUTION_ALLOWED=false',
+            'MUTATION_EXECUTED=false',
+            'runtime_mutation=$false',
+            'reserve_1080_mutation=$false',
+            'primary_1081_tunnel_mutation=$false',
+            'broad_process_kill_forbidden',
+            'parentage_not_authority',
+            'pid_only_not_authority',
+            'reserve_1080_snapshot_protected',
+            'exact_command_fingerprint',
+            'routed_identity_valid'
           )){if($raw -notlike ('*'+$required+'*')){throw "missing safety marker: $required"}}
           foreach($forbidden in @('Stop-Process','RestartTunnel','Start-Process','taskkill','TerminateProcess')){
             if($raw -match [regex]::Escape($forbidden)){throw "physical mutation primitive forbidden in hosted contract: $forbidden"}
