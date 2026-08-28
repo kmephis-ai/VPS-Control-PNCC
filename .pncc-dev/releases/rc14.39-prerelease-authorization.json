@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "contract_id": "PNCC_EXACT_PRERELEASE_AUTHORIZATION_V1",
+  "work_unit_id": "PIPE-WU-041",
+  "decision_base_sha": "f48490074848e210d40b857640240b38ebee6fd9",
+  "candidate_id": "PNCC-RC14.39-90C9E8698C64",
+  "tag": "v7.0.0-rc14.39",
+  "release_kind": "PRERELEASE",
+  "candidate_source_sha": "90c9e8698c6468d576aecbc60d940be9d5c6baab",
+  "artifact_filename": "VPS-Control-v7.0.0-rc14.39.zip",
+  "artifact_sha256": "8caad796469886b90d9928fba385fc4a4f0f3d60bcb6ee6b7cb98c4c2e4390b3",
+  "artifact_size_bytes": 700961,
+  "provider_artifact_id": 9661221985,
+  "provider_artifact_digest": "eaf9844e8901cce7b1ebc866550e37cfd72393afc67075c27cba6703a415b68e",
+  "provider_build_run_id": 33107824902,
+  "runtime_qualification": {
+    "required_scopes": 9,
+    "pass_scopes": 9,
+    "runtime_authority": true,
+    "promotion_eligible": true
+  },
+  "owner_authorized": true,
+  "rebuild_allowed": false,
+  "artifact_substitution_allowed": false,
+  "stable_declaration_allowed": false
+}
