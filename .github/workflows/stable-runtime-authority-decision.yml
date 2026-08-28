@@ -1,0 +1,45 @@
+name: stable-runtime-authority-decision
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Evaluate Stable Runtime Authority decision boundary
+        run: python3 .pncc-dev/scripts/evaluate_stable_runtime_authority_decision.py
+      - name: Assert hosted boundary has no authority or release side effects
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          p='.pncc-dev/attestations/stable-runtime-authority-decision-v7.0.0.json'
+          d=json.load(open(p,encoding='utf-8'))
+          assert d['decision_state']=='ELIGIBLE_FOR_OWNER_PROMOTION_DECISION'
+          assert d['runtime_authority_candidate'] is True
+          assert d['runtime_authority'] is False
+          assert d['promotion_eligible'] is False
+          assert d['release_or_tag_authorized'] is False
+          assert d['tag_created'] is False
+          assert d['release_created'] is False
+          assert d['stable_declared'] is False
+          assert d['artifact_rebuilt'] is False
+          assert d['artifact_substituted'] is False
+          assert d['rc_runtime_truth_used'] is False
+          PY
+      - name: Assert workflow cannot mutate repository or releases
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(grep -c 'contents: read' .github/workflows/stable-runtime-authority-decision.yml)" -eq 1
+          ! grep -Eqi 'gh release|git tag|git push|contents:[[:space:]]*write|releases:[[:space:]]*write' .github/workflows/stable-runtime-authority-decision.yml
+      - name: Assert repository remains clean
+        run: test -z "$(git status --porcelain)"
