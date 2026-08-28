@@ -50,7 +50,6 @@ jobs:
             'src/windows-v7/VPS-Control-v7-TUNNEL-CONTRACT.json':1,
             'src/windows-v7/VPS-Control-v7-launch.ps1':1,
             'src/windows-v7/VPS-Control-v7.ps1':2,
-            '.github/workflows/candidate-builder.yml':3,
             '.pncc-dev/candidate-source.json':1,
             'build/windows-v7-candidate-recipe.json':2,
           }
@@ -76,7 +75,7 @@ jobs:
           for raw in expected:
               if old in Path(raw).read_bytes():
                   raise SystemExit(f'OLD_VERSION_REMAINS {raw}')
-          print('WU043_VERSION_TRANSITION=PASS PRODUCT_FILES=7 PRODUCT_OCCURRENCES=8 CONTROL_FILES=3 CONTROL_OCCURRENCES=6')
+          print('WU043_VERSION_TRANSITION=PASS PRODUCT_FILES=7 PRODUCT_OCCURRENCES=8 BUILD_CONTROL_DIRECT_FILES=2 BUILD_CONTROL_DIRECT_OCCURRENCES=3')
           PY
 
       - name: Commit locally before clean-tree build
@@ -84,7 +83,7 @@ jobs:
         run: |
           set -euo pipefail
           git diff --check
-          git add src/windows-v7 .pncc-dev/candidate-source.json build/windows-v7-candidate-recipe.json .github/workflows/candidate-builder.yml
+          git add src/windows-v7 .pncc-dev/candidate-source.json build/windows-v7-candidate-recipe.json
           test -n "$(git diff --cached --name-only)"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
