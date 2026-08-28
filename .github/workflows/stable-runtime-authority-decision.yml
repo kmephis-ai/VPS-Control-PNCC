@@ -43,7 +43,7 @@ jobs:
           from pathlib import Path
           p=Path('.github/workflows/stable-runtime-authority-decision.yml')
           s=p.read_text(encoding='utf-8')
-          assert s.count('contents: read') == 1
+          assert sum(1 for line in s.splitlines() if line.strip() == 'contents: read') == 1
           forbidden=[
             'gh'+' release',
             'git'+' tag',
