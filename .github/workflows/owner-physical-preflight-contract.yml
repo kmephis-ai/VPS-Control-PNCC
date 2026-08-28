@@ -23,32 +23,46 @@ jobs:
         shell: powershell
         run: |
           $ErrorActionPreference='Stop'
-          $path='tools/runtime-agent/Invoke-PnccOwnerPhysicalPreflight.ps1'
-          $bytes=[IO.File]::ReadAllBytes((Resolve-Path $path))
-          if($bytes.Length -lt 3 -or $bytes[0]-ne 0xEF -or $bytes[1]-ne 0xBB -or $bytes[2]-ne 0xBF){ throw 'UTF8 BOM required' }
-          $tokens=$null; $errors=$null
-          [Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path),[ref]$tokens,[ref]$errors)|Out-Null
-          if($errors.Count){ $errors | % { Write-Error $_ }; exit 1 }
+          $paths=@('tools/runtime-agent/Invoke-PnccOwnerPhysicalPreflight.ps1','tools/runtime-agent/Invoke-PnccPrivateRuntimePreflight.ps1')
+          foreach($path in $paths){
+            $bytes=[IO.File]::ReadAllBytes((Resolve-Path $path))
+            if($bytes.Length -lt 3 -or $bytes[0]-ne 0xEF -or $bytes[1]-ne 0xBB -or $bytes[2]-ne 0xBF){ throw "UTF8 BOM required: $path" }
+            $tokens=$null; $errors=$null
+            [Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path),[ref]$tokens,[ref]$errors)|Out-Null
+            if(@($errors).Count){ $errors | ForEach-Object { Write-Error $_ }; exit 1 }
+          }
           'OWNER_PHYSICAL_PREFLIGHT_PARSE=PASS PS51=true'
 
-      - name: Assert physical orchestrator remains non-mutating and pinned to corrected harness
+      - name: Assert owner orchestrator is caller-pinned and non-mutating
         shell: powershell
         run: |
           $ErrorActionPreference='Stop'
           $text=Get-Content tools/runtime-agent/Invoke-PnccOwnerPhysicalPreflight.ps1 -Raw
           foreach($forbidden in @('Stop-Process','Restart-Service','Stop-Service','Start-Service','taskkill','netsh interface')){ if($text -match [regex]::Escape($forbidden)){ throw "forbidden lifecycle primitive: $forbidden" } }
-          if($text -notmatch 'RUNTIME_MUTATION=false'){ throw 'non-mutation assertion missing' }
-          if($text -notmatch 'PREFLIGHT_STATE='){ throw 'preflight state telemetry missing' }
-          $pin='010c44db41094c79a6c0df96c95a70a36da868c0'
-          if($text -notmatch $pin){ throw 'corrected exact harness SHA pin missing' }
+          foreach($required in @(
+            '[Parameter(Mandatory=$true)][string]$RepositorySha',
+            '[Parameter(Mandatory=$true)][long]$RequestProviderArtifactId',
+            '[Parameter(Mandatory=$true)][long]$RequestProviderBuildRunId',
+            '[Parameter(Mandatory=$true)][string]$ExpectedRequestArtifactName',
+            '[Parameter(Mandatory=$true)][string]$ExpectedRequestProviderDigest',
+            '[Parameter(Mandatory=$true)][string]$ExpectedRequestSourceSha',
+            '-RequestProviderArtifactId',
+            '-ExpectedRequestProviderDigest',
+            'RUNTIME_MUTATION=false',
+            'RETURN_ZIP=',
+            'LOG_PATH='
+          )){ if(-not $text.Contains($required)){ throw "required owner contract fragment missing: $required" } }
+          if($text -match "RepositorySha = '[0-9a-f]{40}'"){ throw 'stale embedded harness SHA is forbidden' }
           if($text -notmatch 'Invoke-NativeCaptured'){ throw 'PS5.1-safe native capture helper missing' }
-          if($text -match 'powershell\.exe @args 2>&1'){ throw 'unsafe direct child stderr merge still present' }
-          git fetch --depth=1 origin $pin
-          if($LASTEXITCODE -ne 0){ throw 'unable to fetch pinned preflight harness revision' }
-          $pinned=git show "$pin`:tools/runtime-agent/Invoke-PnccPrivateRuntimePreflight.ps1"
-          if($LASTEXITCODE -ne 0){ throw 'unable to inspect pinned preflight harness' }
-          $pinnedText=$pinned -join "`n"
-          if($pinnedText -notmatch 'gh auth status 1>\$null 2>\$null'){ throw 'pin does not contain WU-020 gh stderr fix' }
-          if($pinnedText -match '\(if\('){ throw 'pin still contains PS5.1-incompatible inline if expression' }
+          if($text -match 'powershell\.exe @args 2>&1'){ throw 'unsafe direct child stderr merge present' }
           if(git status --porcelain --untracked-files=all){ throw 'repository became dirty' }
-          'OWNER_PHYSICAL_PREFLIGHT_PIN=PASS PIN_CONTAINS_WU020_FIX=true'
+          'OWNER_PHYSICAL_PREFLIGHT_CALLER_PIN_CONTRACT=PASS RUNTIME_MUTATION=false'
+
+      - name: Assert private preflight derives candidate from V2 workspace
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $text=Get-Content tools/runtime-agent/Invoke-PnccPrivateRuntimePreflight.ps1 -Raw
+          foreach($required in @('PNCC_RUNTIME_WORKSPACE_BOOTSTRAP_V2','candidate-provider-artifact','runtime-qualification-request.json','workspace/request candidate_id mismatch','plaintext password transport cannot be allowed','host-key verification cannot be disabled')){ if($text -notmatch [regex]::Escape($required)){ throw "V2 preflight binding fragment missing: $required" } }
+          foreach($forbidden in @('VPS-Control-v7.0.0-rc14.39.zip','8caad796469886b90d9928fba385fc4a4f0f3d60bcb6ee6b7cb98c4c2e4390b3')){ if($text -match [regex]::Escape($forbidden)){ throw "RC-specific identity remains in private preflight: $forbidden" } }
+          'OWNER_PHYSICAL_PREFLIGHT_V2_BINDING=PASS'

@@ -15,7 +15,7 @@ jobs:
   private-runtime-preflight:
     name: private-runtime-preflight
     runs-on: windows-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Checkout exact revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -27,15 +27,18 @@ jobs:
         shell: powershell
         run: |
           $ErrorActionPreference='Stop'
-          $path='tools/runtime-agent/Invoke-PnccPrivateRuntimePreflight.ps1'
-          $tokens=$null; $errors=$null
-          [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path),[ref]$tokens,[ref]$errors) | Out-Null
-          if(@($errors).Count -ne 0){ $errors | ForEach-Object { Write-Error $_ }; exit 1 }
-          $b=[IO.File]::ReadAllBytes((Resolve-Path $path))
-          if($b.Length -lt 3 -or $b[0] -ne 0xEF -or $b[1] -ne 0xBB -or $b[2] -ne 0xBF){ throw 'UTF8 BOM missing' }
-          $raw=Get-Content $path -Raw
+          $paths=@('tools/runtime-agent/Invoke-PnccPrivateRuntimePreflight.ps1','tools/runtime-agent/Initialize-PnccRuntimeQualificationWorkspace.ps1')
+          foreach($path in $paths){
+            $tokens=$null; $errors=$null
+            [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path),[ref]$tokens,[ref]$errors) | Out-Null
+            if(@($errors).Count -ne 0){ $errors | ForEach-Object { Write-Error $_ }; exit 1 }
+            $b=[IO.File]::ReadAllBytes((Resolve-Path $path))
+            if($b.Length -lt 3 -or $b[0] -ne 0xEF -or $b[1] -ne 0xBB -or $b[2] -ne 0xBF){ throw "UTF8 BOM missing: $path" }
+          }
+          $raw=Get-Content tools/runtime-agent/Invoke-PnccPrivateRuntimePreflight.ps1 -Raw
           if($raw -match '\(if\s*\('){ throw 'PS5.1-incompatible inline if expression detected' }
           if($raw -match 'gh auth status 2>&1'){ throw 'PS5.1 native STDERR merge hazard detected' }
+          if(git status --porcelain --untracked-files=all){ throw 'parse preflight dirtied repository' }
           'PRIVATE_RUNTIME_PREFLIGHT_PARSE=PASS PS51=true'
 
       - name: Prove READY fixture remains non-authoritative
@@ -70,27 +73,36 @@ jobs:
           if($r.runtime_authority -or $r.promotion_eligible){ throw 'blocked preflight cannot grant authority' }
           'PRIVATE_RUNTIME_PREFLIGHT_BLOCKED=PASS CLASS=ENVIRONMENT_OR_BASELINE_BLOCKER'
 
-      - name: Exercise Live code path under Windows PowerShell 5.1
+      - name: Build exact Stable V2 workspace and exercise Live preflight on hosted Windows
         shell: powershell
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           $ErrorActionPreference='Stop'
-          $workspace=Join-Path $env:RUNNER_TEMP 'live-workspace'
-          $provider=Join-Path $workspace 'provider-artifact'
-          New-Item -ItemType Directory -Path $provider -Force | Out-Null
-          gh run download 33107824902 --repo kmephis-ai/VPS-Control-PNCC --name PNCC-RC14.39-90c9e8698c6468d576aecbc60d940be9d5c6baab --dir $provider
-          if($LASTEXITCODE -ne 0){ throw 'governed artifact download failed' }
-          $out=Join-Path $env:RUNNER_TEMP 'preflight-live.json'
-          & ./tools/runtime-agent/Invoke-PnccPrivateRuntimePreflight.ps1 -WorkspacePath $workspace -OutputPath $out -Mode Live
+          $root=Join-Path $env:RUNNER_TEMP 'stable-live-bootstrap'
+          & ./tools/runtime-agent/Initialize-PnccRuntimeQualificationWorkspace.ps1 `
+            -OutputRoot $root `
+            -Mode Provider `
+            -RequestProviderArtifactId 9692080862 `
+            -RequestProviderBuildRunId 33186877990 `
+            -ExpectedRequestArtifactName 'PNCC-V7.0.0-RUNTIME-REQUEST-56f1e3798be0f5f034860adc04b609d0a07c2fc3' `
+            -ExpectedRequestProviderDigest 'sha256:a56c89028ba7a234fee78d2f27ce24e898d4abeb4f60eb4afd5410d70067a793' `
+            -ExpectedRequestSourceSha '56f1e3798be0f5f034860adc04b609d0a07c2fc3'
+          if($LASTEXITCODE -ne 0){ throw "Stable workspace bootstrap failed rc=$LASTEXITCODE" }
+          $workspace=Get-ChildItem -LiteralPath $root -Directory | Select-Object -First 1
+          if($null -eq $workspace){ throw 'Stable workspace missing' }
+          $out=Join-Path $env:RUNNER_TEMP 'preflight-live-stable.json'
+          & ./tools/runtime-agent/Invoke-PnccPrivateRuntimePreflight.ps1 -WorkspacePath $workspace.FullName -OutputPath $out -Mode Live
           if($LASTEXITCODE -ne 0){ throw "live preflight execution failed rc=$LASTEXITCODE" }
           $r=Get-Content $out -Raw | ConvertFrom-Json
           if($r.preflight_state -ne 'BLOCKED'){ throw 'hosted live path must remain BLOCKED without physical prerequisites' }
           if($r.failure_classification -ne 'ENVIRONMENT_OR_BASELINE_BLOCKER'){ throw 'hosted live classification mismatch' }
           if($r.runtime_mutation_permitted -or $r.runtime_authority -or $r.promotion_eligible){ throw 'live preflight cannot grant authority' }
+          if($r.request_id -ne 'PNCC-RQ-V7.0.0-56F1E3798BE0'){ throw 'Stable request id drift' }
+          if($r.candidate_id -ne 'PNCC-V7.0.0-56F1E3798BE0'){ throw 'Stable candidate id drift' }
           $candidate=@($r.checks | Where-Object { $_.name -eq 'CANDIDATE_IDENTITY' })
-          if($candidate.Count -ne 1 -or -not $candidate[0].pass){ throw 'governed candidate identity did not pass in live regression' }
-          'PRIVATE_RUNTIME_PREFLIGHT_LIVE_PS51=PASS EXPECTED_STATE=BLOCKED'
+          if($candidate.Count -ne 1 -or -not $candidate[0].pass){ throw 'governed Stable candidate identity did not pass in live regression' }
+          'PRIVATE_RUNTIME_PREFLIGHT_LIVE_PS51=PASS CANDIDATE=STABLE_V7 EXPECTED_STATE=BLOCKED'
 
       - name: Assert repository remains clean
         shell: powershell

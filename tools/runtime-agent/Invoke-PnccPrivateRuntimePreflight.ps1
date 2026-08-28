@@ -11,12 +11,11 @@ param(
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
 
-$ExpectedCandidateName = 'VPS-Control-v7.0.0-rc14.39.zip'
-$ExpectedCandidateSha = '8caad796469886b90d9928fba385fc4a4f0f3d60bcb6ee6b7cb98c4c2e4390b3'
-$ExpectedCandidateSize = 700961L
-$ExpectedV631Sha = '385e5178f10e79b0b234376e6a6671b64ce523a3971b2b4341ec94ce1efee11e'
-$ExpectedPrimaryPort = 1081
-$ExpectedReservePort = 1080
+$PolicyV631Sha = '385e5178f10e79b0b234376e6a6671b64ce523a3971b2b4341ec94ce1efee11e'
+$PolicyPrimaryPort = 1081
+$PolicyReservePort = 1080
+$PolicyReserveLifecycle = 'MANUAL_ONLY'
+$PolicyPuttyPasswordArgument = '-pwfile'
 
 function Get-Sha256([string]$Path) {
     return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -57,6 +56,14 @@ if (-not (Test-Path -LiteralPath $WorkspacePath -PathType Container)) {
 
 $checks = @()
 $observations = [ordered]@{}
+$expectedCandidateName = $null
+$expectedCandidateSha = $null
+$expectedCandidateSize = 0L
+$expectedCandidateId = $null
+$expectedRequestId = $null
+$expectedV631Sha = $PolicyV631Sha
+$expectedPrimaryPort = $PolicyPrimaryPort
+$expectedReservePort = $PolicyReservePort
 
 if ($Mode -eq 'Fixture') {
     if ([string]::IsNullOrWhiteSpace($FixturePath) -or -not (Test-Path -LiteralPath $FixturePath -PathType Leaf)) { throw 'FixturePath is required in Fixture mode' }
@@ -70,6 +77,42 @@ if ($Mode -eq 'Fixture') {
     $observations.listeners = @($fixture.listeners)
     $observations.processes = @($fixture.processes)
 } else {
+    $manifestPath = Join-Path $WorkspacePath 'workspace-manifest.json'
+    $requestPath = Join-Path $WorkspacePath 'request\runtime-qualification-request.json'
+    if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) { throw 'workspace-manifest.json missing' }
+    if (-not (Test-Path -LiteralPath $requestPath -PathType Leaf)) { throw 'runtime qualification request missing from workspace' }
+    $manifest = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $request = Get-Content -LiteralPath $requestPath -Raw -Encoding UTF8 | ConvertFrom-Json
+
+    if ([int]$manifest.schema_version -ne 2 -or [string]$manifest.bootstrap_id -ne 'PNCC_RUNTIME_WORKSPACE_BOOTSTRAP_V2') { throw 'workspace bootstrap V2 required' }
+    if ([bool]$manifest.boundaries.runtime_mutation_permitted -or [bool]$manifest.boundaries.runtime_authority -or [bool]$manifest.boundaries.promotion_eligible) { throw 'workspace authority boundary violation' }
+    if ([string]$request.contract_id -ne 'PNCC_RUNTIME_QUALIFICATION_REQUEST_V1' -or [string]$request.state -ne 'RUNTIME_PENDING') { throw 'governed pending runtime request required' }
+    if ([bool]$request.runtime_authority -or [bool]$request.promotion_eligible) { throw 'request cannot carry runtime/promotion authority' }
+
+    $expectedCandidateName = [string]$request.candidate.artifact_filename
+    $expectedCandidateSha = [string]$request.candidate.artifact_sha256
+    $expectedCandidateSize = [long]$request.candidate.artifact_size_bytes
+    $expectedCandidateId = [string]$request.candidate.candidate_id
+    $expectedRequestId = [string]$request.request_id
+    $expectedV631Sha = [string]$request.expected_invariants.v6_3_1_sha256
+    $expectedPrimaryPort = [int]$request.expected_invariants.primary_auto_port
+    $expectedReservePort = [int]$request.expected_invariants.reserve_manual_port
+
+    if ($expectedV631Sha -ne $PolicyV631Sha) { throw 'V6.3.1 request invariant differs from policy' }
+    if ($expectedPrimaryPort -ne $PolicyPrimaryPort) { throw 'PRIMARY_AUTO request invariant differs from policy' }
+    if ($expectedReservePort -ne $PolicyReservePort) { throw 'RESERVE_MANUAL request invariant differs from policy' }
+    if ([string]$request.expected_invariants.reserve_manual_lifecycle -ne $PolicyReserveLifecycle) { throw '1080 lifecycle request invariant differs from policy' }
+    if ([string]$request.expected_invariants.putty_password_argument -ne $PolicyPuttyPasswordArgument) { throw 'PuTTY transport request invariant differs from policy' }
+    if ([bool]$request.expected_invariants.plaintext_pw_allowed) { throw 'plaintext password transport cannot be allowed' }
+    if ([bool]$request.expected_invariants.hostkey_verification_disable_allowed) { throw 'host-key verification cannot be disabled' }
+
+    if ([string]$manifest.request_provider.request_id -ne $expectedRequestId) { throw 'workspace/request request_id mismatch' }
+    if ([string]$manifest.candidate.candidate_id -ne $expectedCandidateId) { throw 'workspace/request candidate_id mismatch' }
+    if ([string]$manifest.candidate.source_sha -ne [string]$request.candidate.source_sha) { throw 'workspace/request source SHA mismatch' }
+    if ([string]$manifest.candidate.artifact_filename -ne $expectedCandidateName) { throw 'workspace/request candidate filename mismatch' }
+    if ([string]$manifest.candidate.artifact_sha256 -ne $expectedCandidateSha) { throw 'workspace/request candidate SHA mismatch' }
+    if ([long]$manifest.candidate.artifact_size_bytes -ne $expectedCandidateSize) { throw 'workspace/request candidate size mismatch' }
+
     $isWindows = ($env:OS -eq 'Windows_NT')
     $windowsReason = 'Windows_NT not observed'
     if($isWindows){ $windowsReason = 'Windows_NT observed' }
@@ -78,14 +121,14 @@ if ($Mode -eq 'Fixture') {
     $psOk = ($PSVersionTable.PSVersion.Major -gt 5 -or ($PSVersionTable.PSVersion.Major -eq 5 -and $PSVersionTable.PSVersion.Minor -ge 1))
     $checks += New-Check 'POWERSHELL_BASELINE' $psOk ("PowerShell " + $PSVersionTable.PSVersion.ToString())
 
-    $candidate = Join-Path (Join-Path $WorkspacePath 'provider-artifact') $ExpectedCandidateName
+    $candidate = Join-Path (Join-Path $WorkspacePath 'candidate-provider-artifact') $expectedCandidateName
     $candidatePass = $false
     $candidateReason = 'candidate missing'
     if (Test-Path -LiteralPath $candidate -PathType Leaf) {
         $info = Get-Item -LiteralPath $candidate
         $sha = Get-Sha256 $candidate
-        $candidatePass = ([long]$info.Length -eq $ExpectedCandidateSize -and $sha -eq $ExpectedCandidateSha)
-        $candidateReason = "sha256=$sha bytes=$($info.Length)"
+        $candidatePass = ([long]$info.Length -eq $expectedCandidateSize -and $sha -eq $expectedCandidateSha)
+        $candidateReason = "candidate_id=$expectedCandidateId sha256=$sha bytes=$($info.Length)"
     }
     $checks += New-Check 'CANDIDATE_IDENTITY' $candidatePass $candidateReason
 
@@ -108,12 +151,12 @@ if ($Mode -eq 'Fixture') {
     $rollbackReason = 'V6.3.1 path not supplied'
     if (-not [string]::IsNullOrWhiteSpace($V631Path) -and (Test-Path -LiteralPath $V631Path -PathType Leaf)) {
         $rollbackSha = Get-Sha256 $V631Path
-        $rollbackOk = ($rollbackSha -eq $ExpectedV631Sha)
+        $rollbackOk = ($rollbackSha -eq $expectedV631Sha)
         $rollbackReason = "sha256=$rollbackSha"
     }
     $checks += New-Check 'ROLLBACK_IDENTITY' $rollbackOk $rollbackReason
 
-    $observations.listeners = @((Get-ListenerObservation $ExpectedReservePort),(Get-ListenerObservation $ExpectedPrimaryPort))
+    $observations.listeners = @((Get-ListenerObservation $expectedReservePort),(Get-ListenerObservation $expectedPrimaryPort))
     $observations.processes = @(Get-ObservedProcesses)
 }
 
@@ -128,16 +171,19 @@ $workspaceValue = [IO.Path]::GetFullPath($WorkspacePath)
 if($Mode -eq 'Fixture'){ $workspaceValue = 'FIXTURE_WORKSPACE' }
 
 $result = [ordered]@{
-    schema_version = 1
-    contract_id = 'PNCC_PRIVATE_RUNTIME_PREFLIGHT_V1'
+    schema_version = 2
+    contract_id = 'PNCC_PRIVATE_RUNTIME_PREFLIGHT_V2'
     mode = $Mode
     workspace = $workspaceValue
+    request_id = $expectedRequestId
+    candidate_id = $expectedCandidateId
     expected = [ordered]@{
-        candidate_sha256 = $ExpectedCandidateSha
-        candidate_size_bytes = $ExpectedCandidateSize
-        v6_3_1_sha256 = $ExpectedV631Sha
-        reserve_manual_port = $ExpectedReservePort
-        primary_auto_port = $ExpectedPrimaryPort
+        candidate_filename = $expectedCandidateName
+        candidate_sha256 = $expectedCandidateSha
+        candidate_size_bytes = $expectedCandidateSize
+        v6_3_1_sha256 = $expectedV631Sha
+        reserve_manual_port = $expectedReservePort
+        primary_auto_port = $expectedPrimaryPort
     }
     checks = $checks
     observations = $observations
@@ -151,6 +197,6 @@ $result = [ordered]@{
 $parent = Split-Path -Parent $OutputPath
 if (-not [string]::IsNullOrWhiteSpace($parent)) { New-Item -ItemType Directory -Path $parent -Force | Out-Null }
 $result | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $OutputPath -Encoding UTF8
-Write-Output "PNCC_PRIVATE_RUNTIME_PREFLIGHT=$state MODE=$Mode FAILED_CHECKS=$($failed.Count) RUNTIME_MUTATION=false RUNTIME_AUTHORITY=false PROMOTION_ELIGIBLE=false"
+Write-Output "PNCC_PRIVATE_RUNTIME_PREFLIGHT=$state MODE=$Mode REQUEST_ID=$expectedRequestId CANDIDATE_ID=$expectedCandidateId FAILED_CHECKS=$($failed.Count) RUNTIME_MUTATION=false RUNTIME_AUTHORITY=false PROMOTION_ELIGIBLE=false"
 Write-Output "PREFLIGHT_RESULT=$OutputPath"
 exit 0
