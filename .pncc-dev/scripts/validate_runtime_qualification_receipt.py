@@ -2,7 +2,7 @@
 import json, pathlib, re
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-receipt_path = ROOT / '.pncc-dev/runtime/runtime-qualification-rc14.39.json'
+receipt_path = ROOT / '.pncc-dev/attestations/runtime-qualification-rc14.39.json'
 request_path = ROOT / '.pncc-dev/requests/runtime-qualification-rc14.39.json'
 policy_path = ROOT / '.pncc-dev/contracts/runtime-qualification-policy.json'
 
