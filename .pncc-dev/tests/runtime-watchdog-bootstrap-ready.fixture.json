@@ -1,0 +1,12 @@
+{
+  "stage_b_only_watchdog_blocked": true,
+  "candidate_identity": true,
+  "rollback_identity": true,
+  "reserve_1080_listening": true,
+  "primary_1081_listening": true,
+  "exact_engine_generation": true,
+  "security_contract": true,
+  "watchdog_absent": true,
+  "fresh_heartbeat": true,
+  "listeners_unchanged": true
+}
