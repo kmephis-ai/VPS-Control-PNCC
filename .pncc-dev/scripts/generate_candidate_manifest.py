@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -16,8 +17,19 @@ class ManifestError(RuntimeError):
     pass
 
 
+CANDIDATE_VERSION_RX = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+(?:-rc[0-9]+\.[0-9]+)?$")
+
+
 def load_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8-sig"))
+
+
+def candidate_id_for(version: str, source_sha: str) -> str:
+    if version == "7.0.0":
+        return f"PNCC-V7.0.0-{source_sha[:12].upper()}"
+    if version == "7.0.0-rc14.39":
+        return f"PNCC-RC14.39-{source_sha[:12].upper()}"
+    raise ManifestError(f"unsupported governed candidate version: {version}")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -67,12 +79,16 @@ def main(argv: list[str] | None = None) -> int:
         if sha != artifact_record.get("sha256") or len(artifact_bytes) != artifact_record.get("size_bytes"):
             raise ManifestError("artifact bytes/evidence mismatch")
         candidate_version = evidence.get("candidate_version")
-        if candidate_version != "7.0.0-rc14.39":
-            raise ManifestError(f"unexpected candidate version: {candidate_version}")
+        if not isinstance(candidate_version, str) or not CANDIDATE_VERSION_RX.fullmatch(candidate_version):
+            raise ManifestError(f"invalid candidate version: {candidate_version}")
+        expected_filename = f"VPS-Control-v{candidate_version}.zip"
+        if args.artifact.name != expected_filename:
+            raise ManifestError(f"candidate version/artifact filename mismatch: expected {expected_filename}")
+        candidate_id = candidate_id_for(candidate_version, args.source_sha)
         manifest = {
             "schema_version": 1,
             "contract_id": "PNCC_CANDIDATE_ARTIFACT_TRUTH_V1",
-            "candidate_id": f"PNCC-RC14.39-{args.source_sha[:12].upper()}",
+            "candidate_id": candidate_id,
             "artifact_role": "RUNTIME_CANDIDATE",
             "source": {
                 "repository": repository, "commit_sha": args.source_sha, "ref": ref,
@@ -88,6 +104,7 @@ def main(argv: list[str] | None = None) -> int:
             "tool_versions": {
                 "python": sys.version.split()[0], "zipfile": "stdlib",
                 "builder_contract": "PNCC_DETERMINISTIC_CANDIDATE_BUILD_V1",
+                "candidate_version": candidate_version,
             },
             "engineering_checks": checks,
             "provenance": {
@@ -100,7 +117,7 @@ def main(argv: list[str] | None = None) -> int:
         args.output.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8", newline="")
         print(
             "CANDIDATE_MANIFEST_GENERATED=PASS "
-            f"CANDIDATE_ID={manifest['candidate_id']} ARTIFACT_SHA256={sha} "
+            f"CANDIDATE_ID={manifest['candidate_id']} VERSION={candidate_version} ARTIFACT_SHA256={sha} "
             "RUNTIME=NOT_VERIFIED PROMOTION_ELIGIBLE=false"
         )
         return 0
