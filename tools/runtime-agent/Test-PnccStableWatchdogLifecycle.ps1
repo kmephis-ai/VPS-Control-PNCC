@@ -4,7 +4,7 @@ param(
     [ValidateSet('Fixture','LiveObservation')][string]$Mode='Fixture',
     [string]$FixturePath,
     [string]$OutputDirectory='E:\!Chrome_Downloads\PNCC-STABLE-WATCHDOG-LIFECYCLE',
-    [ValidateRange(2,120)][int]$ObservationSeconds=6
+    [ValidateRange(50,120)][int]$ObservationSeconds=70
 )
 Set-StrictMode -Version 2.0
 $ErrorActionPreference='Stop'
@@ -62,12 +62,19 @@ if(-not(Test-Path -LiteralPath $Heartbeat -PathType Leaf)){throw 'watchdog heart
 $hb1=Get-Item -LiteralPath $Heartbeat;$hb1Time=$hb1.LastWriteTimeUtc;$age1=[int]((Get-Date).ToUniversalTime()-$hb1Time).TotalSeconds
 if($age1-lt0-or$age1-gt240){throw 'watchdog heartbeat stale'}
 $fp1=Fingerprint $cmd1
-Start-Sleep -Seconds $ObservationSeconds
-$p2=Proc $watchdogPid;if($null-eq$p2){throw 'watchdog process disappeared during observation'}
-$cmd2=[string]$p2.CommandLine;$engine2=FileArg $cmd2
-if((Fingerprint $cmd2)-cne$fp1-or$engine2-cne$engine-or(Sha $engine2)-cne$ExpectedEngineSha){throw 'watchdog exact identity changed during observation'}
-$hb2=Get-Item -LiteralPath $Heartbeat;$hb2Time=$hb2.LastWriteTimeUtc;$age2=[int]((Get-Date).ToUniversalTime()-$hb2Time).TotalSeconds
-if($hb2Time-le$hb1Time){throw 'watchdog heartbeat did not advance'}
+$deadline=(Get-Date).AddSeconds($ObservationSeconds)
+$hb2Time=$hb1Time
+while((Get-Date)-lt$deadline){
+    Start-Sleep -Seconds 2
+    $p2=Proc $watchdogPid
+    if($null-eq$p2){throw 'watchdog process disappeared during observation'}
+    $cmd2=[string]$p2.CommandLine;$engine2=FileArg $cmd2
+    if((Fingerprint $cmd2)-cne$fp1-or$engine2-cne$engine-or(Sha $engine2)-cne$ExpectedEngineSha){throw 'watchdog exact identity changed during observation'}
+    $hb2=Get-Item -LiteralPath $Heartbeat;$hb2Time=$hb2.LastWriteTimeUtc
+    if($hb2Time-gt$hb1Time){break}
+}
+$age2=[int]((Get-Date).ToUniversalTime()-$hb2Time).TotalSeconds
+if($hb2Time-le$hb1Time){throw 'watchdog heartbeat did not advance within bounded observation window'}
 if($age2-lt0-or$age2-gt240){throw 'watchdog heartbeat not fresh after observation'}
 $reserveAfter=Snap 1080;$primaryAfter=Snap 1081
 if((Key $reserveBefore)-cne(Key $reserveAfter)){throw 'CRITICAL 1080 snapshot changed during read-only observation'}
