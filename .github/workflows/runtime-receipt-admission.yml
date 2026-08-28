@@ -1,0 +1,26 @@
+name: runtime-receipt-admission
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Validate sanitized Runtime Truth receipt
+        run: python3 .pncc-dev/scripts/validate_runtime_qualification_receipt.py
+      - name: Assert no private-runtime payloads are tracked
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e '.pncc-dev/runtime/raw'
+          test ! -e '.pncc-dev/runtime/logs'
+          ! grep -RIlE 'YandexDisk|Dropbox|LOCALAPPDATA|DESKTOP-|\\Users\\|putty_portable\.exe' .pncc-dev/runtime
+      - name: Assert repository remains clean
+        run: test -z "$(git status --porcelain)"
