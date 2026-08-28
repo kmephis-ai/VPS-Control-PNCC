@@ -1,0 +1,38 @@
+name: runtime-watchdog-refresh
+on:
+  pull_request:
+    paths:
+      - 'tools/runtime-agent/Invoke-PnccWatchdogRefresh.ps1'
+      - '.pncc-dev/fixtures/runtime-watchdog-refresh-plan.json'
+      - '.github/workflows/runtime-watchdog-refresh.yml'
+permissions:
+  contents: read
+jobs:
+  contract:
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: PowerShell 5.1 parse and BOM preflight
+        shell: powershell
+        run: |
+          $p='tools/runtime-agent/Invoke-PnccWatchdogRefresh.ps1'
+          $b=[IO.File]::ReadAllBytes($p)
+          if($b.Length -lt 3 -or $b[0] -ne 0xEF -or $b[1] -ne 0xBB -or $b[2] -ne 0xBF){throw 'UTF8 BOM required'}
+          $t=$null;$e=$null;[void][Management.Automation.Language.Parser]::ParseFile((Resolve-Path $p),[ref]$t,[ref]$e)
+          if($e.Count){$e|ForEach-Object{Write-Error $_};throw 'parse failed'}
+      - name: Assert watchdog-only contract markers
+        shell: powershell
+        run: |
+          $raw=Get-Content 'tools/runtime-agent/Invoke-PnccWatchdogRefresh.ps1' -Raw
+          foreach($required in @('watchdog_only','-Action Watchdog','-WatchIntervalSeconds 45','CRITICAL 1080 snapshot changed','CRITICAL 1081 snapshot changed','PROXIFIER_MUTATION=false')){if(-not $raw.Contains($required)){throw "missing $required"}}
+      - name: Execute Plan regression
+        shell: powershell
+        run: |
+          powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File tools/runtime-agent/Invoke-PnccWatchdogRefresh.ps1 -Mode Plan -FixturePath .pncc-dev/fixtures/runtime-watchdog-refresh-plan.json -OutputDirectory "$env:RUNNER_TEMP\wu037-plan"
+          if($LASTEXITCODE -ne 0){throw "Plan failed rc=$LASTEXITCODE"}
+      - name: Assert repository remains clean
+        shell: powershell
+        run: |
+          if(git status --porcelain){throw 'repository dirty'}
