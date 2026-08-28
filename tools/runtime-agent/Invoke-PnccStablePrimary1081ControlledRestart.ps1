@@ -26,7 +26,7 @@ function WriteJson($Value,[string]$Path){$d=Split-Path -Parent $Path;if($d){New-
 function Proc([int]$ProcessId){if($ProcessId-le0){return $null};try{Get-CimInstance Win32_Process -Filter ('ProcessId='+$ProcessId) -ErrorAction Stop}catch{$null}}
 function FileArg([string]$Cmd){if(-not$Cmd){return ''};$m=[regex]::Match($Cmd,'(?i)(?:^|\s)-File\s+(?:"([^"]+)"|''([^'']+)''|(\S+))');if(-not$m.Success){return ''};foreach($i in 1..3){if($m.Groups[$i].Success){return [string]$m.Groups[$i].Value}};return ''}
 function Sha([string]$Path){(Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()}
-function Snap([int]$Port){$rows=@(Get-NetTCPConnection -State Listen -LocalAddress '127.0.0.1' -LocalPort $Port -ErrorAction SilentlyContinue);$o=@();foreach($r in $rows){$p=Proc ([int]$r.OwningProcess);$o+=[ordered]@{pid=[int]$r.OwningProcess;name=$(if($p){[string]$p.Name}else{''});exe=$(if($p){[string]$p.ExecutablePath}else{''})}};[ordered]@{port=$Port;listening=($rows.Count-gt0);owners=@($o|Sort-Object pid)}}
+function Snap([int]$Port){$rows=@(Get-NetTCPConnection -State Listen -LocalAddress '127.0.0.1' -LocalPort $Port -ErrorAction SilentlyContinue);$o=@();foreach($r in $rows){$p=Proc ([int]$r.OwningProcess);$o+=[ordered]@{pid=[int]$r.OwningProcess;name=$(if($p){[string]$p.Name}else{''});exe=$(if($p){[string]$p.ExecutablePath}else{''})}};[ordered]@{port=$Port;listening=($rows.Count-gt0);listener_count=$rows.Count;owners=@($o|Sort-Object pid)}}
 function Key($Value){$Value|ConvertTo-Json -Depth 8 -Compress}
 function Fingerprint([string]$CommandLine){if([string]::IsNullOrWhiteSpace($CommandLine)){return ''};$s=[regex]::Replace($CommandLine,'(?i)(-pwfile\s+)(?:"[^"]*"|''[^'']*''|\S+)','$1<redacted-path>');$s=[regex]::Replace($s,'(?i)(-pw\s+)(?:"[^"]*"|''[^'']*''|\S+)','$1<redacted>');$b=[Text.Encoding]::UTF8.GetBytes($s);$h=[Security.Cryptography.SHA256]::Create();try{return ([BitConverter]::ToString($h.ComputeHash($b))).Replace('-','').ToLowerInvariant()}finally{$h.Dispose()}}
 function Primary(){ $r=@(Get-NetTCPConnection -State Listen -LocalAddress '127.0.0.1' -LocalPort $PrimaryPort -ErrorAction SilentlyContinue);if($r.Count-ne1){throw "expected exactly one 1081 listener, got $($r.Count)"};$p=Proc ([int]$r[0].OwningProcess);if($null-eq$p){throw '1081 owner missing'};$cmd=[string]$p.CommandLine;[pscustomobject]@{Pid=[int]$p.ProcessId;Name=[string]$p.Name;Exe=[string]$p.ExecutablePath;Cmd=$cmd;Fingerprint=(Fingerprint $cmd);Putty=([string]$p.Name-match'(?i)^(putty|putty_portable|plink)\.exe$');Binding=($cmd-match'(?i)(?:^|\s)-D\s+"?127\.0\.0\.1:1081"?(?:\s|$)');Pwfile=($cmd-match'(?i)(?:^|\s)-pwfile(?:\s|=)');NoPlainPw=($cmd-notmatch'(?i)(?:^|\s)-pw(?:\s|=)')} }
@@ -54,9 +54,34 @@ function SocksIdentity(){
     }
     throw ('SOCKS identity probe failed after attempts='+$script:RouteProbeLastAttempts+' last_exit_code='+$script:RouteProbeLastExitCode)
 }
+function TryPostFailureState($ReserveBefore){
+    $snap1081=Snap $PrimaryPort
+    $secure=$false;$routeOk=$false;$watchdogOk=$false;$reserveOk=$false;$routeAttempts=0;$routeExit=-1
+    if($snap1081.listener_count-eq1){
+        try{$q=Primary;$secure=([bool]$q.Putty-and[bool]$q.Binding-and[bool]$q.Pwfile-and[bool]$q.NoPlainPw)}catch{$secure=$false}
+        if($secure){
+            try{$null=SocksIdentity;$routeOk=$true;$routeAttempts=$script:RouteProbeLastAttempts;$routeExit=$script:RouteProbeLastExitCode}catch{$routeOk=$false;$routeAttempts=$script:RouteProbeLastAttempts;$routeExit=$script:RouteProbeLastExitCode}
+        }
+    }
+    try{$w=Watchdog;$watchdogOk=($w.Engine-and((Sha $w.Engine)-ceq$ExpectedEngineSha))}catch{$watchdogOk=$false}
+    $reserveAfter=Snap $ReservePort
+    $reserveOk=((Key $ReserveBefore)-ceq(Key $reserveAfter))
+    [ordered]@{
+        primary_1081_listener_count=[int]$snap1081.listener_count
+        primary_1081_secure=$secure
+        primary_1081_route_probe_success=$routeOk
+        route_probe_attempts=[int]$routeAttempts
+        route_probe_last_exit_code=[int]$routeExit
+        watchdog_exact_and_fresh=$watchdogOk
+        reserve_1080_unchanged=$reserveOk
+        runtime_healthy=($snap1081.listener_count-eq1-and$secure-and$routeOk-and$watchdogOk-and$reserveOk)
+    }
+}
 
 New-Item -ItemType Directory -Force -Path $OutputDirectory|Out-Null
 $resultPath=Join-Path $OutputDirectory 'stable-primary-1081-live-restart-result.json'
+$restartStdout=Join-Path $OutputDirectory 'restart-tunnel.stdout.log'
+$restartStderr=Join-Path $OutputDirectory 'restart-tunnel.stderr.log'
 
 if($Mode-ceq'Fixture'){
     if(-not$FixturePath-or-not(Test-Path -LiteralPath $FixturePath -PathType Leaf)){throw 'FixturePath required'}
@@ -81,7 +106,7 @@ if($Mode-ceq'Fixture'){
     }
     $failed=@($checks.GetEnumerator()|Where-Object{-not[bool]$_.Value}|ForEach-Object{$_.Key})
     $ok=($failed.Count-eq0)
-    $r=[ordered]@{schema_version=1;contract_id='PNCC_STABLE_PRIMARY_1081_LIVE_CONTROLLED_RESTART_V1';mode='Fixture';state=$(if($ok){'LIVE_EXECUTOR_ADMITTED_DEFAULT_DENY'}else{'BLOCKED'});checks=$checks;failed_checks=$failed;physical_execution_allowed=$false;owner_authorization_consumed=$false;mutation_executed=$false;runtime_mutation=$false;reserve_1080_mutation=$false;primary_1081_tunnel_mutation=$false;runtime_authority=$false;promotion_eligible=$false}
+    $r=[ordered]@{schema_version=1;contract_id='PNCC_STABLE_PRIMARY_1081_LIVE_CONTROLLED_RESTART_V1';mode='Fixture';state=$(if($ok){'LIVE_EXECUTOR_ADMITTED_DEFAULT_DENY'}else{'BLOCKED'});checks=$checks;failed_checks=$failed;physical_execution_allowed=$false;owner_authorization_consumed=$false;mutation_executed=$false;runtime_mutation=$false;reserve_1080_mutation=$false;primary_1081_tunnel_mutation=$false;restart_stdout_capture_required=$true;restart_stderr_capture_required=$true;failure_receipt_required=$true;automatic_mutation_retry=$false;runtime_authority=$false;promotion_eligible=$false}
     WriteJson $r $resultPath
     Write-Output ('PNCC_STABLE_PRIMARY_1081_LIVE_CONTROLLED_RESTART='+$r.state+' PHYSICAL_EXECUTION_ALLOWED=false MUTATION_EXECUTED=false RUNTIME_AUTHORITY=false PROMOTION_ELIGIBLE=false')
     if($ok){exit 0}else{exit 50}
@@ -106,15 +131,52 @@ $preRoute=SocksIdentity;$preRouteAttempts=$script:RouteProbeLastAttempts
 $again=Primary;if($again.Pid-ne$before.Pid-or$again.Exe-cne$before.Exe-or$again.Fingerprint-cne$before.Fingerprint){throw 'immediate pre-mutation target revalidation failed'}
 $wd2=Watchdog;if($wd2.Engine-cne$wd.Engine){throw 'Watchdog engine changed during authorization window'}
 $consumed=$OwnerAuthorizationPath+'.consumed';if(Test-Path -LiteralPath $consumed){throw 'owner token already consumed'};Move-Item -LiteralPath $OwnerAuthorizationPath -Destination $consumed -ErrorAction Stop
-$p=Start-Process $PsExe -ArgumentList ("-NoLogo -NoProfile -ExecutionPolicy Bypass -File `"$($wd2.Engine)`" -Action RestartTunnel -NoAppLaunch") -PassThru -WindowStyle Hidden
-if(-not$p.WaitForExit(120000)){try{$p.Kill()}catch{};throw 'RestartTunnel timeout'};$p.Refresh();if($p.ExitCode-ne0){throw "RestartTunnel failed rc=$($p.ExitCode)"}
+
+Remove-Item $restartStdout,$restartStderr -Force -ErrorAction SilentlyContinue
+$restartArgs="-NoLogo -NoProfile -ExecutionPolicy Bypass -File `"$($wd2.Engine)`" -Action RestartTunnel -NoAppLaunch"
+$p=Start-Process $PsExe -ArgumentList $restartArgs -PassThru -WindowStyle Hidden -RedirectStandardOutput $restartStdout -RedirectStandardError $restartStderr
+$restartTimedOut=$false
+if(-not$p.WaitForExit(120000)){$restartTimedOut=$true;try{$p.Kill()}catch{};try{$p.WaitForExit(5000)|Out-Null}catch{}}
+$p.Refresh()
+$restartExitCode=$(if($restartTimedOut){124}else{[int]$p.ExitCode})
+
+if($restartTimedOut-or$restartExitCode-ne0){
+    $postFailure=TryPostFailureState $reserveBefore
+    $failureState=$(if($restartTimedOut){'RESTART_TUNNEL_TIMEOUT'}elseif([bool]$postFailure.runtime_healthy){'RESTART_TUNNEL_FAILED_RUNTIME_HEALTHY'}else{'RESTART_TUNNEL_FAILED_RUNTIME_UNHEALTHY'})
+    $failureReceipt=[ordered]@{
+        schema_version=1
+        contract_id='PNCC_STABLE_PRIMARY_1081_LIVE_CONTROLLED_RESTART_V1'
+        mode='Live'
+        state=$failureState
+        main_sha=$head
+        owner_authorization_consumed=$true
+        mutation_executed=$true
+        runtime_mutation=$true
+        reserve_1080_mutation=(-not[bool]$postFailure.reserve_1080_unchanged)
+        primary_1081_tunnel_mutation=$true
+        restart_tunnel_invoked=$true
+        restart_tunnel_timed_out=$restartTimedOut
+        restart_tunnel_exit_code=[int]$restartExitCode
+        restart_stdout_file='restart-tunnel.stdout.log'
+        restart_stderr_file='restart-tunnel.stderr.log'
+        post_failure=$postFailure
+        automatic_mutation_retry=$false
+        runtime_authority=$false
+        promotion_eligible=$false
+    }
+    WriteJson $failureReceipt $resultPath
+    Write-Output ('PNCC_STABLE_PRIMARY_1081_LIVE_CONTROLLED_RESTART='+$failureState+' RESTART_TUNNEL_EXIT_CODE='+$restartExitCode+' AUTOMATIC_MUTATION_RETRY=false RUNTIME_AUTHORITY=false PROMOTION_ELIGIBLE=false')
+    Write-Output ('RESULT='+$resultPath)
+    if($restartTimedOut){exit 62}else{exit 61}
+}
+
 $deadline=(Get-Date).AddSeconds(45);$after=$null;while((Get-Date)-lt$deadline){try{$after=Primary;if($after){break}}catch{};Start-Sleep -Milliseconds 500};if($null-eq$after){throw 'post-restart 1081 listener missing'}
 if(-not$after.Putty-or-not$after.Binding-or-not$after.Pwfile-or-not$after.NoPlainPw){throw 'post-restart 1081 secure identity contract failed'}
 $postRoute=SocksIdentity;$postRouteAttempts=$script:RouteProbeLastAttempts;if($postRoute-cne$preRoute){throw 'post-restart routed identity changed'}
 $wd3=Watchdog;if($wd3.Engine-cne$wd.Engine){throw 'post-restart Watchdog exact engine mismatch'}
 $reserveAfter=Snap $ReservePort;if((Key $reserveBefore)-cne(Key $reserveAfter)){throw 'CRITICAL 1080 snapshot changed'}
-$r=[ordered]@{schema_version=1;contract_id='PNCC_STABLE_PRIMARY_1081_LIVE_CONTROLLED_RESTART_V1';mode='Live';state='CONTROLLED_RESTART_PASS';main_sha=$head;owner_authorization_consumed=$true;mutation_executed=$true;runtime_mutation=$true;reserve_1080_mutation=$false;primary_1081_tunnel_mutation=$true;pre_target_pid=$before.Pid;post_target_pid=$after.Pid;target_identity_rotated=($before.Pid-ne$after.Pid);secure_pwfile_post=$after.Pwfile;plain_pw_post=(-not$after.NoPlainPw);routed_identity_match=$true;route_probe_pre_attempts=$preRouteAttempts;route_probe_post_attempts=$postRouteAttempts;watchdog_exact_engine=$true;reserve_1080_unchanged=$true;runtime_authority=$false;promotion_eligible=$false}
+$r=[ordered]@{schema_version=1;contract_id='PNCC_STABLE_PRIMARY_1081_LIVE_CONTROLLED_RESTART_V1';mode='Live';state='CONTROLLED_RESTART_PASS';main_sha=$head;owner_authorization_consumed=$true;mutation_executed=$true;runtime_mutation=$true;reserve_1080_mutation=$false;primary_1081_tunnel_mutation=$true;restart_tunnel_invoked=$true;restart_tunnel_timed_out=$false;restart_tunnel_exit_code=0;restart_stdout_file='restart-tunnel.stdout.log';restart_stderr_file='restart-tunnel.stderr.log';pre_target_pid=$before.Pid;post_target_pid=$after.Pid;target_identity_rotated=($before.Pid-ne$after.Pid);secure_pwfile_post=$after.Pwfile;plain_pw_post=(-not$after.NoPlainPw);routed_identity_match=$true;route_probe_pre_attempts=$preRouteAttempts;route_probe_post_attempts=$postRouteAttempts;watchdog_exact_engine=$true;reserve_1080_unchanged=$true;automatic_mutation_retry=$false;runtime_authority=$false;promotion_eligible=$false}
 WriteJson $r $resultPath
-Write-Output 'PNCC_STABLE_PRIMARY_1081_LIVE_CONTROLLED_RESTART=CONTROLLED_RESTART_PASS MUTATION_EXECUTED=true RUNTIME_MUTATION=true RESERVE_1080_MUTATION=false RUNTIME_AUTHORITY=false PROMOTION_ELIGIBLE=false'
+Write-Output 'PNCC_STABLE_PRIMARY_1081_LIVE_CONTROLLED_RESTART=CONTROLLED_RESTART_PASS MUTATION_EXECUTED=true RUNTIME_MUTATION=true RESERVE_1080_MUTATION=false AUTOMATIC_MUTATION_RETRY=false RUNTIME_AUTHORITY=false PROMOTION_ELIGIBLE=false'
 Write-Output ('RESULT='+$resultPath)
 exit 0
