@@ -39,7 +39,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(grep -c 'contents: read' .github/workflows/stable-runtime-authority-decision.yml)" -eq 1
-          ! grep -Eqi 'gh release|git tag|git push|contents:[[:space:]]*write|releases:[[:space:]]*write' .github/workflows/stable-runtime-authority-decision.yml
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('.github/workflows/stable-runtime-authority-decision.yml')
+          s=p.read_text(encoding='utf-8')
+          assert s.count('contents: read') == 1
+          forbidden=[
+            'gh'+' release',
+            'git'+' tag',
+            'git'+' push',
+            'contents:'+' write',
+            'releases:'+' write',
+          ]
+          for token in forbidden:
+            assert token.lower() not in s.lower(), token
+          PY
       - name: Assert repository remains clean
         run: test -z "$(git status --porcelain)"
