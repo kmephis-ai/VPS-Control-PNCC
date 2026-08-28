@@ -38,26 +38,61 @@ jobs:
           if(git status --porcelain --untracked-files=all){ throw 'parse preflight dirtied repository' }
           'RUNTIME_WORKSPACE_BOOTSTRAP_PARSE=PASS PS51=true'
 
-      - name: Acquire exact governed provider artifact and build isolated workspace
+      - name: Acquire pinned Stable request and exact governed candidate
         shell: powershell
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           $ErrorActionPreference='Stop'
           $root=Join-Path $env:RUNNER_TEMP 'pncc-runtime-bootstrap'
-          & ./tools/runtime-agent/Initialize-PnccRuntimeQualificationWorkspace.ps1 -OutputRoot $root -Mode Provider
+          & ./tools/runtime-agent/Initialize-PnccRuntimeQualificationWorkspace.ps1 `
+            -OutputRoot $root `
+            -Mode Provider `
+            -RequestProviderArtifactId 9692080862 `
+            -RequestProviderBuildRunId 33186877990 `
+            -ExpectedRequestArtifactName 'PNCC-V7.0.0-RUNTIME-REQUEST-56f1e3798be0f5f034860adc04b609d0a07c2fc3' `
+            -ExpectedRequestProviderDigest 'sha256:a56c89028ba7a234fee78d2f27ce24e898d4abeb4f60eb4afd5410d70067a793' `
+            -ExpectedRequestSourceSha '56f1e3798be0f5f034860adc04b609d0a07c2fc3'
           if($LASTEXITCODE -ne 0){ exit $LASTEXITCODE }
           $workspace=Get-ChildItem -LiteralPath $root -Directory | Select-Object -First 1
           if($null -eq $workspace){ throw 'workspace was not created' }
           $manifest=Get-Content (Join-Path $workspace.FullName 'workspace-manifest.json') -Raw | ConvertFrom-Json
-          if($manifest.candidate.source_sha -ne '90c9e8698c6468d576aecbc60d940be9d5c6baab'){ throw 'source SHA mismatch' }
-          if($manifest.candidate.artifact_sha256 -ne '8caad796469886b90d9928fba385fc4a4f0f3d60bcb6ee6b7cb98c4c2e4390b3'){ throw 'artifact SHA mismatch' }
-          if([long]$manifest.candidate.artifact_size_bytes -ne 700961){ throw 'artifact size mismatch' }
+          if([int]$manifest.schema_version -ne 2){ throw 'workspace manifest schema mismatch' }
+          if($manifest.request_provider.artifact_id -ne 9692080862){ throw 'request provider artifact id mismatch' }
+          if($manifest.request_provider.request_id -ne 'PNCC-RQ-V7.0.0-56F1E3798BE0'){ throw 'request id mismatch' }
+          if($manifest.candidate.candidate_id -ne 'PNCC-V7.0.0-56F1E3798BE0'){ throw 'candidate id mismatch' }
+          if($manifest.candidate.source_sha -ne '56f1e3798be0f5f034860adc04b609d0a07c2fc3'){ throw 'source SHA mismatch' }
+          if($manifest.candidate.provider_artifact_id -ne 9692080233){ throw 'candidate provider artifact id mismatch' }
+          if($manifest.candidate.artifact_sha256 -ne '1407f82b15ea2b70ba56b7406bb8dd0d9097c459b630d016d6a7b5f10a49e599'){ throw 'artifact SHA mismatch' }
+          if([long]$manifest.candidate.artifact_size_bytes -ne 700897){ throw 'artifact size mismatch' }
           if($manifest.boundaries.runtime_mutation_permitted){ throw 'bootstrap cannot permit runtime mutation' }
           if($manifest.boundaries.runtime_authority){ throw 'bootstrap cannot grant runtime authority' }
           if($manifest.boundaries.promotion_eligible){ throw 'bootstrap cannot grant promotion eligibility' }
-          if(-not (Test-Path (Join-Path $workspace.FullName 'agent-dry-run/execution-plan.json'))){ throw 'agent dry-run plan missing' }
-          'RUNTIME_WORKSPACE_BOOTSTRAP=PASS PROVIDER_ARTIFACT=9661221985 INNER_SHA256=8caad796469886b90d9928fba385fc4a4f0f3d60bcb6ee6b7cb98c4c2e4390b3 RUNTIME_MUTATION=false'
+          $plan=Get-Content (Join-Path $workspace.FullName 'agent-dry-run/execution-plan.json') -Raw | ConvertFrom-Json
+          if($plan.request_id -ne 'PNCC-RQ-V7.0.0-56F1E3798BE0'){ throw 'agent request id drift' }
+          if($plan.candidate_id -ne 'PNCC-V7.0.0-56F1E3798BE0'){ throw 'agent candidate id drift' }
+          if([long]$plan.provider_artifact_id -ne 9692080233){ throw 'agent provider artifact binding drift' }
+          'RUNTIME_WORKSPACE_BOOTSTRAP=PASS AUTHORITY_CHAIN=REQUEST_PROVIDER_TO_CANDIDATE_PROVIDER REQUEST_ARTIFACT=9692080862 CANDIDATE_ARTIFACT=9692080233 RUNTIME_MUTATION=false'
+
+      - name: Reject request-provider digest substitution
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Continue'
+          $root=Join-Path $env:RUNNER_TEMP 'pncc-runtime-bootstrap-negative'
+          & ./tools/runtime-agent/Initialize-PnccRuntimeQualificationWorkspace.ps1 `
+            -OutputRoot $root `
+            -Mode Provider `
+            -RequestProviderArtifactId 9692080862 `
+            -RequestProviderBuildRunId 33186877990 `
+            -ExpectedRequestArtifactName 'PNCC-V7.0.0-RUNTIME-REQUEST-56f1e3798be0f5f034860adc04b609d0a07c2fc3' `
+            -ExpectedRequestProviderDigest ('sha256:' + ('f' * 64)) `
+            -ExpectedRequestSourceSha '56f1e3798be0f5f034860adc04b609d0a07c2fc3'
+          $negativeRc=$LASTEXITCODE
+          if($negativeRc -eq 0){ throw 'request provider digest substitution was accepted' }
+          $global:LASTEXITCODE=0
+          "REQUEST_PROVIDER_DIGEST_SUBSTITUTION=REJECTED RC=$negativeRc"
 
       - name: Assert repository remains clean
         shell: powershell
