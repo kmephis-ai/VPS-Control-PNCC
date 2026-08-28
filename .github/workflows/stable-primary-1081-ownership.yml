@@ -1,0 +1,52 @@
+name: stable-primary-1081-ownership
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  stable-primary-1081-ownership:
+    runs-on: windows-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: PowerShell 5.1 parse and safety contract
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $path='tools/runtime-agent/Test-PnccStablePrimary1081Ownership.ps1'
+          $bytes=[IO.File]::ReadAllBytes((Resolve-Path $path))
+          if($bytes.Length -lt 3 -or $bytes[0]-ne 0xEF -or $bytes[1]-ne 0xBB -or $bytes[2]-ne 0xBF){throw 'UTF8 BOM required'}
+          $tokens=$null;$errors=$null
+          [Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path),[ref]$tokens,[ref]$errors)|Out-Null
+          if(@($errors).Count){$errors|ForEach-Object{Write-Error $_};exit 1}
+          $text=Get-Content -LiteralPath $path -Raw
+          foreach($required in @('PNCC_STABLE_PRIMARY_1081_OWNERSHIP_V1','primary_pwfile','primary_no_plain_pw','watchdog_exact_engine','reserve_unchanged','runtime_mutation=$false','primary_1081_tunnel_mutation=$false')){if(-not$text.Contains($required)){throw "missing contract token: $required"}}
+          foreach($forbidden in @('Stop-Process','taskkill','RestartTunnel','StartReserve','StopReserve')){if($text.Contains($forbidden)){throw "forbidden runtime mutation primitive: $forbidden"}}
+          'STABLE_PRIMARY_1081_OWNERSHIP_STATIC=PASS'
+
+      - name: Execute admitted fixture under Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $out=Join-Path $env:RUNNER_TEMP 'stable-primary-ownership.json'
+          powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\tools\runtime-agent\Test-PnccStablePrimary1081Ownership.ps1 -Mode Fixture -FixturePath .\.pncc-dev\tests\stable-primary-1081-ownership-ready.fixture.json -OutputPath $out
+          if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
+          $r=Get-Content -LiteralPath $out -Raw|ConvertFrom-Json
+          if($r.state -ne 'OWNERSHIP_ADMITTED'){throw "unexpected state $($r.state)"}
+          if($r.runtime_mutation -or $r.reserve_1080_mutation -or $r.primary_1081_tunnel_mutation -or $r.runtime_authority -or $r.promotion_eligible){throw 'authority/mutation boundary violated'}
+          'STABLE_PRIMARY_1081_OWNERSHIP_FIXTURE=PASS'
+
+      - name: Assert repository remains clean
+        shell: powershell
+        run: |
+          if(git status --porcelain --untracked-files=all){git status --short;throw 'repository became dirty'}
