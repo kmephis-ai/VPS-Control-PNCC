@@ -13,25 +13,44 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
-      - name: Prove redirected child exit code capture and canonical fix under Windows PowerShell 5.1
+      - name: Reproduce Start-Process redirected exit-code defect under Windows PowerShell 5.1
         shell: powershell
         run: |
           $ErrorActionPreference='Stop'
           $child=Join-Path $env:RUNNER_TEMP 'wu069-child-exit1.ps1'
-          $stdout=Join-Path $env:RUNNER_TEMP 'wu069-child.out'
-          $stderr=Join-Path $env:RUNNER_TEMP 'wu069-child.err'
-          [IO.File]::WriteAllText($child,"Write-Output 'WU069_CHILD_MARKER'; exit 1",(New-Object Text.UTF8Encoding($true)))
+          $stdout=Join-Path $env:RUNNER_TEMP 'wu069-broken.out'
+          $stderr=Join-Path $env:RUNNER_TEMP 'wu069-broken.err'
+          [IO.File]::WriteAllText($child,"Write-Output 'WU069_BROKEN_MARKER'; exit 1",(New-Object Text.UTF8Encoding($true)))
           $args="-NoLogo -NoProfile -ExecutionPolicy Bypass -File `"$child`""
           $p=Start-Process powershell.exe -ArgumentList $args -PassThru -WindowStyle Hidden -RedirectStandardOutput $stdout -RedirectStandardError $stderr
           if(-not$p.WaitForExit(20000)){try{$p.Kill()}catch{};throw 'synthetic child timeout'}
           $p.Refresh()
-          $rcBeforeDrain=[int]$p.ExitCode
-          $p.WaitForExit()
+          $brokenRc=[int]$p.ExitCode
+          if((Get-Content $stdout -Raw) -notmatch 'WU069_BROKEN_MARKER'){throw 'broken-path stdout capture missing'}
+          Write-Host ("WU069_BROKEN_REDIRECT_CAPTURE OBSERVED_EXIT_CODE={0} EXPECTED_CHILD_EXIT=1" -f $brokenRc)
+
+      - name: Prove cmd wrapper preserves child exit code with file redirection
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $child=Join-Path $env:RUNNER_TEMP 'wu069-wrapper-child.ps1'
+          $wrapper=Join-Path $env:RUNNER_TEMP 'wu069-wrapper.cmd'
+          $stdout=Join-Path $env:RUNNER_TEMP 'wu069-wrapper.out'
+          $stderr=Join-Path $env:RUNNER_TEMP 'wu069-wrapper.err'
+          [IO.File]::WriteAllText($child,"Write-Output 'WU069_WRAPPER_MARKER'; exit 1",(New-Object Text.UTF8Encoding($true)))
+          $cmdLines=@(
+            '@echo off',
+            ('powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "{0}" 1>"{1}" 2>"{2}"' -f $child,$stdout,$stderr),
+            'exit /b %ERRORLEVEL%'
+          )
+          [IO.File]::WriteAllLines($wrapper,$cmdLines,[Text.Encoding]::ASCII)
+          $p=Start-Process $env:ComSpec -ArgumentList ('/d /c "'+$wrapper+'"') -PassThru -WindowStyle Hidden
+          if(-not$p.WaitForExit(20000)){try{$p.Kill()}catch{};throw 'wrapper child timeout'}
           $p.Refresh()
-          $rcAfterDrain=[int]$p.ExitCode
-          if($rcAfterDrain-ne1){throw "canonical WaitForExit fix failed: expected=1 actual=$rcAfterDrain before=$rcBeforeDrain"}
-          if((Get-Content $stdout -Raw) -notmatch 'WU069_CHILD_MARKER'){throw 'synthetic stdout capture missing'}
-          Write-Host ("WU069_REDIRECTED_EXITCODE_CAPTURE=PASS BEFORE_DRAIN={0} AFTER_DRAIN={1}" -f $rcBeforeDrain,$rcAfterDrain)
+          $rc=[int]$p.ExitCode
+          if($rc-ne1){throw "cmd wrapper exit mismatch: expected=1 actual=$rc"}
+          if((Get-Content $stdout -Raw) -notmatch 'WU069_WRAPPER_MARKER'){throw 'wrapper stdout capture missing'}
+          Write-Host 'WU069_CMD_WRAPPER_EXITCODE=PASS EXPECTED=1 ACTUAL=1'
 
       - name: Prove nested false propagates through mutation-lock shape
         shell: powershell
@@ -45,11 +64,12 @@ jobs:
           if([bool]$value){throw 'nested false unexpectedly became truthy'}
           Write-Host 'WU069_NESTED_FALSE_PROPAGATION=PASS'
 
-      - name: Prove top-level false becomes process exit 1 with canonical drain
+      - name: Prove top-level false becomes process exit 1 through cmd wrapper
         shell: powershell
         run: |
           $ErrorActionPreference='Stop'
           $child=Join-Path $env:RUNNER_TEMP 'wu069-nested-exit1.ps1'
+          $wrapper=Join-Path $env:RUNNER_TEMP 'wu069-nested-wrapper.cmd'
           $stdout=Join-Path $env:RUNNER_TEMP 'wu069-nested.out'
           $stderr=Join-Path $env:RUNNER_TEMP 'wu069-nested.err'
           $script=@'
@@ -60,10 +80,14 @@ jobs:
           if(-not(Restart-Tunnel)){exit 1}
           '@
           [IO.File]::WriteAllText($child,$script,(New-Object Text.UTF8Encoding($true)))
-          $args="-NoLogo -NoProfile -ExecutionPolicy Bypass -File `"$child`""
-          $p=Start-Process powershell.exe -ArgumentList $args -PassThru -WindowStyle Hidden -RedirectStandardOutput $stdout -RedirectStandardError $stderr
-          if(-not$p.WaitForExit(20000)){try{$p.Kill()}catch{};throw 'nested child timeout'}
-          $p.WaitForExit()
+          $cmdLines=@(
+            '@echo off',
+            ('powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "{0}" 1>"{1}" 2>"{2}"' -f $child,$stdout,$stderr),
+            'exit /b %ERRORLEVEL%'
+          )
+          [IO.File]::WriteAllLines($wrapper,$cmdLines,[Text.Encoding]::ASCII)
+          $p=Start-Process $env:ComSpec -ArgumentList ('/d /c "'+$wrapper+'"') -PassThru -WindowStyle Hidden
+          if(-not$p.WaitForExit(20000)){try{$p.Kill()}catch{};throw 'nested wrapper timeout'}
           $p.Refresh()
           $rc=[int]$p.ExitCode
           if($rc-ne1){throw "nested top-level exit mismatch: expected=1 actual=$rc"}
