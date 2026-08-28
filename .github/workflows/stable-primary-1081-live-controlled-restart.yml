@@ -22,7 +22,7 @@ jobs:
           [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path),[ref]$tokens,[ref]$errors)|Out-Null
           if($errors.Count){throw ($errors|Out-String)}
 
-      - name: Assert live executor safety markers
+      - name: Assert live executor safety and failure-evidence markers
         shell: powershell
         run: |
           $ErrorActionPreference='Stop'
@@ -42,11 +42,21 @@ jobs:
             'last_exit_code=',
             '$preRoute=SocksIdentity',
             '-Action RestartTunnel -NoAppLaunch',
+            'RedirectStandardOutput $restartStdout',
+            'RedirectStandardError $restartStderr',
+            'RESTART_TUNNEL_FAILED_RUNTIME_HEALTHY',
+            'RESTART_TUNNEL_FAILED_RUNTIME_UNHEALTHY',
+            'RESTART_TUNNEL_TIMEOUT',
+            'automatic_mutation_retry=$false',
+            'restart-tunnel.stdout.log',
+            'restart-tunnel.stderr.log',
             'CRITICAL 1080 snapshot changed',
             'post-restart routed identity changed',
             'RUNTIME_AUTHORITY=false PROMOTION_ELIGIBLE=false'
           )){if($raw -notlike ('*'+$required+'*')){throw "missing safety marker: $required"}}
           if($raw.IndexOf('$preRoute=SocksIdentity') -gt $raw.IndexOf("Move-Item -LiteralPath `$OwnerAuthorizationPath")){throw 'route probe must remain before token consumption'}
+          if($raw.IndexOf('Move-Item -LiteralPath $OwnerAuthorizationPath') -gt $raw.IndexOf('Start-Process $PsExe')){throw 'token must be consumed before RestartTunnel invocation'}
+          if(($raw | Select-String -Pattern 'Start-Process \$PsExe' -AllMatches).Matches.Count -ne 1){throw 'exactly one RestartTunnel process invocation allowed'}
           if($raw -match '(?i)Stop-Process'){throw 'broad Stop-Process forbidden'}
           if($raw -match '(?i)taskkill'){throw 'taskkill forbidden'}
           if($raw -match '(?i)\$arguments\s*\+=\s*@\(\s*["'']-pw["'']'){throw 'plaintext -pw construction forbidden'}
@@ -60,6 +70,8 @@ jobs:
           $r=Get-Content (Join-Path $env:RUNNER_TEMP 'stable-primary-1081-live-restart-result.json') -Raw|ConvertFrom-Json
           if($r.state -cne 'LIVE_EXECUTOR_ADMITTED_DEFAULT_DENY'){throw "unexpected state: $($r.state)"}
           if([bool]$r.physical_execution_allowed -or [bool]$r.owner_authorization_consumed -or [bool]$r.mutation_executed -or [bool]$r.runtime_mutation){throw 'fixture mutation boundary violated'}
+          if(-not[bool]$r.restart_stdout_capture_required -or -not[bool]$r.restart_stderr_capture_required -or -not[bool]$r.failure_receipt_required){throw 'failure evidence contract missing'}
+          if([bool]$r.automatic_mutation_retry){throw 'automatic mutation retry must remain false'}
           if([bool]$r.runtime_authority -or [bool]$r.promotion_eligible){throw 'authority boundary violated'}
 
       - name: Prove Live mode default-denies without owner token
@@ -73,6 +85,8 @@ jobs:
           $text=((Get-Content $stdout -Raw -ErrorAction SilentlyContinue)+(Get-Content $stderr -Raw -ErrorAction SilentlyContinue))
           if($p.ExitCode -eq 0){throw 'Live mode unexpectedly succeeded without owner token'}
           if($text -notmatch 'DEFAULT_DENY: valid OwnerAuthorizationPath required for Live mutation'){throw "missing default-deny proof: $text"}
+          if(Test-Path (Join-Path $env:RUNNER_TEMP 'restart-tunnel.stdout.log')){throw 'RestartTunnel stdout evidence unexpectedly created before authorization'}
+          if(Test-Path (Join-Path $env:RUNNER_TEMP 'restart-tunnel.stderr.log')){throw 'RestartTunnel stderr evidence unexpectedly created before authorization'}
 
       - name: Assert repository remains clean
         shell: powershell
