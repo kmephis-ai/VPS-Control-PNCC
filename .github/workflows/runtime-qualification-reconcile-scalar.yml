@@ -1,0 +1,50 @@
+name: runtime-qualification-reconcile-scalar
+on:
+  pull_request:
+    paths:
+      - 'tools/runtime-agent/Invoke-PnccRuntimeQualificationReconcile.ps1'
+      - '.github/workflows/runtime-qualification-reconcile-scalar.yml'
+permissions:
+  contents: read
+jobs:
+  contract:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: PowerShell 5.1 parse and BOM preflight
+        shell: powershell
+        run: |
+          $p='tools/runtime-agent/Invoke-PnccRuntimeQualificationReconcile.ps1'
+          $bytes=[IO.File]::ReadAllBytes($p)
+          if($bytes.Length -lt 3 -or $bytes[0] -ne 0xEF -or $bytes[1] -ne 0xBB -or $bytes[2] -ne 0xBF){throw 'UTF-8 BOM required'}
+          $tokens=$null;$errors=$null
+          [void][Management.Automation.Language.Parser]::ParseFile((Resolve-Path $p),[ref]$tokens,[ref]$errors)
+          if($errors.Count){$errors|ForEach-Object{Write-Error $_.Message};exit 1}
+          if($PSVersionTable.PSVersion.Major -ne 5){throw 'Windows PowerShell 5.1 required'}
+      - name: Assert call-site collection normalization
+        shell: powershell
+        run: |
+          $raw=Get-Content 'tools/runtime-agent/Invoke-PnccRuntimeQualificationReconcile.ps1' -Raw
+          if($raw -notmatch '\$c=@\(GetCheck \$stage \$s\)'){throw 'normalized GetCheck call missing'}
+          if($raw -match '\$c=GetCheck \$stage \$s'){throw 'scalar GetCheck assignment forbidden'}
+      - name: Prove empty single multiple normalization on PowerShell 5.1
+        shell: powershell
+        run: |
+          function GetCheck($src,[string]$scope){@($src.checks|Where-Object{[string]$_.scope -eq $scope}|Select-Object -First 1)}
+          $src=[pscustomobject]@{checks=@([pscustomobject]@{scope='ONE';result='PASS'},[pscustomobject]@{scope='TWO';result='PASS'},[pscustomobject]@{scope='TWO';result='DUP'})}
+          $empty=@(GetCheck $src 'NONE');if($empty.Count -ne 0){throw 'empty normalization failed'}
+          $single=@(GetCheck $src 'ONE');if($single.Count -ne 1 -or $single[0].result -ne 'PASS'){throw 'single normalization failed'}
+          $multi=@(GetCheck $src 'TWO');if($multi.Count -ne 1 -or $multi[0].result -ne 'PASS'){throw 'multiple/select-first normalization failed'}
+      - name: Execute non-mutating Plan mode
+        shell: powershell
+        run: |
+          $fixture=Join-Path $env:RUNNER_TEMP 'wu032-plan.json'
+          @{stage_a_six_pass=$true;wu030_pass=$true;wu029_pass=$true;wu028_pass=$true;dpapi_pass=$true;pwfile_only=$true;watchdog_pass=$true;network_pass=$true;reserve_unchanged=$true;rollback_pass=$true;proxifier_not_executed=$true}|ConvertTo-Json|Set-Content -LiteralPath $fixture -Encoding UTF8
+          $out=Join-Path $env:RUNNER_TEMP 'wu032-plan'
+          $text=& powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File 'tools/runtime-agent/Invoke-PnccRuntimeQualificationReconcile.ps1' -Mode Plan -FixturePath $fixture -OutputDirectory $out
+          if($LASTEXITCODE -ne 0){throw "plan failed rc=$LASTEXITCODE"}
+          if(($text -join "`n") -notmatch 'PNCC_RUNTIME_QUALIFICATION_RECONCILE=PLAN_PASS'){throw 'plan PASS marker missing'}
+      - name: Assert repository remains clean
+        shell: powershell
+        run: |
+          if(git status --porcelain){git status --short;throw 'workflow mutated repository'}
