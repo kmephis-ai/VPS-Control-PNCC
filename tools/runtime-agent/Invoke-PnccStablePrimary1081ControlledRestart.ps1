@@ -1,4 +1,4 @@
-﻿#requires -Version 5.1
+#requires -Version 5.1
 [CmdletBinding()]
 param(
     [ValidateSet('Fixture','Live')][string]$Mode='Fixture',
@@ -132,9 +132,16 @@ $again=Primary;if($again.Pid-ne$before.Pid-or$again.Exe-cne$before.Exe-or$again.
 $wd2=Watchdog;if($wd2.Engine-cne$wd.Engine){throw 'Watchdog engine changed during authorization window'}
 $consumed=$OwnerAuthorizationPath+'.consumed';if(Test-Path -LiteralPath $consumed){throw 'owner token already consumed'};Move-Item -LiteralPath $OwnerAuthorizationPath -Destination $consumed -ErrorAction Stop
 
-Remove-Item $restartStdout,$restartStderr -Force -ErrorAction SilentlyContinue
-$restartArgs="-NoLogo -NoProfile -ExecutionPolicy Bypass -File `"$($wd2.Engine)`" -Action RestartTunnel -NoAppLaunch"
-$p=Start-Process $PsExe -ArgumentList $restartArgs -PassThru -WindowStyle Hidden -RedirectStandardOutput $restartStdout -RedirectStandardError $restartStderr
+$restartWrapper=Join-Path $OutputDirectory 'restart-tunnel-wrapper.cmd'
+Remove-Item $restartStdout,$restartStderr,$restartWrapper -Force -ErrorAction SilentlyContinue
+function BatchEscape([string]$Value){if($null-eq$Value){return ''};return $Value.Replace('%','%%')}
+$wrapperLines=@(
+    '@echo off',
+    ('"{0}" -NoLogo -NoProfile -ExecutionPolicy Bypass -File "{1}" -Action RestartTunnel -NoAppLaunch 1>"{2}" 2>"{3}"' -f (BatchEscape $PsExe),(BatchEscape $wd2.Engine),(BatchEscape $restartStdout),(BatchEscape $restartStderr)),
+    'exit /b %ERRORLEVEL%'
+)
+[IO.File]::WriteAllLines($restartWrapper,$wrapperLines,[Text.Encoding]::ASCII)
+$p=Start-Process $env:ComSpec -ArgumentList ('/d /c "'+$restartWrapper+'"') -PassThru -WindowStyle Hidden
 $restartTimedOut=$false
 if(-not$p.WaitForExit(120000)){$restartTimedOut=$true;try{$p.Kill()}catch{};try{$p.WaitForExit(5000)|Out-Null}catch{}}
 $p.Refresh()
@@ -177,6 +184,6 @@ $wd3=Watchdog;if($wd3.Engine-cne$wd.Engine){throw 'post-restart Watchdog exact e
 $reserveAfter=Snap $ReservePort;if((Key $reserveBefore)-cne(Key $reserveAfter)){throw 'CRITICAL 1080 snapshot changed'}
 $r=[ordered]@{schema_version=1;contract_id='PNCC_STABLE_PRIMARY_1081_LIVE_CONTROLLED_RESTART_V1';mode='Live';state='CONTROLLED_RESTART_PASS';main_sha=$head;owner_authorization_consumed=$true;mutation_executed=$true;runtime_mutation=$true;reserve_1080_mutation=$false;primary_1081_tunnel_mutation=$true;restart_tunnel_invoked=$true;restart_tunnel_timed_out=$false;restart_tunnel_exit_code=0;restart_stdout_file='restart-tunnel.stdout.log';restart_stderr_file='restart-tunnel.stderr.log';pre_target_pid=$before.Pid;post_target_pid=$after.Pid;target_identity_rotated=($before.Pid-ne$after.Pid);secure_pwfile_post=$after.Pwfile;plain_pw_post=(-not$after.NoPlainPw);routed_identity_match=$true;route_probe_pre_attempts=$preRouteAttempts;route_probe_post_attempts=$postRouteAttempts;watchdog_exact_engine=$true;reserve_1080_unchanged=$true;automatic_mutation_retry=$false;runtime_authority=$false;promotion_eligible=$false}
 WriteJson $r $resultPath
-Write-Output 'PNCC_STABLE_PRIMARY_1081_LIVE_CONTROLLED_RESTART=CONTROLLED_RESTART_PASS MUTATION_EXECUTED=true RUNTIME_MUTATION=true RESERVE_1080_MUTATION=false AUTOMATIC_MUTATION_RETRY=false RUNTIME_AUTHORITY=false PROMOTION_ELIGIBLE=false'
+Write-Output 'PNCC_STABLE_PRIMARY_1081_LIVE_CONTROLLED_RESTART=CONTROLLED_RESTART_PASS MUTATION_EXECUTED=true RUNTIME_MUTATION=true RESERVE_1080_MUTATION=false RUNTIME_AUTHORITY=false PROMOTION_ELIGIBLE=false'
 Write-Output ('RESULT='+$resultPath)
 exit 0
