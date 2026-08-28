@@ -1,6 +1,6 @@
 ﻿#requires -Version 5.1
 <#
-VPS Control Center v7.0.0-rc14.39
+VPS Control Center v7.0.0
 Russian-only Tray GUI / Control Center UI with an extensible V6.5 engine generated conservatively from the proven V6.3.1 source.
 
 The routing engine is intentionally NOT reimplemented here.
@@ -38,7 +38,7 @@ catch {
 [System.Windows.Forms.Application]::EnableVisualStyles()
 [System.Windows.Forms.Application]::SetCompatibleTextRenderingDefault($false)
 
-$UiVersion = '7.0.0-rc14.39'
+$UiVersion = '7.0.0'
 $EngineVersion = '6.5'
 $VccSocksHost = '127.0.0.1'
 $VccSocksPort = 1081

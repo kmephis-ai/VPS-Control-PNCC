@@ -78,7 +78,7 @@ BLOCKED_MANIFEST_MISMATCH = "BLOCKED_MANIFEST_MISMATCH"
 BLOCKED_INVALID_POLICY = "BLOCKED_INVALID_POLICY"
 BLOCKED_GIT_STATE = "BLOCKED_GIT_STATE"
 
-VERSION_RX = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+-rc[0-9]+\.[0-9]+$")
+VERSION_RX = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+(?:-rc[0-9]+\.[0-9]+)?$")
 
 
 def _result(state: str, reason: str, subject_sha: Optional[str] = None) -> Dict[str, Any]:

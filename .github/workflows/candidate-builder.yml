@@ -128,7 +128,7 @@ jobs:
             --first-dir "${RUNNER_TEMP}/pncc-main-a" \
             --second-dir "${RUNNER_TEMP}/pncc-main-b" \
             --output "${RUNNER_TEMP}/pncc-main-final/build-evidence.json"
-          cp "${RUNNER_TEMP}/pncc-main-a/VPS-Control-v7.0.0-rc14.39.zip" "${RUNNER_TEMP}/pncc-main-final/"
+          cp "${RUNNER_TEMP}/pncc-main-a/VPS-Control-v7.0.0.zip" "${RUNNER_TEMP}/pncc-main-final/"
 
       - name: Collect exact-SHA engineering checks
         env:
@@ -148,7 +148,7 @@ jobs:
         run: |
           set -euo pipefail
           python .pncc-dev/scripts/generate_candidate_manifest.py \
-            --artifact "${RUNNER_TEMP}/pncc-main-final/VPS-Control-v7.0.0-rc14.39.zip" \
+            --artifact "${RUNNER_TEMP}/pncc-main-final/VPS-Control-v7.0.0.zip" \
             --build-evidence "${RUNNER_TEMP}/pncc-main-final/build-evidence.json" \
             --engineering-checks "${RUNNER_TEMP}/pncc-main-final/engineering-checks.json" \
             --output "${RUNNER_TEMP}/pncc-main-final/candidate-manifest.json" \
@@ -161,7 +161,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "${RUNNER_TEMP}/pncc-bundle"
-          cp "${RUNNER_TEMP}/pncc-main-final/VPS-Control-v7.0.0-rc14.39.zip" "${RUNNER_TEMP}/pncc-bundle/"
+          cp "${RUNNER_TEMP}/pncc-main-final/VPS-Control-v7.0.0.zip" "${RUNNER_TEMP}/pncc-bundle/"
           cp "${RUNNER_TEMP}/pncc-main-final/candidate-manifest.json" "${RUNNER_TEMP}/pncc-bundle/"
           cp "${RUNNER_TEMP}/pncc-main-final/build-evidence.json" "${RUNNER_TEMP}/pncc-bundle/"
           git show HEAD:.pncc-dev/candidate-source.json > "${RUNNER_TEMP}/pncc-bundle/candidate-source.json"
@@ -176,7 +176,7 @@ jobs:
               rows.append({'name':p.name,'bytes':len(b),'sha256':hashlib.sha256(b).hexdigest()})
           (root/'bundle-index.json').write_text(json.dumps({
               'schema_version':1,
-              'bundle_id':'PNCC_RC14_39_GOVERNED_CANDIDATE_BUNDLE_V1',
+              'bundle_id':'PNCC_V7_0_0_GOVERNED_CANDIDATE_BUNDLE_V1',
               'source_sha':os.environ['GITHUB_SHA'],
               'files':rows,
               'runtime_qualification':'NOT_VERIFIED',
@@ -185,11 +185,11 @@ jobs:
           print('GOVERNED_CANDIDATE_BUNDLE=READY FILES='+str(len(rows)+1))
           PY
 
-      - name: Upload governed RC14.39 candidate bundle
+      - name: Upload governed v7.0.0 candidate bundle
         id: upload
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: PNCC-RC14.39-${{ github.sha }}
+          name: PNCC-V7.0.0-${{ github.sha }}
           path: ${{ runner.temp }}/pncc-bundle/
           if-no-files-found: error
           retention-days: 90
