@@ -1,0 +1,42 @@
+name: runtime-proxifier-descendant-pid-fix
+
+on:
+  pull_request:
+    paths:
+      - 'tools/runtime-agent/Invoke-PnccProxifierDescendantQualificationPidFix.ps1'
+      - 'tests/fixtures/runtime-proxifier-descendant-wu035-plan.json'
+      - '.github/workflows/runtime-proxifier-descendant-pid-fix.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: PowerShell 5.1 parse preflight
+        shell: powershell
+        run: |
+          $p='tools/runtime-agent/Invoke-PnccProxifierDescendantQualificationPidFix.ps1'
+          $t=$null;$e=$null
+          [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $p),[ref]$t,[ref]$e)
+          if($e.Count){throw (($e|ForEach-Object Message)-join '; ')}
+      - name: Assert reserved PID is never assigned
+        shell: powershell
+        run: |
+          $raw=Get-Content 'tools/runtime-agent/Invoke-PnccProxifierDescendantQualificationPidFix.ps1' -Raw
+          if($raw -match '(?im)^\s*\$pid\s*='){throw 'reserved $PID assignment found'}
+          if($raw -notmatch '\$watchdogPid'){throw 'watchdogPid replacement missing'}
+      - name: Execute non-mutating Plan regression
+        shell: powershell
+        run: |
+          $legacy='tools/runtime-agent/Invoke-PnccProxifierDescendantQualificationFromEvidence.ps1'
+          $out=Join-Path $env:RUNNER_TEMP 'wu035-plan'
+          powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File 'tools/runtime-agent/Invoke-PnccProxifierDescendantQualificationPidFix.ps1' -Mode Plan -LegacyExecutorPath $legacy -FixturePath 'tests/fixtures/runtime-proxifier-descendant-wu035-plan.json' -OutputDirectory $out
+          if($LASTEXITCODE -ne 0){throw "Plan regression failed rc=$LASTEXITCODE"}
+      - name: Assert repository remains clean
+        shell: powershell
+        run: |
+          if(git status --porcelain){throw 'repository mutated'}
