@@ -1,0 +1,57 @@
+name: stable-version-inventory
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '.pncc-dev/scripts/inventory_stable_version_transition.py'
+      - '.github/workflows/stable-version-inventory.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - '.pncc-dev/scripts/inventory_stable_version_transition.py'
+      - '.github/workflows/stable-version-inventory.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Compile inventory tool
+        shell: bash
+        run: python -m py_compile .pncc-dev/scripts/inventory_stable_version_transition.py
+      - name: Inventory exact version-bearing bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .pncc-dev/scripts/inventory_stable_version_transition.py --repository-root . --output "${RUNNER_TEMP}/stable-version-transition-inventory.json"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          d=json.loads((Path(os.environ['RUNNER_TEMP'])/'stable-version-transition-inventory.json').read_text(encoding='utf-8'))
+          assert d['contract_id']=='PNCC_STABLE_VERSION_TRANSITION_INVENTORY_V1'
+          assert d['from_version']=='7.0.0-rc14.39'
+          assert d['to_version']=='7.0.0'
+          assert d['product_source_files'] >= 1
+          assert d['product_source_occurrences'] >= 1
+          assert d['build_control_files'] == 3
+          assert d['build_control_occurrences'] >= 3
+          assert d['runtime_authority_transfer'] is False
+          assert d['product_mutation'] is False
+          assert d['stable_release_authorized'] is False
+          print('STABLE_VERSION_INVENTORY_CONTRACT=PASS')
+          PY
+      - name: Upload read-only inventory evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: PNCC-WU043A-stable-version-inventory-${{ github.sha }}
+          path: ${{ runner.temp }}/stable-version-transition-inventory.json
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
