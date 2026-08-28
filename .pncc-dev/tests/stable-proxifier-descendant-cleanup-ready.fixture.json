@@ -1,0 +1,13 @@
+{
+  "wu070_watchdog_pass": true,
+  "exact_watchdog_identity": true,
+  "heartbeat_pid_bound": true,
+  "zero_descendants_required": true,
+  "parentage_observation_only": true,
+  "legacy_rc_not_authority": true,
+  "reserve_1080_untouched": true,
+  "primary_1081_observation_only": true,
+  "broad_process_kill_forbidden": true,
+  "runtime_authority_false": true,
+  "promotion_eligible_false": true
+}
