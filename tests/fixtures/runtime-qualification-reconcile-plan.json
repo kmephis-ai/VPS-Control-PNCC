@@ -1,0 +1,13 @@
+{
+  "stage_a_six_pass": true,
+  "wu030_pass": true,
+  "wu029_pass": true,
+  "wu028_pass": true,
+  "dpapi_pass": true,
+  "pwfile_only": true,
+  "watchdog_pass": true,
+  "network_pass": true,
+  "reserve_unchanged": true,
+  "rollback_pass": true,
+  "proxifier_not_executed": true
+}
