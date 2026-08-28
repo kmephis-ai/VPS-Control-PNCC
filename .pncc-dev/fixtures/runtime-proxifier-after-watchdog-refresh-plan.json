@@ -1,0 +1,9 @@
+{
+  "reconciled_eight_pass": true,
+  "watchdog_refresh_pass": true,
+  "watchdog_only_mutation": true,
+  "watchdog_live": true,
+  "heartbeat_fresh": true,
+  "zero_descendants": true,
+  "listeners_preserved": true
+}
