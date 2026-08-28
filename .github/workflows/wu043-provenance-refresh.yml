@@ -42,7 +42,7 @@ jobs:
           if ! git diff --cached --quiet; then
             git commit -m 'PIPE-WU-043: admit Stable SemVer candidate build input'
           fi
-          python -m unittest .pncc-dev/tests/test_candidate_build_input_stable_version.py -v
+          python .pncc-dev/tests/test_candidate_build_input_stable_version.py
 
       - name: Rebuild canonical source manifest from committed Git blob bytes
         shell: bash
