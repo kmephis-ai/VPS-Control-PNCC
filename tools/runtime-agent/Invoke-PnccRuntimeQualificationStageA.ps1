@@ -10,14 +10,9 @@ param(
 Set-StrictMode -Version 2.0
 $ErrorActionPreference='Stop'
 
-$ExpectedCandidateId='PNCC-RC14.39-90C9E8698C64'
-$ExpectedSourceSha='90c9e8698c6468d576aecbc60d940be9d5c6baab'
-$ExpectedArtifactName='VPS-Control-v7.0.0-rc14.39.zip'
-$ExpectedArtifactSha='8caad796469886b90d9928fba385fc4a4f0f3d60bcb6ee6b7cb98c4c2e4390b3'
-$ExpectedArtifactSize=700961L
-$ExpectedV631Sha='385e5178f10e79b0b234376e6a6671b64ce523a3971b2b4341ec94ce1efee11e'
-$ReservePort=1080
-$PrimaryPort=1081
+$PolicyV631Sha='385e5178f10e79b0b234376e6a6671b64ce523a3971b2b4341ec94ce1efee11e'
+$PolicyReservePort=1080
+$PolicyPrimaryPort=1081
 $Scopes=@('WINDOWS_BASELINE','PROCESS_OWNERSHIP_BASELINE','WATCHDOG_LIFECYCLE','PROXIFIER_DESCENDANT_CLEANUP','PRIMARY_AUTO_1081','RESERVE_MANUAL_1080','CREDENTIAL_HOSTKEY','NETWORK_QUALIFICATION','ROLLBACK_IDENTITY')
 
 function Get-Sha256([string]$Path){ return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant() }
@@ -53,13 +48,17 @@ function Write-JsonUtf8Bom($Value,[string]$Path){
     $json=$Value|ConvertTo-Json -Depth 12
     [IO.File]::WriteAllText($Path,$json,(New-Object Text.UTF8Encoding($true)))
 }
+function Assert-Equal([string]$Actual,[string]$Expected,[string]$Name){
+    if($Actual -cne $Expected){throw "$Name mismatch"}
+}
 
 if(-not(Test-Path -LiteralPath $WorkspacePath -PathType Container)){throw "workspace not found: $WorkspacePath"}
 New-Item -ItemType Directory -Force -Path $OutputDirectory|Out-Null
 $evidencePath=Join-Path $OutputDirectory 'stage-a-evidence.json'
 $resultPath=Join-Path $OutputDirectory 'runtime-qualification-stage-a-result.json'
-$checks=@();$evidence=[ordered]@{schema_version=1;stage='A';mode=$Mode;runtime_mutation=$false;observations=[ordered]@{}}
+$checks=@();$evidence=[ordered]@{schema_version=2;stage='A';mode=$Mode;runtime_mutation=$false;observations=[ordered]@{}}
 $failedClass='ENVIRONMENT_OR_BASELINE_BLOCKER'
+$requestId='PNCC-RQ-FIXTURE-STAGE-A'
 
 if($Mode -eq 'Fixture'){
     if([string]::IsNullOrWhiteSpace($FixturePath)-or -not(Test-Path -LiteralPath $FixturePath -PathType Leaf)){throw 'FixturePath required'}
@@ -77,24 +76,59 @@ if($Mode -eq 'Fixture'){
 }else{
     $manifestPath=Join-Path $WorkspacePath 'workspace-manifest.json'
     $requestPath=Join-Path $WorkspacePath 'request\runtime-qualification-request.json'
-    $candidatePath=Join-Path (Join-Path $WorkspacePath 'provider-artifact') $ExpectedArtifactName
     if(-not(Test-Path -LiteralPath $manifestPath -PathType Leaf)){throw 'workspace manifest missing'}
     if(-not(Test-Path -LiteralPath $requestPath -PathType Leaf)){throw 'qualification request missing'}
     $manifest=Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8|ConvertFrom-Json
     $request=Get-Content -LiteralPath $requestPath -Raw -Encoding UTF8|ConvertFrom-Json
+    if([int]$manifest.schema_version -ne 2 -or [string]$manifest.bootstrap_id -cne 'PNCC_RUNTIME_WORKSPACE_BOOTSTRAP_V2'){throw 'Stage A requires PNCC_RUNTIME_WORKSPACE_BOOTSTRAP_V2'}
+    if([string]$request.contract_id -cne 'PNCC_RUNTIME_QUALIFICATION_REQUEST_V1'){throw 'runtime request contract mismatch'}
+    $requestId=[string]$request.request_id
+    if([string]::IsNullOrWhiteSpace($requestId)){throw 'request id missing'}
+
+    $expectedCandidateId=[string]$request.candidate.candidate_id
+    $expectedSourceSha=[string]$request.candidate.source_sha
+    $expectedArtifactName=[string]$request.candidate.artifact_filename
+    $expectedArtifactSha=[string]$request.candidate.artifact_sha256
+    $expectedArtifactSize=[long]$request.candidate.artifact_size_bytes
+    $expectedV631Sha=[string]$request.expected_invariants.v6_3_1_sha256
+    $reservePort=[int]$request.expected_invariants.reserve_manual_port
+    $primaryPort=[int]$request.expected_invariants.primary_auto_port
+
+    Assert-Equal ([string]$manifest.request_provider.request_id) $requestId 'workspace/request request_id'
+    Assert-Equal ([string]$manifest.candidate.candidate_id) $expectedCandidateId 'workspace/request candidate_id'
+    Assert-Equal ([string]$manifest.candidate.source_sha) $expectedSourceSha 'workspace/request source_sha'
+    Assert-Equal ([string]$manifest.candidate.artifact_filename) $expectedArtifactName 'workspace/request artifact filename'
+    Assert-Equal ([string]$manifest.candidate.artifact_sha256) $expectedArtifactSha 'workspace/request artifact sha256'
+    if([long]$manifest.candidate.artifact_size_bytes -ne $expectedArtifactSize){throw 'workspace/request artifact size mismatch'}
+    if($reservePort -ne $PolicyReservePort){throw 'reserve port policy mismatch'}
+    if($primaryPort -ne $PolicyPrimaryPort){throw 'primary port policy mismatch'}
+    Assert-Equal $expectedV631Sha $PolicyV631Sha 'V6.3.1 policy SHA'
+    if([string]$request.expected_invariants.reserve_manual_lifecycle -cne 'MANUAL_ONLY'){throw 'reserve lifecycle policy mismatch'}
+    if([string]$request.expected_invariants.putty_password_argument -cne '-pwfile'){throw 'PuTTY password argument policy mismatch'}
+    if([bool]$request.expected_invariants.plaintext_pw_allowed){throw 'plaintext password transport cannot be allowed'}
+    if([bool]$request.expected_invariants.hostkey_verification_disable_allowed){throw 'host-key verification cannot be disabled'}
+
+    $candidatePath=Join-Path (Join-Path $WorkspacePath 'candidate-provider-artifact') $expectedArtifactName
     $candidateOk=$false
-    if(Test-Path -LiteralPath $candidatePath -PathType Leaf){$ci=Get-Item -LiteralPath $candidatePath;$candidateOk=([long]$ci.Length -eq $ExpectedArtifactSize -and (Get-Sha256 $candidatePath)-eq $ExpectedArtifactSha)}
-    if([string]$request.candidate.candidate_id -ne $ExpectedCandidateId -or [string]$request.candidate.source_sha -ne $ExpectedSourceSha){$candidateOk=$false}
+    if(Test-Path -LiteralPath $candidatePath -PathType Leaf){
+        $ci=Get-Item -LiteralPath $candidatePath
+        $candidateOk=([long]$ci.Length -eq $expectedArtifactSize -and (Get-Sha256 $candidatePath)-ceq $expectedArtifactSha)
+    }
+
     $rollbackOk=$false
-    if(-not[string]::IsNullOrWhiteSpace($V631Path)-and(Test-Path -LiteralPath $V631Path -PathType Leaf)){$rollbackOk=((Get-Sha256 $V631Path)-eq $ExpectedV631Sha)}
-    $before1080=Get-ListenerSnapshot $ReservePort;$before1081=Get-ListenerSnapshot $PrimaryPort
-    $directIp=Get-Ip $null;$routedIp=Get-Ip $PrimaryPort
-    $after1080=Get-ListenerSnapshot $ReservePort;$after1081=Get-ListenerSnapshot $PrimaryPort
-    $reserveUnchanged=((Snapshot-Key $before1080)-eq(Snapshot-Key $after1080))
-    $ownershipOk=([bool]$before1080.listening -and [bool]$before1081.listening)
-    $primaryOk=([bool]$before1081.listening -and [bool]$after1081.listening -and -not[string]::IsNullOrWhiteSpace($routedIp))
-    $networkOk=(-not[string]::IsNullOrWhiteSpace($directIp)-and -not[string]::IsNullOrWhiteSpace($routedIp)-and $directIp-ne$routedIp)
+    if(-not[string]::IsNullOrWhiteSpace($V631Path)-and(Test-Path -LiteralPath $V631Path -PathType Leaf)){$rollbackOk=((Get-Sha256 $V631Path)-ceq $expectedV631Sha)}
+    $beforeReserve=Get-ListenerSnapshot $reservePort
+    $beforePrimary=Get-ListenerSnapshot $primaryPort
+    $directIp=Get-Ip $null
+    $routedIp=Get-Ip $primaryPort
+    $afterReserve=Get-ListenerSnapshot $reservePort
+    $afterPrimary=Get-ListenerSnapshot $primaryPort
+    $reserveUnchanged=((Snapshot-Key $beforeReserve)-ceq(Snapshot-Key $afterReserve))
+    $ownershipOk=([bool]$beforeReserve.listening -and [bool]$beforePrimary.listening)
+    $primaryOk=([bool]$beforePrimary.listening -and [bool]$afterPrimary.listening -and -not[string]::IsNullOrWhiteSpace($routedIp))
+    $networkOk=(-not[string]::IsNullOrWhiteSpace($directIp)-and -not[string]::IsNullOrWhiteSpace($routedIp)-and $directIp-cne$routedIp)
     $windowsOk=($env:OS -eq 'Windows_NT')
+
     $checks += New-Check 'WINDOWS_BASELINE' $(if($windowsOk){'PASS'}else{'FAIL'}) 0 $(if($windowsOk){$null}else{$failedClass}) @('stage-a-evidence.json')
     $checks += New-Check 'PROCESS_OWNERSHIP_BASELINE' $(if($ownershipOk){'PASS'}else{'FAIL'}) 0 $(if($ownershipOk){$null}else{$failedClass}) @('stage-a-evidence.json')
     $checks += New-Check 'WATCHDOG_LIFECYCLE' 'NOT_EXECUTED' 0 $null @()
@@ -104,11 +138,20 @@ if($Mode -eq 'Fixture'){
     $checks += New-Check 'CREDENTIAL_HOSTKEY' 'NOT_EXECUTED' 0 $null @()
     $checks += New-Check 'NETWORK_QUALIFICATION' $(if($networkOk){'PASS'}else{'FAIL'}) 0 $(if($networkOk){$null}else{$failedClass}) @('stage-a-evidence.json')
     $checks += New-Check 'ROLLBACK_IDENTITY' $(if($rollbackOk -and $candidateOk){'PASS'}else{'FAIL'}) 0 $(if($rollbackOk -and $candidateOk){$null}else{$failedClass}) @('stage-a-evidence.json')
-    $evidence.observations.candidate_identity=$candidateOk;$evidence.observations.rollback_identity=$rollbackOk
-    $evidence.observations.reserve_before=$before1080;$evidence.observations.reserve_after=$after1080
-    $evidence.observations.primary_before=$before1081;$evidence.observations.primary_after=$after1081
+
+    $evidence.observations.request_id=$requestId
+    $evidence.observations.candidate_id=$expectedCandidateId
+    $evidence.observations.source_sha=$expectedSourceSha
+    $evidence.observations.candidate_identity=$candidateOk
+    $evidence.observations.rollback_identity=$rollbackOk
+    $evidence.observations.reserve_before=$beforeReserve
+    $evidence.observations.reserve_after=$afterReserve
+    $evidence.observations.primary_before=$beforePrimary
+    $evidence.observations.primary_after=$afterPrimary
     $evidence.observations.reserve_unchanged=$reserveUnchanged
-    $evidence.observations.direct_exit_ip=$directIp;$evidence.observations.primary_1081_exit_ip=$routedIp;$evidence.observations.direct_vs_primary_different=$networkOk
+    $evidence.observations.direct_exit_ip=$directIp
+    $evidence.observations.primary_1081_exit_ip=$routedIp
+    $evidence.observations.direct_vs_primary_different=$networkOk
 }
 
 Write-JsonUtf8Bom $evidence $evidencePath
@@ -117,14 +160,21 @@ $failed=@($checks|Where-Object{$_.result -eq 'FAIL'})
 $state='BLOCKED';$failure=$null
 if($failed.Count -gt 0){$state='FAILED';$failure=$failedClass}
 $result=[ordered]@{
-    schema_version=1;contract_id='PNCC_RUNTIME_QUALIFICATION_RESULT_V1';request_id='PNCC-RQ-RC14.39-90C9E8698C64';candidate=[ordered]@{};
-    producer=[ordered]@{source_plane='PRIVATE_RUNTIME';agent_id='PNCC_WINDOWS_RUNTIME_AGENT_STAGE_A';runtime_agent_version='0.2.0-stage-a';validation_lab_version='WU-022A'};
-    environment=[ordered]@{windows_version=$(if($Mode-eq'Fixture'){'FIXTURE'}else{[Environment]::OSVersion.VersionString});powershell_version=$PSVersionTable.PSVersion.ToString()};
-    checks=$checks;evidence_bundle=[ordered]@{sha256=$evidenceSha;private_location_ref='stage-a-evidence.json';sanitation_state='PRIVATE_ONLY_NOT_SANITIZED'};
-    qualification_state=$state;failure_classification=$failure;runtime_authority=$false;promotion_eligible=$false
+    schema_version=1
+    contract_id='PNCC_RUNTIME_QUALIFICATION_RESULT_V1'
+    request_id=$requestId
+    candidate=[ordered]@{}
+    producer=[ordered]@{source_plane='PRIVATE_RUNTIME';agent_id='PNCC_WINDOWS_RUNTIME_AGENT_STAGE_A';runtime_agent_version='0.3.0-stage-a-v2';validation_lab_version='WU-050'}
+    environment=[ordered]@{windows_version=$(if($Mode-eq'Fixture'){'FIXTURE'}else{[Environment]::OSVersion.VersionString});powershell_version=$PSVersionTable.PSVersion.ToString()}
+    checks=$checks
+    evidence_bundle=[ordered]@{sha256=$evidenceSha;private_location_ref='stage-a-evidence.json';sanitation_state='PRIVATE_ONLY_NOT_SANITIZED'}
+    qualification_state=$state
+    failure_classification=$failure
+    runtime_authority=$false
+    promotion_eligible=$false
 }
 Write-JsonUtf8Bom $result $resultPath
-Write-Output "PNCC_RUNTIME_STAGE_A=$state MODE=$Mode FAILED_CHECKS=$($failed.Count) RUNTIME_MUTATION=false RUNTIME_AUTHORITY=false PROMOTION_ELIGIBLE=false"
+Write-Output "PNCC_RUNTIME_STAGE_A=$state MODE=$Mode REQUEST_ID=$requestId FAILED_CHECKS=$($failed.Count) RUNTIME_MUTATION=false RUNTIME_AUTHORITY=false PROMOTION_ELIGIBLE=false"
 Write-Output "STAGE_A_RESULT=$resultPath"
 Write-Output "STAGE_A_EVIDENCE=$evidencePath"
 exit 0

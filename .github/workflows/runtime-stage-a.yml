@@ -8,11 +8,12 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   runtime-stage-a:
     runs-on: windows-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -23,20 +24,24 @@ jobs:
         shell: powershell
         run: |
           $ErrorActionPreference='Stop'
-          $path='tools/runtime-agent/Invoke-PnccRuntimeQualificationStageA.ps1'
-          $bytes=[IO.File]::ReadAllBytes((Resolve-Path $path))
-          if($bytes.Length -lt 3 -or $bytes[0]-ne 0xEF -or $bytes[1]-ne 0xBB -or $bytes[2]-ne 0xBF){ throw 'UTF8 BOM required' }
-          $tokens=$null;$errors=$null
-          [Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path),[ref]$tokens,[ref]$errors)|Out-Null
-          if(@($errors).Count){$errors|ForEach-Object{Write-Error $_};exit 1}
+          $paths=@('tools/runtime-agent/Invoke-PnccRuntimeQualificationStageA.ps1','tools/runtime-agent/Initialize-PnccRuntimeQualificationWorkspace.ps1')
+          foreach($path in $paths){
+            $bytes=[IO.File]::ReadAllBytes((Resolve-Path $path))
+            if($bytes.Length -lt 3 -or $bytes[0]-ne 0xEF -or $bytes[1]-ne 0xBB -or $bytes[2]-ne 0xBF){ throw "UTF8 BOM required: $path" }
+            $tokens=$null;$errors=$null
+            [Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path),[ref]$tokens,[ref]$errors)|Out-Null
+            if(@($errors).Count){$errors|ForEach-Object{Write-Error $_};exit 1}
+          }
           'RUNTIME_STAGE_A_PARSE=PASS PS51=true'
 
-      - name: Assert Stage-A contains no lifecycle mutation primitive or bareword booleans
+      - name: Assert Stage-A remains observation-only and V2 request-bound
         shell: powershell
         run: |
           $ErrorActionPreference='Stop'
           $text=Get-Content tools/runtime-agent/Invoke-PnccRuntimeQualificationStageA.ps1 -Raw
           foreach($forbidden in @('Stop-Process','Start-Process','Restart-Service','Stop-Service','Start-Service','taskkill','netsh interface','Remove-Process')){if($text -match [regex]::Escape($forbidden)){throw "forbidden lifecycle primitive: $forbidden"}}
+          foreach($required in @('PNCC_RUNTIME_WORKSPACE_BOOTSTRAP_V2','candidate-provider-artifact','runtime-qualification-request.json','workspace/request candidate_id','reserve lifecycle policy mismatch','plaintext password transport cannot be allowed','host-key verification cannot be disabled')){if($text -notmatch [regex]::Escape($required)){throw "V2 Stage-A binding fragment missing: $required"}}
+          foreach($forbiddenIdentity in @('PNCC-RC14.39-90C9E8698C64','90c9e8698c6468d576aecbc60d940be9d5c6baab','VPS-Control-v7.0.0-rc14.39.zip','8caad796469886b90d9928fba385fc4a4f0f3d60bcb6ee6b7cb98c4c2e4390b3')){if($text -match [regex]::Escape($forbiddenIdentity)){throw "RC-specific Stage-A identity remains: $forbiddenIdentity"}}
           if($text -notmatch 'RUNTIME_MUTATION=false'){throw 'non-mutation telemetry missing'}
           if($text -match '(?m)=\s*(?:false|true)(?:[;\r\n}])'){throw 'PowerShell bareword boolean detected; use $false/$true'}
           if($text -notmatch 'runtime_mutation=\$false'){throw 'runtime_mutation evidence boolean must be $false'}
@@ -64,6 +69,29 @@ jobs:
           if($failed.Count -ne 0){throw 'ready fixture unexpectedly failed'}
           if((Get-FileHash (Join-Path $out 'stage-a-evidence.json') -Algorithm SHA256).Hash.ToLowerInvariant() -ne [string]$r.evidence_bundle.sha256){throw 'evidence hash mismatch'}
           'RUNTIME_STAGE_A_FIXTURE=PASS PS51=true BLOCKED_BY_DESIGN=true RUNTIME_AUTHORITY=false'
+
+      - name: Build exact Stable V2 workspace and exercise Stage-A Live identity path
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:RUNNER_TEMP 'stage-a-stable-v2'
+          & ./tools/runtime-agent/Initialize-PnccRuntimeQualificationWorkspace.ps1 -OutputRoot $root -Mode Provider -RequestProviderArtifactId 9692080862 -RequestProviderBuildRunId 33186877990 -ExpectedRequestArtifactName 'PNCC-V7.0.0-RUNTIME-REQUEST-56f1e3798be0f5f034860adc04b609d0a07c2fc3' -ExpectedRequestProviderDigest 'sha256:a56c89028ba7a234fee78d2f27ce24e898d4abeb4f60eb4afd5410d70067a793' -ExpectedRequestSourceSha '56f1e3798be0f5f034860adc04b609d0a07c2fc3'
+          if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
+          $workspace=Get-ChildItem -LiteralPath $root -Directory | Select-Object -First 1
+          if($null -eq $workspace){throw 'Stable V2 workspace missing'}
+          $out=Join-Path $env:RUNNER_TEMP 'stage-a-stable-live-out'
+          & ./tools/runtime-agent/Invoke-PnccRuntimeQualificationStageA.ps1 -WorkspacePath $workspace.FullName -OutputDirectory $out -Mode Live
+          if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
+          $r=Get-Content (Join-Path $out 'runtime-qualification-stage-a-result.json') -Raw|ConvertFrom-Json
+          $e=Get-Content (Join-Path $out 'stage-a-evidence.json') -Raw|ConvertFrom-Json
+          if($r.request_id -ne 'PNCC-RQ-V7.0.0-56F1E3798BE0'){throw 'Stable request id was not propagated'}
+          if(-not [bool]$e.observations.candidate_identity){throw 'Stable candidate identity did not validate'}
+          if([string]$e.observations.candidate_id -ne 'PNCC-V7.0.0-56F1E3798BE0'){throw 'Stable candidate id mismatch'}
+          if($r.runtime_authority -or $r.promotion_eligible){throw 'hosted Stage A cannot grant authority'}
+          if($r.qualification_state -eq 'RUNTIME_VERIFIED'){throw 'hosted Stage A cannot become runtime verified'}
+          'RUNTIME_STAGE_A_STABLE_V2=PASS CI_VERIFIED_NOT_RUNTIME_VERIFIED=true'
 
       - name: Assert repository remains clean
         shell: powershell
