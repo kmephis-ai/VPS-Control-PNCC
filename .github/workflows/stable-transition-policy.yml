@@ -1,0 +1,64 @@
+name: stable-transition-policy
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '.pncc-dev/releases/stable-v7-transition-policy.json'
+      - '.github/workflows/stable-transition-policy.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - '.pncc-dev/releases/stable-v7-transition-policy.json'
+      - '.github/workflows/stable-transition-policy.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Validate stable transition policy
+        shell: python
+        run: |
+          import json
+          from pathlib import Path
+          p = Path('.pncc-dev/releases/stable-v7-transition-policy.json')
+          d = json.loads(p.read_text(encoding='utf-8-sig'))
+          assert d['contract_id'] == 'PNCC_STABLE_TRANSITION_POLICY_V1'
+          assert d['work_unit_id'] == 'PIPE-WU-042'
+          assert d['base_sha'] == '372e815d758faa5e1fc87207d3c93a9de3e39dbb'
+          pre = d['source_prerelease']
+          assert pre['candidate_id'] == 'PNCC-RC14.39-90C9E8698C64'
+          assert pre['tag'] == 'v7.0.0-rc14.39'
+          assert pre['source_sha'] == '90c9e8698c6468d576aecbc60d940be9d5c6baab'
+          assert pre['artifact_sha256'] == '8caad796469886b90d9928fba385fc4a4f0f3d60bcb6ee6b7cb98c4c2e4390b3'
+          assert pre['runtime_pass_scopes'] == 9
+          assert pre['runtime_authority'] is True
+          assert d['stable_target'] == 'v7.0.0'
+          rules = d['rules']
+          required_true = [
+              'changed_bytes_create_new_identity',
+              'rename_is_not_runtime_authority_transfer',
+              'recompression_is_not_runtime_authority_transfer',
+              'version_stamp_is_not_runtime_authority_transfer',
+              'functional_equivalence_is_not_runtime_authority_transfer',
+              'stable_candidate_requires_deterministic_build',
+              'stable_candidate_requires_new_artifact_sha256',
+              'stable_candidate_requires_fresh_private_runtime_qualification',
+              'rc14_39_evidence_is_lineage_only',
+              'reserve_1080_manual_only',
+              'v631_immutable',
+          ]
+          for k in required_true:
+              assert rules[k] is True, k
+          assert rules['hosted_ci_can_originate_runtime_truth'] is False
+          assert d['next_work_unit'] == 'PIPE-WU-043'
+          assert d['stable_release_authorized'] is False
+          print('PNCC_STABLE_TRANSITION_POLICY=PASS')
+          print('STABLE_RELEASE_AUTHORIZED=false')
+          print('RUNTIME_TRUTH_TRANSFER=false')
