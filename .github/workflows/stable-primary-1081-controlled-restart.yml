@@ -1,0 +1,68 @@
+name: stable-primary-1081-controlled-restart
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  stable-primary-1081-controlled-restart:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: PowerShell 5.1 parse preflight
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $path='tools/runtime-agent/Test-PnccStablePrimary1081ControlledRestart.ps1'
+          $tokens=$null;$errors=$null
+          [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path),[ref]$tokens,[ref]$errors)|Out-Null
+          if($errors.Count){throw ($errors|Out-String)}
+
+      - name: Assert controlled restart safety contract
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $p='tools/runtime-agent/Test-PnccStablePrimary1081ControlledRestart.ps1'
+          $raw=Get-Content $p -Raw
+          foreach($required in @(
+            'PNCC_STABLE_PRIMARY_1081_MUTATION_AUTHORIZATION_V1',
+            'PNCC_STABLE_PRIMARY_1081_CONTROLLED_RESTART_V1',
+            'PHYSICAL_EXECUTION_ALLOWED=false',
+            'MUTATION_EXECUTED=false',
+            'runtime_mutation=$false',
+            'reserve_1080_mutation=$false',
+            'primary_1081_tunnel_mutation=$false',
+            'broad_process_kill_forbidden',
+            'parentage_not_authority',
+            'pid_only_not_authority',
+            'reserve_1080_snapshot_protected',
+            'exact_command_fingerprint',
+            'routed_identity_valid'
+          )){if($raw -notlike ('*'+$required+'*')){throw "missing safety marker: $required"}}
+          foreach($forbidden in @('Stop-Process','RestartTunnel','Start-Process','taskkill','TerminateProcess')){
+            if($raw -match [regex]::Escape($forbidden)){throw "physical mutation primitive forbidden in hosted contract: $forbidden"}
+          }
+
+      - name: Execute admitted fixture under Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $out=Join-Path $env:RUNNER_TEMP 'controlled-restart-result.json'
+          powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\tools\runtime-agent\Test-PnccStablePrimary1081ControlledRestart.ps1 -Mode Fixture -FixturePath .\.pncc-dev\fixtures\stable-primary-1081-controlled-restart-admitted.json -OutputPath $out
+          if($LASTEXITCODE -ne 0){throw "fixture failed rc=$LASTEXITCODE"}
+          $r=Get-Content $out -Raw|ConvertFrom-Json
+          if($r.state -cne 'EXECUTION_PLAN_ADMITTED'){throw "unexpected state: $($r.state)"}
+          if([bool]$r.physical_execution_allowed){throw 'physical execution unexpectedly allowed'}
+          if([bool]$r.mutation_executed -or [bool]$r.runtime_mutation -or [bool]$r.reserve_1080_mutation -or [bool]$r.primary_1081_tunnel_mutation){throw 'mutation boundary violated'}
+          if([bool]$r.runtime_authority -or [bool]$r.promotion_eligible){throw 'authority boundary violated'}
+
+      - name: Assert repository remains clean
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $dirty=@(git status --porcelain)
+          if($dirty.Count){throw ("repository dirty:`n"+($dirty -join "`n"))}
