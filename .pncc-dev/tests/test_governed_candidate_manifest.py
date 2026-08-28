@@ -26,19 +26,21 @@ REQUIRED = (
 )
 
 
-def governed_fixture():
+def governed_fixture(version="7.0.0"):
     value = json.loads(EXAMPLE_PATH.read_text(encoding="utf-8"))
-    value["candidate_id"] = "PNCC-RC14.39-C7F9DD033F10"
+    stable = version == "7.0.0"
+    value["candidate_id"] = ("PNCC-V7.0.0-" if stable else "PNCC-RC14.39-") + "C7F9DD033F10"
     value["artifact_role"] = "RUNTIME_CANDIDATE"
     value["source"] = {
         "repository": "kmephis-ai/VPS-Control-PNCC", "commit_sha": SHA,
         "ref": "refs/heads/main", "identity_semantic": "EXACT_SOURCE_COMMIT", "path": "src/windows-v7",
     }
-    value["artifact"] = {"filename": "VPS-Control-v7.0.0-rc14.39.zip", "sha256": "a" * 64, "size_bytes": 12345}
+    value["artifact"] = {"filename": f"VPS-Control-v{version}.zip", "sha256": "a" * 64, "size_bytes": 12345}
     value["build"] = {
         "workflow": "candidate-builder", "run_id": 123, "run_attempt": 1,
         "job_name": "candidate-builder-main", "created_at_utc": "2026-08-27T18:00:00Z", "builder": "GITHUB_HOSTED",
     }
+    value["tool_versions"]["candidate_version"] = version
     value["engineering_checks"] = [{"name": name, "conclusion": "SUCCESS", "subject_sha": SHA} for name in REQUIRED]
     value["provenance"] = {
         "artifact_origin": "BUILD_OUTPUT", "sanitation_state": "EXACT_BUILD_OUTPUT",
@@ -53,8 +55,11 @@ class GovernedCandidateManifestTests(unittest.TestCase):
         errors = VALIDATOR.validate_governed_manifest(value)
         self.assertTrue(any(needle in error for error in errors), errors)
 
-    def test_valid_governed_candidate_passes(self):
-        self.assertEqual([], VALIDATOR.validate_governed_manifest(governed_fixture()))
+    def test_valid_stable_candidate_passes(self):
+        self.assertEqual([], VALIDATOR.validate_governed_manifest(governed_fixture("7.0.0")))
+
+    def test_existing_rc_candidate_remains_accepted(self):
+        self.assertEqual([], VALIDATOR.validate_governed_manifest(governed_fixture("7.0.0-rc14.39")))
 
     def test_requires_runtime_candidate_role(self):
         value = governed_fixture(); value["artifact_role"] = "SYNTHETIC_TEST_FIXTURE"
@@ -68,9 +73,17 @@ class GovernedCandidateManifestTests(unittest.TestCase):
         value = governed_fixture(); value["source"]["path"] = "legacy/v7-rc14.38-sanitized"
         self.assert_error(value, "CANONICAL_WINDOWS_V7_SOURCE_REQUIRED")
 
-    def test_requires_exact_rc1439_filename(self):
+    def test_requires_version_bound_filename(self):
         value = governed_fixture(); value["artifact"]["filename"] = "other.zip"
-        self.assert_error(value, "RC14_39_ARTIFACT_FILENAME_REQUIRED")
+        self.assert_error(value, "ARTIFACT_FILENAME_VERSION_IDENTITY_REQUIRED")
+
+    def test_requires_version_bound_candidate_id(self):
+        value = governed_fixture(); value["candidate_id"] = "PNCC-RC14.39-C7F9DD033F10"
+        self.assert_error(value, "CANDIDATE_ID_VERSION_IDENTITY_REQUIRED")
+
+    def test_unsupported_version_fails_closed(self):
+        value = governed_fixture(); value["tool_versions"]["candidate_version"] = "7.0.1"
+        self.assert_error(value, "CANDIDATE_VERSION_UNSUPPORTED")
 
     def test_requires_candidate_builder_workflow(self):
         value = governed_fixture(); value["build"]["workflow"] = "other"
