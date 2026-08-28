@@ -1,0 +1,111 @@
+name: wu043-stable-materialize
+
+on:
+  push:
+    branches:
+      - agent/PIPE-WU-043-stable-materialize-a1
+    paths:
+      - .github/workflows/wu043-stable-materialize.yml
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: agent/PIPE-WU-043-stable-materialize-a1
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Verify exact authorization boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "501bd5ebdb32e229d2fe546e9e35027d3a21e020"
+          test -z "$(git status --porcelain --untracked-files=all)"
+
+      - name: Apply exact version-only transition and regenerate manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib, subprocess
+
+          old=b'7.0.0-rc14.39'
+          new=b'7.0.0'
+          expected={
+            'src/windows-v7/VPS-Control-v7-ARCHITECTURE.md':1,
+            'src/windows-v7/VPS-Control-v7-CAPABILITY-TRUTH.md':1,
+            'src/windows-v7/VPS-Control-v7-README.txt':1,
+            'src/windows-v7/VPS-Control-v7-SHA256.txt':1,
+            'src/windows-v7/VPS-Control-v7-TUNNEL-CONTRACT.json':1,
+            'src/windows-v7/VPS-Control-v7-launch.ps1':1,
+            'src/windows-v7/VPS-Control-v7.ps1':2,
+            '.github/workflows/candidate-builder.yml':3,
+            '.pncc-dev/candidate-source.json':1,
+            'build/windows-v7-candidate-recipe.json':2,
+          }
+          for raw,count in expected.items():
+              p=Path(raw)
+              data=p.read_bytes()
+              actual=data.count(old)
+              if actual != count:
+                  raise SystemExit(f'COUNT_MISMATCH {raw} expected={count} actual={actual}')
+              p.write_bytes(data.replace(old,new))
+
+          manifest=Path('src/windows-v7/VPS-Control-v7-SHA256.txt')
+          tracked=subprocess.check_output(['git','ls-files','src/windows-v7'],text=True).splitlines()
+          rows=[]
+          for raw in sorted(tracked, key=lambda s:s.encode('utf-8')):
+              if raw == manifest.as_posix():
+                  continue
+              p=Path(raw)
+              rel=p.relative_to('src/windows-v7').as_posix().replace('/','\\')
+              rows.append(f"{hashlib.sha256(p.read_bytes()).hexdigest()}  {rel}")
+          manifest.write_text('# VPS Control Center v7.0.0 deterministic canonical Git-blob source manifest\n'+'\n'.join(rows)+'\n',encoding='utf-8',newline='')
+
+          for raw,count in expected.items():
+              data=Path(raw).read_bytes()
+              if old in data:
+                  raise SystemExit(f'OLD_VERSION_REMAINS {raw}')
+          print('WU043_VERSION_TRANSITION=PASS PRODUCT_FILES=7 PRODUCT_OCCURRENCES=8 CONTROL_FILES=3 CONTROL_OCCURRENCES=6')
+          PY
+
+      - name: Verify deterministic stable candidate locally
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "${RUNNER_TEMP}/stable-a" "${RUNNER_TEMP}/stable-b" "${RUNNER_TEMP}/stable-repro"
+          python build/build_candidate.py --repository-root . --output-dir "${RUNNER_TEMP}/stable-a"
+          python build/build_candidate.py --repository-root . --output-dir "${RUNNER_TEMP}/stable-b"
+          python build/verify_candidate_reproducibility.py --first-dir "${RUNNER_TEMP}/stable-a" --second-dir "${RUNNER_TEMP}/stable-b" --output "${RUNNER_TEMP}/stable-repro/build-evidence.json"
+          test -f "${RUNNER_TEMP}/stable-a/VPS-Control-v7.0.0.zip"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          p=Path(os.environ['RUNNER_TEMP'])/'stable-repro'/'build-evidence.json'
+          d=json.loads(p.read_text(encoding='utf-8'))
+          assert d['reproducibility']['byte_identical'] is True
+          assert d['runtime_authority'] is False
+          assert d['promotion_authority'] is False
+          print('WU043_STABLE_LOCAL_BUILD=PASS RUNTIME_AUTHORITY=false PROMOTION_AUTHORITY=false')
+          PY
+
+      - name: Commit exact authorized materialization
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git status --short
+          git add src/windows-v7 .pncc-dev/candidate-source.json build/windows-v7-candidate-recipe.json .github/workflows/candidate-builder.yml
+          test -n "$(git diff --cached --name-only)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "PIPE-WU-043: materialize Stable v7.0.0 candidate identity"
+          git push origin HEAD:agent/PIPE-WU-043-stable-materialize-a1
