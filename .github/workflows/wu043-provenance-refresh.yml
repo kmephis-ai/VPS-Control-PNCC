@@ -2,8 +2,8 @@ name: wu043-provenance-refresh
 
 on:
   push:
-    branches: [agent/PIPE-WU-043-stable-materialize-a1]
-    paths: [.github/workflows/wu043-provenance-refresh.yml]
+    branches:
+      - agent/PIPE-WU-043-stable-materialize-a1
 
 permissions:
   contents: write
@@ -11,13 +11,44 @@ permissions:
 jobs:
   refresh:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Checkout exact branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: agent/PIPE-WU-043-stable-materialize-a1
           fetch-depth: 0
           persist-credentials: true
-      - name: Regenerate exact stable source provenance
+
+      - name: Rebuild canonical source manifest from committed Git blob bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, subprocess
+          from pathlib import Path, PurePosixPath
+          root='src/windows-v7'
+          manifest=Path(root)/'VPS-Control-v7-SHA256.txt'
+          tracked=subprocess.check_output(['git','ls-files','--',root],text=True).splitlines()
+          rows=[]
+          for raw in sorted(tracked,key=lambda s:s.encode('utf-8')):
+              if raw == manifest.as_posix():
+                  continue
+              b=subprocess.check_output(['git','show',f'HEAD:{raw}'])
+              rel=PurePosixPath(raw).relative_to(PurePosixPath(root)).as_posix().replace('/','\\')
+              rows.append(f"{hashlib.sha256(b).hexdigest()}  {rel}")
+          manifest.write_text('# VPS Control Center v7.0.0 deterministic canonical Git-blob source manifest\n'+'\n'.join(rows)+'\n',encoding='utf-8',newline='')
+          print(f'WU043_GIT_BLOB_MANIFEST=READY ENTRIES={len(rows)}')
+          PY
+          git diff --check
+          git add src/windows-v7/VPS-Control-v7-SHA256.txt
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if ! git diff --cached --quiet; then
+            git commit -m 'PIPE-WU-043: regenerate stable manifest from canonical Git blobs'
+          fi
+
+      - name: Regenerate exact build-input provenance from committed Git blob bytes
         shell: bash
         run: |
           set -euo pipefail
@@ -26,32 +57,52 @@ jobs:
           from pathlib import Path,PurePosixPath
           path=Path('.pncc-dev/provenance/canonical-source-post-rc14.38.json')
           d=json.loads(path.read_text(encoding='utf-8-sig'))
+          d['activation']['builder_introduced']=True
+          d['activation']['candidate_artifact_generated']=False
           d['activation']['exact_base_main_sha']='501bd5ebdb32e229d2fe546e9e35027d3a21e020'
           d['activation']['work_unit']='PIPE-WU-043'
           d['baseline']['activated_candidate_version']='7.0.0'
           d['baseline']['embedded_version']='7.0.0'
+          d['baseline']['requires_version_bump_before_build']=False
           d['provenance_id']='PNCC_CANONICAL_SOURCE_V7_0_0_BUILD_INPUT_ACTIVATION_V1'
           d['source_identity_semantic']='UNBUILT_V7_0_0_CANDIDATE_SOURCE_BASELINE'
           root='src/windows-v7'
           tracked=subprocess.check_output(['git','ls-files','--',root],text=True).splitlines()
           inv=[]
           for raw in sorted(tracked,key=lambda s:s.encode('utf-8')):
-              b=Path(raw).read_bytes()
+              b=subprocess.check_output(['git','show',f'HEAD:{raw}'])
               inv.append({'bytes':len(b),'path':PurePosixPath(raw).relative_to(PurePosixPath(root)).as_posix(),'sha256':hashlib.sha256(b).hexdigest()})
           d['inventory']=inv
           d['safety']['artifact_exists']=False
           d['safety']['build_authority']=False
           d['safety']['build_input_ready']=True
+          d['safety']['ci_is_runtime_truth']=False
           d['safety']['promotion_authority']=False
           d['safety']['runtime_authority']=False
           d['safety']['stable_done']=False
           path.write_text(json.dumps(d,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='')
-          print(f'WU043_PROVENANCE_REFRESH=PASS INVENTORY={len(inv)} RUNTIME_AUTHORITY=false PROMOTION_AUTHORITY=false')
+          print(f'WU043_PROVENANCE_REFRESH=READY INVENTORY={len(inv)} RUNTIME_AUTHORITY=false PROMOTION_AUTHORITY=false')
           PY
           git diff --check
           git add .pncc-dev/provenance/canonical-source-post-rc14.38.json
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'PIPE-WU-043: bind build-input provenance to v7.0.0 source identity'
+          if ! git diff --cached --quiet; then
+            git commit -m 'PIPE-WU-043: bind build-input provenance to v7.0.0 source identity'
+          fi
+
+      - name: Prove stable build input and reproducibility
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain --untracked-files=all)"
           python .pncc-dev/scripts/evaluate_candidate_build_input.py --repository-root . --require-ready
+          rm -rf "${RUNNER_TEMP}/stable-a" "${RUNNER_TEMP}/stable-b" "${RUNNER_TEMP}/stable-repro"
+          python build/build_candidate.py --repository-root . --output-dir "${RUNNER_TEMP}/stable-a"
+          python build/build_candidate.py --repository-root . --output-dir "${RUNNER_TEMP}/stable-b"
+          python build/verify_candidate_reproducibility.py --first-dir "${RUNNER_TEMP}/stable-a" --second-dir "${RUNNER_TEMP}/stable-b" --output "${RUNNER_TEMP}/stable-repro/build-evidence.json"
+          sha256sum "${RUNNER_TEMP}/stable-a/VPS-Control-v7.0.0.zip"
+
+      - name: Push manifest and provenance reconciliation
+        shell: bash
+        run: |
+          set -euo pipefail
           git push origin HEAD:agent/PIPE-WU-043-stable-materialize-a1
