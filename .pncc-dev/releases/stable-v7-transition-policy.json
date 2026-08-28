@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "contract_id": "PNCC_STABLE_TRANSITION_POLICY_V1",
+  "work_unit_id": "PIPE-WU-042",
+  "base_sha": "372e815d758faa5e1fc87207d3c93a9de3e39dbb",
+  "source_prerelease": {
+    "candidate_id": "PNCC-RC14.39-90C9E8698C64",
+    "tag": "v7.0.0-rc14.39",
+    "source_sha": "90c9e8698c6468d576aecbc60d940be9d5c6baab",
+    "artifact_filename": "VPS-Control-v7.0.0-rc14.39.zip",
+    "artifact_sha256": "8caad796469886b90d9928fba385fc4a4f0f3d60bcb6ee6b7cb98c4c2e4390b3",
+    "runtime_pass_scopes": 9,
+    "runtime_authority": true
+  },
+  "stable_target": "v7.0.0",
+  "rules": {
+    "changed_bytes_create_new_identity": true,
+    "rename_is_not_runtime_authority_transfer": true,
+    "recompression_is_not_runtime_authority_transfer": true,
+    "version_stamp_is_not_runtime_authority_transfer": true,
+    "functional_equivalence_is_not_runtime_authority_transfer": true,
+    "stable_candidate_requires_deterministic_build": true,
+    "stable_candidate_requires_new_artifact_sha256": true,
+    "stable_candidate_requires_fresh_private_runtime_qualification": true,
+    "hosted_ci_can_originate_runtime_truth": false,
+    "rc14_39_evidence_is_lineage_only": true,
+    "reserve_1080_manual_only": true,
+    "v631_immutable": true
+  },
+  "next_work_unit": "PIPE-WU-043",
+  "stable_release_authorized": false
+}
