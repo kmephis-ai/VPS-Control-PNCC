@@ -28,13 +28,13 @@ jobs:
         run: |
           import json
           from pathlib import Path
-          p = Path('.pncc-dev/releases/rc14.39-prerelease-authorization.json')
-          d = json.loads(p.read_text(encoding='utf-8-sig'))
+          d = json.loads(Path('.pncc-dev/releases/rc14.39-prerelease-authorization.json').read_text(encoding='utf-8-sig'))
           expected = {
             'schema_version': 1,
             'contract_id': 'PNCC_EXACT_PRERELEASE_AUTHORIZATION_V1',
             'work_unit_id': 'PIPE-WU-041',
             'decision_base_sha': 'f48490074848e210d40b857640240b38ebee6fd9',
+            'writer_branch': 'agent/PIPE-WU-041-exact-rc14.39-prerelease-a1',
             'candidate_id': 'PNCC-RC14.39-90C9E8698C64',
             'tag': 'v7.0.0-rc14.39',
             'release_kind': 'PRERELEASE',
@@ -118,8 +118,7 @@ jobs:
           unzip -q provider-artifact.zip -d provider
           test -f "provider/${ASSET}"
           echo "${ASSET_SHA256}  provider/${ASSET}" | sha256sum -c -
-          actual_size="$(stat -c '%s' "provider/${ASSET}")"
-          test "$actual_size" = "$ASSET_SIZE"
+          test "$(stat -c '%s' "provider/${ASSET}")" = "$ASSET_SIZE"
           echo "EXACT_RELEASE_ASSET=PASS SHA256=${ASSET_SHA256} SIZE=${ASSET_SIZE}"
       - name: Create exact prerelease from qualified bytes
         shell: bash
@@ -158,8 +157,7 @@ jobs:
           test "$(jq -r '.prerelease' <<<"$release")" = "true"
           test "$(jq -r '.draft' <<<"$release")" = "false"
           test "$(jq -r '.tag_name' <<<"$release")" = "$TAG"
-          asset_count="$(jq --arg n "$ASSET" '[.assets[] | select(.name==$n)] | length' <<<"$release")"
-          test "$asset_count" = '1'
+          test "$(jq --arg n "$ASSET" '[.assets[] | select(.name==$n)] | length' <<<"$release")" = '1'
           mkdir release-download
           gh release download "${TAG}" --repo "${GITHUB_REPOSITORY}" --pattern "${ASSET}" --dir release-download
           echo "${ASSET_SHA256}  release-download/${ASSET}" | sha256sum -c -
