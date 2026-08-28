@@ -1,0 +1,57 @@
+name: wu043-provenance-refresh
+
+on:
+  push:
+    branches: [agent/PIPE-WU-043-stable-materialize-a1]
+    paths: [.github/workflows/wu043-provenance-refresh.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: agent/PIPE-WU-043-stable-materialize-a1
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Regenerate exact stable source provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json,subprocess
+          from pathlib import Path,PurePosixPath
+          path=Path('.pncc-dev/provenance/canonical-source-post-rc14.38.json')
+          d=json.loads(path.read_text(encoding='utf-8-sig'))
+          d['activation']['exact_base_main_sha']='501bd5ebdb32e229d2fe546e9e35027d3a21e020'
+          d['activation']['work_unit']='PIPE-WU-043'
+          d['baseline']['activated_candidate_version']='7.0.0'
+          d['baseline']['embedded_version']='7.0.0'
+          d['provenance_id']='PNCC_CANONICAL_SOURCE_V7_0_0_BUILD_INPUT_ACTIVATION_V1'
+          d['source_identity_semantic']='UNBUILT_V7_0_0_CANDIDATE_SOURCE_BASELINE'
+          root='src/windows-v7'
+          tracked=subprocess.check_output(['git','ls-files','--',root],text=True).splitlines()
+          inv=[]
+          for raw in sorted(tracked,key=lambda s:s.encode('utf-8')):
+              b=Path(raw).read_bytes()
+              inv.append({'bytes':len(b),'path':PurePosixPath(raw).relative_to(PurePosixPath(root)).as_posix(),'sha256':hashlib.sha256(b).hexdigest()})
+          d['inventory']=inv
+          d['safety']['artifact_exists']=False
+          d['safety']['build_authority']=False
+          d['safety']['build_input_ready']=True
+          d['safety']['promotion_authority']=False
+          d['safety']['runtime_authority']=False
+          d['safety']['stable_done']=False
+          path.write_text(json.dumps(d,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='')
+          print(f'WU043_PROVENANCE_REFRESH=PASS INVENTORY={len(inv)} RUNTIME_AUTHORITY=false PROMOTION_AUTHORITY=false')
+          PY
+          git diff --check
+          git add .pncc-dev/provenance/canonical-source-post-rc14.38.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'PIPE-WU-043: bind build-input provenance to v7.0.0 source identity'
+          python .pncc-dev/scripts/evaluate_candidate_build_input.py --repository-root . --require-ready
+          git push origin HEAD:agent/PIPE-WU-043-stable-materialize-a1
