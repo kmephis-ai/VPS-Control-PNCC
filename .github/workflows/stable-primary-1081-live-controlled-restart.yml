@@ -1,0 +1,77 @@
+name: stable-primary-1081-live-controlled-restart
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  stable-primary-1081-live-controlled-restart:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: PowerShell 5.1 parse preflight
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $path='tools/runtime-agent/Invoke-PnccStablePrimary1081ControlledRestart.ps1'
+          $tokens=$null;$errors=$null
+          [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path),[ref]$tokens,[ref]$errors)|Out-Null
+          if($errors.Count){throw ($errors|Out-String)}
+
+      - name: Assert live executor safety markers
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $raw=Get-Content 'tools/runtime-agent/Invoke-PnccStablePrimary1081ControlledRestart.ps1' -Raw
+          foreach($required in @(
+            'PNCC_OWNER_ONE_SHOT_PRIMARY_1081_RESTART_V1',
+            'CONTROLLED_RESTART_PRIMARY_1081',
+            'PNCC_STABLE_PRIMARY_1081_MUTATION_AUTHORIZATION_V1',
+            'PNCC_STABLE_PRIMARY_1081_LIVE_CONTROLLED_RESTART_V1',
+            'DEFAULT_DENY: valid OwnerAuthorizationPath required for Live mutation',
+            'owner token exact main SHA mismatch',
+            'owner token exact target identity/fingerprint mismatch',
+            'owner token expired or validity window exceeds 10 minutes',
+            'owner token already consumed',
+            '-Action RestartTunnel -NoAppLaunch',
+            'CRITICAL 1080 snapshot changed',
+            'post-restart routed identity changed',
+            'RUNTIME_AUTHORITY=false PROMOTION_ELIGIBLE=false'
+          )){if($raw -notlike ('*'+$required+'*')){throw "missing safety marker: $required"}}
+          if($raw -match '(?i)Stop-Process'){throw 'broad Stop-Process forbidden'}
+          if($raw -match '(?i)taskkill'){throw 'taskkill forbidden'}
+          if($raw -match '(?i)\$arguments\s*\+=\s*@\(\s*["'']-pw["'']'){throw 'plaintext -pw construction forbidden'}
+
+      - name: Execute admitted fixture under Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\tools\runtime-agent\Invoke-PnccStablePrimary1081ControlledRestart.ps1 -Mode Fixture -FixturePath .\.pncc-dev\fixtures\stable-primary-1081-live-controlled-restart-admitted.json -OutputDirectory $env:RUNNER_TEMP
+          if($LASTEXITCODE -ne 0){throw "fixture failed rc=$LASTEXITCODE"}
+          $r=Get-Content (Join-Path $env:RUNNER_TEMP 'stable-primary-1081-live-restart-result.json') -Raw|ConvertFrom-Json
+          if($r.state -cne 'LIVE_EXECUTOR_ADMITTED_DEFAULT_DENY'){throw "unexpected state: $($r.state)"}
+          if([bool]$r.physical_execution_allowed -or [bool]$r.owner_authorization_consumed -or [bool]$r.mutation_executed -or [bool]$r.runtime_mutation){throw 'fixture mutation boundary violated'}
+          if([bool]$r.runtime_authority -or [bool]$r.promotion_eligible){throw 'authority boundary violated'}
+
+      - name: Prove Live mode default-denies without owner token
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $stdout=Join-Path $env:RUNNER_TEMP 'default-deny.out'
+          $stderr=Join-Path $env:RUNNER_TEMP 'default-deny.err'
+          $arguments="-NoLogo -NoProfile -ExecutionPolicy Bypass -File `"$env:GITHUB_WORKSPACE\tools\runtime-agent\Invoke-PnccStablePrimary1081ControlledRestart.ps1`" -Mode Live -RepositoryRoot `"$env:GITHUB_WORKSPACE`" -OutputDirectory `"$env:RUNNER_TEMP`""
+          $p=Start-Process powershell.exe -ArgumentList $arguments -PassThru -Wait -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+          $text=((Get-Content $stdout -Raw -ErrorAction SilentlyContinue)+(Get-Content $stderr -Raw -ErrorAction SilentlyContinue))
+          if($p.ExitCode -eq 0){throw 'Live mode unexpectedly succeeded without owner token'}
+          if($text -notmatch 'DEFAULT_DENY: valid OwnerAuthorizationPath required for Live mutation'){throw "missing default-deny proof: $text"}
+
+      - name: Assert repository remains clean
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $dirty=@(git status --porcelain)
+          if($dirty.Count){throw ("repository dirty:`n"+($dirty -join "`n"))}
