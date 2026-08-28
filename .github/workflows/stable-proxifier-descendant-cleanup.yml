@@ -1,0 +1,60 @@
+name: stable-proxifier-descendant-cleanup
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  stable-proxifier-descendant-cleanup:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: PowerShell 5.1 parse and BOM preflight
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $path='tools/runtime-agent/Test-PnccStableProxifierDescendantCleanup.ps1'
+          $bytes=[IO.File]::ReadAllBytes((Resolve-Path $path))
+          if($bytes.Length -lt 3 -or $bytes[0]-ne 0xEF -or $bytes[1]-ne 0xBB -or $bytes[2]-ne 0xBF){throw 'UTF8 BOM required'}
+          $tokens=$null;$errors=$null
+          [Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path),[ref]$tokens,[ref]$errors)|Out-Null
+          if(@($errors).Count){$errors|ForEach-Object{Write-Error $_};exit 1}
+          'STABLE_PROXIFIER_DESCENDANT_PARSE=PASS PS51=true'
+
+      - name: Assert read-only safety boundary
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $text=Get-Content tools/runtime-agent/Test-PnccStableProxifierDescendantCleanup.ps1 -Raw
+          foreach($required in @('PNCC_STABLE_PROXIFIER_DESCENDANT_CLEANUP_V1','parentage_is_authority=$false','physical_cleanup_allowed=$false','runtime_mutation=$false','reserve_1080_mutation=$false','primary_1081_tunnel_mutation=$false','runtime_authority=$false','promotion_eligible=$false')){if(-not$text.Contains($required)){throw "required contract marker missing: $required"}}
+          foreach($forbidden in @('Stop-Process','taskkill','RestartTunnel','Restart-Service','Stop-Service','Start-Service')){if($text -match [regex]::Escape($forbidden)){throw "forbidden mutation primitive: $forbidden"}}
+          if($text -match '(?i)(?:^|\s)-pw(?:\s|=)'){throw 'plaintext -pw marker forbidden'}
+          'STABLE_PROXIFIER_DESCENDANT_BOUNDARY=PASS READ_ONLY=true'
+
+      - name: Execute admitted fixture under Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $out=Join-Path $env:RUNNER_TEMP 'stable-proxifier-descendant-cleanup'
+          New-Item -ItemType Directory -Force -Path $out|Out-Null
+          powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\tools\runtime-agent\Test-PnccStableProxifierDescendantCleanup.ps1 -Mode Fixture -FixturePath .\.pncc-dev\tests\stable-proxifier-descendant-cleanup-ready.fixture.json -OutputDirectory $out
+          if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
+          $r=Get-Content (Join-Path $out 'stable-proxifier-descendant-cleanup-result.json') -Raw|ConvertFrom-Json
+          if($r.contract_id -ne 'PNCC_STABLE_PROXIFIER_DESCENDANT_CLEANUP_V1' -or $r.state -ne 'PROXIFIER_DESCENDANT_CONTRACT_ADMITTED'){throw 'fixture contract/state mismatch'}
+          if([bool]$r.physical_cleanup_allowed -or [bool]$r.parentage_is_authority -or [bool]$r.runtime_mutation -or [bool]$r.runtime_authority -or [bool]$r.promotion_eligible){throw 'authority/mutation invariant failed'}
+          'STABLE_PROXIFIER_DESCENDANT_FIXTURE=PASS'
+
+      - name: Assert repository remains clean
+        shell: powershell
+        run: |
+          if(git status --porcelain --untracked-files=all){git status --short;throw 'repository became dirty'}
