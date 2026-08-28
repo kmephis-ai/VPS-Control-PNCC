@@ -1,0 +1,39 @@
+{
+  "candidate": {
+    "artifact_filename": "VPS-Control-v7.0.0.zip",
+    "artifact_sha256": "1407f82b15ea2b70ba56b7406bb8dd0d9097c459b630d016d6a7b5f10a49e599",
+    "artifact_size_bytes": 700897,
+    "candidate_id": "PNCC-V7.0.0-56F1E3798BE0",
+    "provider_artifact_digest": "1bb41c5f5a9c5961aa80a98c98fc3060932c3c2e80b2f137f77dcf831fc96d05",
+    "provider_artifact_id": 9692080233,
+    "provider_build_run_id": 33186877990,
+    "source_sha": "56f1e3798be0f5f034860adc04b609d0a07c2fc3"
+  },
+  "contract_id": "PNCC_RUNTIME_QUALIFICATION_REQUEST_V1",
+  "expected_invariants": {
+    "hostkey_verification_disable_allowed": false,
+    "plaintext_pw_allowed": false,
+    "primary_auto_port": 1081,
+    "putty_password_argument": "-pwfile",
+    "reserve_manual_lifecycle": "MANUAL_ONLY",
+    "reserve_manual_port": 1080,
+    "v6_3_1_sha256": "385e5178f10e79b0b234376e6a6671b64ce523a3971b2b4341ec94ce1efee11e"
+  },
+  "origin_work_unit_id": "PIPE-WU-045",
+  "promotion_eligible": false,
+  "request_id": "PNCC-RQ-V7.0.0-56F1E3798BE0",
+  "required_scopes": [
+    "WINDOWS_BASELINE",
+    "PROCESS_OWNERSHIP_BASELINE",
+    "WATCHDOG_LIFECYCLE",
+    "PROXIFIER_DESCENDANT_CLEANUP",
+    "PRIMARY_AUTO_1081",
+    "RESERVE_MANUAL_1080",
+    "CREDENTIAL_HOSTKEY",
+    "NETWORK_QUALIFICATION",
+    "ROLLBACK_IDENTITY"
+  ],
+  "runtime_authority": false,
+  "schema_version": 1,
+  "state": "RUNTIME_PENDING"
+}

@@ -12,6 +12,8 @@ Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
 
 $ExpectedArtifactName = 'PNCC-RC14.39-90c9e8698c6468d576aecbc60d940be9d5c6baab'
+$ExpectedRequestId = 'PNCC-RQ-RC14.39-90C9E8698C64'
+$ExpectedCandidateId = 'PNCC-RC14.39-90C9E8698C64'
 $ExpectedSourceSha = '90c9e8698c6468d576aecbc60d940be9d5c6baab'
 $ExpectedInnerName = 'VPS-Control-v7.0.0-rc14.39.zip'
 $ExpectedInnerSha256 = '8caad796469886b90d9928fba385fc4a4f0f3d60bcb6ee6b7cb98c4c2e4390b3'
@@ -112,7 +114,14 @@ $manifestPath = Join-Path $workspace 'workspace-manifest.json'
 $manifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $manifestPath -Encoding UTF8
 
 $agentOutput = Join-Path $workspace 'agent-dry-run'
-& (Join-Path $agentDir 'Invoke-PnccRuntimeQualificationAgent.ps1') -RequestPath (Join-Path $requestDir 'runtime-qualification-request.json') -OutputDirectory $agentOutput -DryRun
+& (Join-Path $agentDir 'Invoke-PnccRuntimeQualificationAgent.ps1') `
+    -RequestPath (Join-Path $requestDir 'runtime-qualification-request.json') `
+    -OutputDirectory $agentOutput `
+    -ExpectedRequestId $ExpectedRequestId `
+    -ExpectedCandidateId $ExpectedCandidateId `
+    -ExpectedSourceSha $ExpectedSourceSha `
+    -ExpectedArtifactSha256 $ExpectedInnerSha256 `
+    -DryRun
 if ($LASTEXITCODE -ne 0) { Fail-Closed "runtime agent dry-run failed with exit code $LASTEXITCODE" 7 }
 
 Write-Output "PNCC_RUNTIME_BOOTSTRAP=PASS MODE=$Mode SOURCE_SHA=$ExpectedSourceSha ARTIFACT_SHA256=$innerSha RUNTIME_MUTATION=false RUNTIME_AUTHORITY=false PROMOTION_ELIGIBLE=false"

@@ -33,46 +33,105 @@ jobs:
           if(git status --porcelain --untracked-files=all){ throw 'parse preflight dirtied repository' }
           'POWERSHELL_PARSE=PASS'
 
-      - name: Prove exact request produces non-mutating dry-run plan
+      - name: Prove RC14.39 request remains accepted in non-mutating dry-run
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
-          $out=Join-Path $env:RUNNER_TEMP 'pncc-agent-dryrun'
-          & ./tools/runtime-agent/Invoke-PnccRuntimeQualificationAgent.ps1 -RequestPath ./.pncc-dev/requests/runtime-qualification-rc14.39.json -OutputDirectory $out -DryRun
+          $out=Join-Path $env:RUNNER_TEMP 'pncc-agent-rc-dryrun'
+          & ./tools/runtime-agent/Invoke-PnccRuntimeQualificationAgent.ps1 `
+            -RequestPath ./.pncc-dev/requests/runtime-qualification-rc14.39.json `
+            -OutputDirectory $out `
+            -ExpectedRequestId 'PNCC-RQ-RC14.39-90C9E8698C64' `
+            -ExpectedCandidateId 'PNCC-RC14.39-90C9E8698C64' `
+            -ExpectedSourceSha '90c9e8698c6468d576aecbc60d940be9d5c6baab' `
+            -ExpectedArtifactSha256 '8caad796469886b90d9928fba385fc4a4f0f3d60bcb6ee6b7cb98c4c2e4390b3' `
+            -DryRun
           if($LASTEXITCODE -ne 0){ exit $LASTEXITCODE }
           $plan=Get-Content (Join-Path $out 'execution-plan.json') -Raw | ConvertFrom-Json
-          $result=Get-Content (Join-Path $out 'runtime-result.skeleton.json') -Raw | ConvertFrom-Json
           if(-not $plan.dry_run){ throw 'dry_run must be true' }
           if($plan.runtime_mutation_permitted){ throw 'runtime mutation must be false' }
           if(@($plan.steps).Count -ne 9){ throw 'all nine qualification scopes must be planned' }
           if(@($plan.steps | Where-Object { $_.mutation_allowed }).Count -ne 0){ throw 'dry-run step cannot allow mutation' }
-          if($result.qualification_state -eq 'RUNTIME_VERIFIED'){ throw 'dry-run skeleton cannot claim RUNTIME_VERIFIED' }
-          if($result.runtime_authority){ throw 'dry-run skeleton cannot grant runtime authority' }
-          if($result.promotion_eligible){ throw 'dry-run skeleton cannot grant promotion eligibility' }
-          'RUNTIME_AGENT_DRY_RUN=PASS SCOPES=9 RUNTIME_MUTATION=false RUNTIME_AUTHORITY=false PROMOTION_ELIGIBLE=false'
+          'RC1439_RUNTIME_AGENT_DRY_RUN=PASS'
 
-      - name: Reject candidate substitution
+      - name: Prove Stable v7.0.0 request is admitted with exact caller pins
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
+          $out=Join-Path $env:RUNNER_TEMP 'pncc-agent-stable-dryrun'
+          & ./tools/runtime-agent/Invoke-PnccRuntimeQualificationAgent.ps1 `
+            -RequestPath ./.pncc-dev/tests/runtime-request-stable-v7.0.0-wu045.fixture.json `
+            -OutputDirectory $out `
+            -ExpectedRequestId 'PNCC-RQ-V7.0.0-56F1E3798BE0' `
+            -ExpectedCandidateId 'PNCC-V7.0.0-56F1E3798BE0' `
+            -ExpectedSourceSha '56f1e3798be0f5f034860adc04b609d0a07c2fc3' `
+            -ExpectedArtifactSha256 '1407f82b15ea2b70ba56b7406bb8dd0d9097c459b630d016d6a7b5f10a49e599' `
+            -DryRun
+          if($LASTEXITCODE -ne 0){ exit $LASTEXITCODE }
+          $plan=Get-Content (Join-Path $out 'execution-plan.json') -Raw | ConvertFrom-Json
+          $result=Get-Content (Join-Path $out 'runtime-result.skeleton.json') -Raw | ConvertFrom-Json
+          if($plan.request_id -ne 'PNCC-RQ-V7.0.0-56F1E3798BE0'){ throw 'Stable request id drift' }
+          if($plan.candidate_id -ne 'PNCC-V7.0.0-56F1E3798BE0'){ throw 'Stable candidate id drift' }
+          if([int64]$plan.provider_artifact_id -ne 9692080233){ throw 'provider artifact id drift' }
+          if($result.candidate.artifact_sha256 -ne '1407f82b15ea2b70ba56b7406bb8dd0d9097c459b630d016d6a7b5f10a49e599'){ throw 'result candidate binding drift' }
+          if($result.qualification_state -eq 'RUNTIME_VERIFIED'){ throw 'dry-run skeleton cannot claim RUNTIME_VERIFIED' }
+          if($result.runtime_authority){ throw 'dry-run skeleton cannot grant runtime authority' }
+          if($result.promotion_eligible){ throw 'dry-run skeleton cannot grant promotion eligibility' }
+          'STABLE_RUNTIME_AGENT_DRY_RUN=PASS SCOPES=9 RUNTIME_MUTATION=false RUNTIME_AUTHORITY=false PROMOTION_ELIGIBLE=false'
+
+      - name: Reject pinned artifact substitution
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Continue'
           $tmp=Join-Path $env:RUNNER_TEMP 'substituted-request.json'
-          $req=Get-Content ./.pncc-dev/requests/runtime-qualification-rc14.39.json -Raw | ConvertFrom-Json
+          $req=Get-Content ./.pncc-dev/tests/runtime-request-stable-v7.0.0-wu045.fixture.json -Raw | ConvertFrom-Json
           $req.candidate.artifact_sha256=('f' * 64)
           $req | ConvertTo-Json -Depth 8 | Set-Content $tmp -Encoding UTF8
-          & ./tools/runtime-agent/Invoke-PnccRuntimeQualificationAgent.ps1 -RequestPath $tmp -OutputDirectory (Join-Path $env:RUNNER_TEMP 'reject-out') -DryRun
+          & ./tools/runtime-agent/Invoke-PnccRuntimeQualificationAgent.ps1 `
+            -RequestPath $tmp `
+            -OutputDirectory (Join-Path $env:RUNNER_TEMP 'reject-artifact') `
+            -ExpectedRequestId 'PNCC-RQ-V7.0.0-56F1E3798BE0' `
+            -ExpectedCandidateId 'PNCC-V7.0.0-56F1E3798BE0' `
+            -ExpectedSourceSha '56f1e3798be0f5f034860adc04b609d0a07c2fc3' `
+            -ExpectedArtifactSha256 '1407f82b15ea2b70ba56b7406bb8dd0d9097c459b630d016d6a7b5f10a49e599' `
+            -DryRun
           $negativeRc=$LASTEXITCODE
-          if($negativeRc -eq 0){ throw 'candidate substitution was accepted' }
+          if($negativeRc -eq 0){ throw 'artifact substitution was accepted' }
           $global:LASTEXITCODE=0
-          "CANDIDATE_SUBSTITUTION=REJECTED RC=$negativeRc"
+          "ARTIFACT_SUBSTITUTION=REJECTED RC=$negativeRc"
+
+      - name: Reject caller-pin identity incoherence
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Continue'
+          & ./tools/runtime-agent/Invoke-PnccRuntimeQualificationAgent.ps1 `
+            -RequestPath ./.pncc-dev/tests/runtime-request-stable-v7.0.0-wu045.fixture.json `
+            -OutputDirectory (Join-Path $env:RUNNER_TEMP 'reject-pin') `
+            -ExpectedRequestId 'PNCC-RQ-V7.0.0-AAAAAAAAAAAA' `
+            -ExpectedCandidateId 'PNCC-V7.0.0-AAAAAAAAAAAA' `
+            -ExpectedSourceSha '56f1e3798be0f5f034860adc04b609d0a07c2fc3' `
+            -ExpectedArtifactSha256 '1407f82b15ea2b70ba56b7406bb8dd0d9097c459b630d016d6a7b5f10a49e599' `
+            -DryRun
+          $negativeRc=$LASTEXITCODE
+          if($negativeRc -eq 0){ throw 'incoherent caller pins were accepted' }
+          $global:LASTEXITCODE=0
+          "CALLER_PIN_INCOHERENCE=REJECTED RC=$negativeRc"
 
       - name: Prove real execution is fail-closed disabled
         shell: pwsh
         run: |
-          & ./tools/runtime-agent/Invoke-PnccRuntimeQualificationAgent.ps1 -RequestPath ./.pncc-dev/requests/runtime-qualification-rc14.39.json -OutputDirectory (Join-Path $env:RUNNER_TEMP 'real-disabled')
+          $ErrorActionPreference='Continue'
+          & ./tools/runtime-agent/Invoke-PnccRuntimeQualificationAgent.ps1 `
+            -RequestPath ./.pncc-dev/tests/runtime-request-stable-v7.0.0-wu045.fixture.json `
+            -OutputDirectory (Join-Path $env:RUNNER_TEMP 'real-disabled') `
+            -ExpectedRequestId 'PNCC-RQ-V7.0.0-56F1E3798BE0' `
+            -ExpectedCandidateId 'PNCC-V7.0.0-56F1E3798BE0' `
+            -ExpectedSourceSha '56f1e3798be0f5f034860adc04b609d0a07c2fc3' `
+            -ExpectedArtifactSha256 '1407f82b15ea2b70ba56b7406bb8dd0d9097c459b630d016d6a7b5f10a49e599'
           $negativeRc=$LASTEXITCODE
           if($negativeRc -ne 4){ throw "expected rc=4, got $negativeRc" }
           $global:LASTEXITCODE=0
-          'REAL_RUNTIME_EXECUTION=DISABLED_BY_WU016'
+          'REAL_RUNTIME_EXECUTION=DISABLED'
 
       - name: Assert product/runtime source unchanged by test
         shell: pwsh
