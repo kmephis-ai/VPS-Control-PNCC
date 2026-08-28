@@ -51,7 +51,7 @@ jobs:
             'RUNTIME_MUTATION=false',
             'RETURN_ZIP=',
             'LOG_PATH='
-          )){ if($text -notlike ('*' + $required + '*')){ throw "required owner contract fragment missing: $required" } }
+          )){ if(-not $text.Contains($required)){ throw "required owner contract fragment missing: $required" } }
           if($text -match "RepositorySha = '[0-9a-f]{40}'"){ throw 'stale embedded harness SHA is forbidden' }
           if($text -notmatch 'Invoke-NativeCaptured'){ throw 'PS5.1-safe native capture helper missing' }
           if($text -match 'powershell\.exe @args 2>&1'){ throw 'unsafe direct child stderr merge present' }
