@@ -28,7 +28,7 @@ jobs:
         run: |
           from pathlib import Path
           import hashlib,json,subprocess,re
-          version='7.0.0-rc14.39'
+          version='7.0.0'
           root='src/windows-v7'
           prov_path=Path('.pncc-dev/provenance/canonical-source-post-rc14.38.json')
           if not prov_path.is_file(): raise SystemExit('canonical provenance missing')
@@ -69,7 +69,7 @@ jobs:
           safety=prov.get('safety',{})
           if safety.get('build_input_ready') is not True or safety.get('artifact_exists') is not False: raise SystemExit('build-input/artifact truth invalid')
           if any(safety.get(k) for k in ('runtime_authority','promotion_authority','stable_done')): raise SystemExit('provenance grants forbidden authority')
-          print('CANONICAL_GIT_BLOB_PROVENANCE=PASS FILES=32 MANIFEST=31 VERSION=7.0.0-rc14.39 ARTIFACT_EXISTS=false')
+          print('CANONICAL_GIT_BLOB_PROVENANCE=PASS FILES=32 MANIFEST=31 VERSION=7.0.0 ARTIFACT_EXISTS=false')
 
       - name: Verify Windows PowerShell 5.1 AST, BOM and credential transport
         shell: powershell
@@ -98,7 +98,7 @@ jobs:
         run: |
           from pathlib import Path
           import json
-          version='7.0.0-rc14.39'
+          version='7.0.0'
           root=Path('src/windows-v7')
           c=json.loads((root/'VPS-Control-v7-TUNNEL-CONTRACT.json').read_text(encoding='utf-8-sig'))
           if c.get('ContractVersion')!=version: raise SystemExit('tunnel ContractVersion mismatch')
@@ -112,4 +112,4 @@ jobs:
           launch=(root/'VPS-Control-v7-launch.ps1').read_text(encoding='utf-8-sig')
           assert f"$UiVersion = '{version}'" in main
           assert f"$LauncherVersion = '{version}'" in launch
-          print('CANONICAL_FIXED_BOUNDARIES=PASS PRIMARY=1081 RESERVE=1080 PWFILE=true VERSION=7.0.0-rc14.39')
+          print('CANONICAL_FIXED_BOUNDARIES=PASS PRIMARY=1081 RESERVE=1080 PWFILE=true VERSION=7.0.0')
