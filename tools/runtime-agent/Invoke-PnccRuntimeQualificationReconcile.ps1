@@ -34,7 +34,7 @@ try{
  $stage=Get-Content -LiteralPath $StageAResultPath -Raw|ConvertFrom-Json
  if([string]$stage.contract_id -ne 'PNCC_RUNTIME_QUALIFICATION_RESULT_V1'){throw 'Stage-A contract mismatch'}
  if([string]$stage.producer.source_plane -ne 'PRIVATE_RUNTIME'){throw 'Stage-A source plane mismatch'}
- foreach($s in @('WINDOWS_BASELINE','PROCESS_OWNERSHIP_BASELINE','PRIMARY_AUTO_1081','RESERVE_MANUAL_1080','NETWORK_QUALIFICATION','ROLLBACK_IDENTITY')){$c=GetCheck $stage $s;if($c.Count -ne 1 -or [string]$c[0].result -ne 'PASS'){throw "Stage-A required PASS missing: $s"}}
+ foreach($s in @('WINDOWS_BASELINE','PROCESS_OWNERSHIP_BASELINE','PRIMARY_AUTO_1081','RESERVE_MANUAL_1080','NETWORK_QUALIFICATION','ROLLBACK_IDENTITY')){$c=@(GetCheck $stage $s);if($c.Count -ne 1 -or [string]$c[0].result -ne 'PASS'){throw "Stage-A required PASS missing: $s"}}
  $wu29=Join-Path $Wu030Root 'wu029\putty-085-admission-result.json'
  $wu28=Join-Path $Wu030Root 'wu029\wu028-resume\primary-1081-dpapi-recovery-result.json'
  $wu30log=Join-Path $Wu030Root 'PNCC-PUTTY-085-TRACE-FIX-WU030.log'
@@ -54,7 +54,7 @@ try{
  AddCheck $checks 'CREDENTIAL_HOSTKEY' 'PASS' 'wu028+wu029'
  AddCheck $checks 'PROXIFIER_DESCENDANT_CLEANUP' 'NOT_EXECUTED' 'none'
  $ordered=@();foreach($s in $Scopes){$ordered+=@($checks|Where-Object{$_.scope-eq$s}|Select-Object -First 1)}
- $result=[ordered]@{schema_version=1;contract_id='PNCC_RUNTIME_QUALIFICATION_RESULT_V1';request_id='PNCC-RQ-RC14.39-90C9E8698C64';producer=[ordered]@{source_plane='PRIVATE_RUNTIME';agent_id='PNCC_WINDOWS_RUNTIME_RECONCILER_WU031';runtime_agent_version='0.1.0'};checks=$ordered;live_observation=[ordered]@{reserve_1080_listening=$true;primary_1081_listening=$true;runtime_mutation=$false};qualification_state='BLOCKED';failure_classification=$null;next_scope='PROXIFIER_DESCENDANT_CLEANUP';runtime_authority=$false;promotion_eligible=$false}
+ $result=[ordered]@{schema_version=1;contract_id='PNCC_RUNTIME_QUALIFICATION_RESULT_V1';request_id='PNCC-RQ-RC14.39-90C9E8698C64';producer=[ordered]@{source_plane='PRIVATE_RUNTIME';agent_id='PNCC_WINDOWS_RUNTIME_RECONCILER_WU031';runtime_agent_version='0.1.1';normalization_fix='PIPE-WU-032'};checks=$ordered;live_observation=[ordered]@{reserve_1080_listening=$true;primary_1081_listening=$true;runtime_mutation=$false};qualification_state='BLOCKED';failure_classification=$null;next_scope='PROXIFIER_DESCENDANT_CLEANUP';runtime_authority=$false;promotion_eligible=$false}
  $rp=Join-Path $OutputDirectory 'runtime-qualification-reconciled-result.json';WriteJson $result $rp
  Write-Output 'PNCC_RUNTIME_QUALIFICATION_RECONCILE=BLOCKED PASS_SCOPES=8 NOT_EXECUTED_SCOPES=1 NEXT_SCOPE=PROXIFIER_DESCENDANT_CLEANUP RUNTIME_MUTATION=false RESERVE_1080_MUTATION=false RUNTIME_AUTHORITY=false PROMOTION_ELIGIBLE=false'
  Write-Output "RESULT=$rp";Write-Output "LOG_PATH=$log";exit 0
