@@ -3,6 +3,7 @@
   "contract_id": "PNCC_EXACT_PRERELEASE_AUTHORIZATION_V1",
   "work_unit_id": "PIPE-WU-041",
   "decision_base_sha": "f48490074848e210d40b857640240b38ebee6fd9",
+  "writer_branch": "agent/PIPE-WU-041-exact-rc14.39-prerelease-a1",
   "candidate_id": "PNCC-RC14.39-90C9E8698C64",
   "tag": "v7.0.0-rc14.39",
   "release_kind": "PRERELEASE",
