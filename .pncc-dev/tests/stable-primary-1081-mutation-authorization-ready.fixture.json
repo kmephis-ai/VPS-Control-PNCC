@@ -1,0 +1,22 @@
+{
+  "ownership_contract": "PNCC_STABLE_PRIMARY_1081_OWNERSHIP_V1",
+  "ownership_state": "OWNERSHIP_ADMITTED",
+  "ownership_receipt_fresh": true,
+  "primary_process_identity_match": true,
+  "primary_command_fingerprint_match": true,
+  "primary_single": true,
+  "primary_putty": true,
+  "primary_binding_1081": true,
+  "primary_pwfile": true,
+  "primary_no_plain_pw": true,
+  "watchdog_registered": true,
+  "watchdog_fresh": true,
+  "watchdog_exact_engine": true,
+  "immediate_revalidation": true,
+  "reserve_manual_only": true,
+  "reserve_1080_untouched": true,
+  "mutation_scope_primary_1081_only": true,
+  "parentage_not_authority": true,
+  "pid_only_not_authority": true,
+  "broad_process_kill_forbidden": true
+}
