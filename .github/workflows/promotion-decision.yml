@@ -1,0 +1,33 @@
+name: promotion-decision
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Evaluate exact promotion decision boundary
+        run: python3 .pncc-dev/scripts/evaluate_promotion_decision.py
+      - name: Assert no release side effect is encoded
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          p='.pncc-dev/attestations/promotion-decision-rc14.39.json'
+          d=json.load(open(p,encoding='utf-8'))
+          assert d['promotion_state']=='ELIGIBLE_NOT_PROMOTED'
+          assert d['tag_created'] is False
+          assert d['release_created'] is False
+          assert d['stable_declared'] is False
+          assert d['artifact_rebuilt'] is False
+          PY
+      - name: Assert repository remains clean
+        run: test -z "$(git status --porcelain)"
