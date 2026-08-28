@@ -4,22 +4,17 @@ param(
     [ValidateSet('Provider','Fixture')][string]$Mode = 'Provider',
     [string]$FixtureBundleDirectory,
     [string]$Repository = 'kmephis-ai/VPS-Control-PNCC',
-    [long]$ProviderArtifactId = 9661221985,
-    [long]$ProviderBuildRunId = 33107824902
+    [Parameter(Mandatory=$true)][long]$RequestProviderArtifactId,
+    [Parameter(Mandatory=$true)][long]$RequestProviderBuildRunId,
+    [Parameter(Mandatory=$true)][string]$ExpectedRequestArtifactName,
+    [Parameter(Mandatory=$true)][string]$ExpectedRequestProviderDigest,
+    [Parameter(Mandatory=$true)][string]$ExpectedRequestSourceSha
 )
 
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
 
-$ExpectedArtifactName = 'PNCC-RC14.39-90c9e8698c6468d576aecbc60d940be9d5c6baab'
-$ExpectedRequestId = 'PNCC-RQ-RC14.39-90C9E8698C64'
-$ExpectedCandidateId = 'PNCC-RC14.39-90C9E8698C64'
-$ExpectedSourceSha = '90c9e8698c6468d576aecbc60d940be9d5c6baab'
-$ExpectedInnerName = 'VPS-Control-v7.0.0-rc14.39.zip'
-$ExpectedInnerSha256 = '8caad796469886b90d9928fba385fc4a4f0f3d60bcb6ee6b7cb98c4c2e4390b3'
-$ExpectedInnerSize = 700961L
-$ExpectedProviderDigest = 'sha256:eaf9844e8901cce7b1ebc866550e37cfd72393afc67075c27cba6703a415b68e'
-$ExpectedRequestRelative = '.pncc-dev/requests/runtime-qualification-rc14.39.json'
+$ExpectedRequestContract = 'PNCC_RUNTIME_QUALIFICATION_REQUEST_V1'
 $ExpectedAgentRelative = 'tools/runtime-agent/Invoke-PnccRuntimeQualificationAgent.ps1'
 
 function Fail-Closed([string]$Message, [int]$Code = 2) {
@@ -36,6 +31,22 @@ function Get-FileSha256([string]$Path) {
     return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
 }
 
+function Test-LowerHex([string]$Value, [int]$Length) {
+    if ([string]::IsNullOrWhiteSpace($Value) -or $Value.Length -ne $Length) { return $false }
+    return ($Value -cmatch ('^[0-9a-f]{' + $Length + '}$'))
+}
+
+function Get-ProviderMetadata([long]$ArtifactId) {
+    $raw = & gh api ("repos/{0}/actions/artifacts/{1}" -f $Repository,$ArtifactId) 2>&1
+    if ($LASTEXITCODE -ne 0) { Fail-Closed ('artifact metadata acquisition failed: ' + ($raw -join ' ')) 4 }
+    try { return (($raw -join "`n") | ConvertFrom-Json) } catch { Fail-Closed ('artifact metadata JSON invalid: ' + $_.Exception.Message) 4 }
+}
+
+if ($RequestProviderArtifactId -le 0 -or $RequestProviderBuildRunId -le 0) { Fail-Closed 'request provider ids must be positive' }
+if (-not (Test-LowerHex $ExpectedRequestSourceSha 40)) { Fail-Closed 'ExpectedRequestSourceSha must be lowercase 40-hex' }
+if ($ExpectedRequestProviderDigest -cnotmatch '^sha256:[0-9a-f]{64}$') { Fail-Closed 'ExpectedRequestProviderDigest must be sha256:<64 lowercase hex>' }
+if ([string]::IsNullOrWhiteSpace($ExpectedRequestArtifactName)) { Fail-Closed 'ExpectedRequestArtifactName is required' }
+
 if ($Mode -eq 'Provider') {
     Assert-Command 'gh'
     $authStatus = & gh auth status 2>&1
@@ -43,64 +54,136 @@ if ($Mode -eq 'Provider') {
 }
 
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-$workspace = Join-Path $OutputRoot ("PNCC-RUNTIME-QUALIFICATION-RC14.39-$stamp")
-$providerDir = Join-Path $workspace 'provider-artifact'
+$workspace = Join-Path $OutputRoot ("PNCC-RUNTIME-QUALIFICATION-$stamp")
+$requestProviderDir = Join-Path $workspace 'request-provider-artifact'
+$candidateProviderDir = Join-Path $workspace 'candidate-provider-artifact'
 $privateDir = Join-Path $workspace 'private-evidence'
 $publicDir = Join-Path $workspace 'public-safe'
 $agentDir = Join-Path $workspace 'agent'
 $requestDir = Join-Path $workspace 'request'
-@($workspace,$providerDir,$privateDir,$publicDir,$agentDir,$requestDir) | ForEach-Object { New-Item -ItemType Directory -Path $_ -Force | Out-Null }
+@($workspace,$requestProviderDir,$candidateProviderDir,$privateDir,$publicDir,$agentDir,$requestDir) | ForEach-Object { New-Item -ItemType Directory -Path $_ -Force | Out-Null }
 
-$metadata = $null
+$requestMetadata = $null
 if ($Mode -eq 'Provider') {
-    $metaRaw = & gh api ("repos/{0}/actions/artifacts/{1}" -f $Repository,$ProviderArtifactId) 2>&1
-    if ($LASTEXITCODE -ne 0) { Fail-Closed ('artifact metadata acquisition failed: ' + ($metaRaw -join ' ')) 4 }
-    try { $metadata = (($metaRaw -join "`n") | ConvertFrom-Json) } catch { Fail-Closed ('artifact metadata JSON invalid: ' + $_.Exception.Message) 4 }
-    if ([long]$metadata.id -ne $ProviderArtifactId) { Fail-Closed 'provider artifact id mismatch' 4 }
-    if ([string]$metadata.name -ne $ExpectedArtifactName) { Fail-Closed 'provider artifact name mismatch' 4 }
-    if ([bool]$metadata.expired) { Fail-Closed 'provider artifact is expired' 4 }
-    if ([string]$metadata.digest -ne $ExpectedProviderDigest) { Fail-Closed 'provider artifact digest metadata mismatch' 4 }
-    if ([long]$metadata.workflow_run.id -ne $ProviderBuildRunId) { Fail-Closed 'provider build run id mismatch' 4 }
-    if ([string]$metadata.workflow_run.head_sha -ne $ExpectedSourceSha) { Fail-Closed 'provider source SHA mismatch' 4 }
+    $requestMetadata = Get-ProviderMetadata $RequestProviderArtifactId
+    if ([long]$requestMetadata.id -ne $RequestProviderArtifactId) { Fail-Closed 'request provider artifact id mismatch' 4 }
+    if ([string]$requestMetadata.name -cne $ExpectedRequestArtifactName) { Fail-Closed 'request provider artifact name mismatch' 4 }
+    if ([bool]$requestMetadata.expired) { Fail-Closed 'request provider artifact is expired' 4 }
+    if ([string]$requestMetadata.digest -cne $ExpectedRequestProviderDigest) { Fail-Closed 'request provider artifact digest mismatch' 4 }
+    if ([long]$requestMetadata.workflow_run.id -ne $RequestProviderBuildRunId) { Fail-Closed 'request provider build run mismatch' 4 }
+    if ([string]$requestMetadata.workflow_run.head_sha -cne $ExpectedRequestSourceSha) { Fail-Closed 'request provider source SHA mismatch' 4 }
 
-    $downloadOutput = & gh run download $ProviderBuildRunId --repo $Repository --name $ExpectedArtifactName --dir $providerDir 2>&1
-    if ($LASTEXITCODE -ne 0) { Fail-Closed ('provider artifact download failed: ' + ($downloadOutput -join ' ')) 4 }
+    $downloadRequest = & gh run download $RequestProviderBuildRunId --repo $Repository --name $ExpectedRequestArtifactName --dir $requestProviderDir 2>&1
+    if ($LASTEXITCODE -ne 0) { Fail-Closed ('request artifact download failed: ' + ($downloadRequest -join ' ')) 4 }
 } else {
     if ([string]::IsNullOrWhiteSpace($FixtureBundleDirectory)) { Fail-Closed 'FixtureBundleDirectory is required in Fixture mode' 2 }
     if (-not (Test-Path -LiteralPath $FixtureBundleDirectory -PathType Container)) { Fail-Closed 'fixture bundle directory not found' 2 }
-    Get-ChildItem -LiteralPath $FixtureBundleDirectory -Force | ForEach-Object {
-        Copy-Item -LiteralPath $_.FullName -Destination $providerDir -Recurse -Force
-    }
+    $fixtureRequest = Join-Path $FixtureBundleDirectory 'request-provider-artifact'
+    $fixtureCandidate = Join-Path $FixtureBundleDirectory 'candidate-provider-artifact'
+    if (-not (Test-Path -LiteralPath $fixtureRequest -PathType Container)) { Fail-Closed 'fixture request-provider-artifact directory missing' 2 }
+    if (-not (Test-Path -LiteralPath $fixtureCandidate -PathType Container)) { Fail-Closed 'fixture candidate-provider-artifact directory missing' 2 }
+    Copy-Item -LiteralPath (Join-Path $fixtureRequest '*') -Destination $requestProviderDir -Recurse -Force
+    Copy-Item -LiteralPath (Join-Path $fixtureCandidate '*') -Destination $candidateProviderDir -Recurse -Force
 }
 
-$inner = Join-Path $providerDir $ExpectedInnerName
-if (-not (Test-Path -LiteralPath $inner -PathType Leaf)) { Fail-Closed "inner candidate missing: $ExpectedInnerName" 5 }
-$innerInfo = Get-Item -LiteralPath $inner
-if ([long]$innerInfo.Length -ne $ExpectedInnerSize) { Fail-Closed "inner candidate size mismatch: $($innerInfo.Length)" 5 }
-$innerSha = Get-FileSha256 $inner
-if ($innerSha -ne $ExpectedInnerSha256) { Fail-Closed "inner candidate SHA-256 mismatch: $innerSha" 5 }
+$requestFiles = @(Get-ChildItem -LiteralPath $requestProviderDir -File -Filter '*.json')
+if ($requestFiles.Count -ne 1) { Fail-Closed "exactly one runtime request JSON required; found $($requestFiles.Count)" 5 }
+$requestPath = $requestFiles[0].FullName
+try { $request = Get-Content -LiteralPath $requestPath -Raw -Encoding UTF8 | ConvertFrom-Json } catch { Fail-Closed ('runtime request JSON invalid: ' + $_.Exception.Message) 5 }
 
-$requestSource = Join-Path (Get-Location) $ExpectedRequestRelative
+if ([int]$request.schema_version -ne 1) { Fail-Closed 'request schema_version mismatch' 5 }
+if ([string]$request.contract_id -cne $ExpectedRequestContract) { Fail-Closed 'request contract mismatch' 5 }
+if ([string]$request.state -cne 'RUNTIME_PENDING') { Fail-Closed 'request state must be RUNTIME_PENDING' 5 }
+if ([bool]$request.runtime_authority) { Fail-Closed 'request cannot grant runtime authority' 5 }
+if ([bool]$request.promotion_eligible) { Fail-Closed 'request cannot grant promotion eligibility' 5 }
+
+$requestId = [string]$request.request_id
+$candidateId = [string]$request.candidate.candidate_id
+$sourceSha = [string]$request.candidate.source_sha
+$innerName = [string]$request.candidate.artifact_filename
+$innerExpectedSha = [string]$request.candidate.artifact_sha256
+$innerExpectedSize = [long]$request.candidate.artifact_size_bytes
+$candidateProviderArtifactId = [long]$request.candidate.provider_artifact_id
+$candidateProviderDigestRaw = [string]$request.candidate.provider_artifact_digest
+$candidateProviderBuildRunId = [long]$request.candidate.provider_build_run_id
+
+if ($sourceSha -cne $ExpectedRequestSourceSha) { Fail-Closed 'request source SHA differs from pinned request artifact source' 5 }
+if ($candidateProviderBuildRunId -ne $RequestProviderBuildRunId) { Fail-Closed 'request and candidate provider build runs must match' 5 }
+if (-not (Test-LowerHex $innerExpectedSha 64)) { Fail-Closed 'request inner artifact SHA-256 invalid' 5 }
+if (-not (Test-LowerHex $candidateProviderDigestRaw 64)) { Fail-Closed 'request candidate provider digest invalid' 5 }
+if ($innerExpectedSize -le 0 -or $candidateProviderArtifactId -le 0) { Fail-Closed 'request candidate size/provider id invalid' 5 }
+if ([string]::IsNullOrWhiteSpace($innerName) -or [IO.Path]::GetFileName($innerName) -cne $innerName) { Fail-Closed 'request artifact filename must be a basename' 5 }
+
+if ($candidateId -cmatch '^PNCC-V7\.0\.0-([0-9A-F]{12})$') {
+    $expectedCandidateProviderName = 'PNCC-V7.0.0-' + $sourceSha
+} elseif ($candidateId -cmatch '^PNCC-RC14\.39-([0-9A-F]{12})$') {
+    $expectedCandidateProviderName = 'PNCC-RC14.39-' + $sourceSha
+} else {
+    Fail-Closed 'unsupported candidate id for provider bootstrap' 5
+}
+if ($Matches[1] -cne $sourceSha.Substring(0,12).ToUpperInvariant()) { Fail-Closed 'candidate/source suffix mismatch' 5 }
+
+if ($Mode -eq 'Provider') {
+    $candidateMetadata = Get-ProviderMetadata $candidateProviderArtifactId
+    if ([long]$candidateMetadata.id -ne $candidateProviderArtifactId) { Fail-Closed 'candidate provider artifact id mismatch' 6 }
+    if ([string]$candidateMetadata.name -cne $expectedCandidateProviderName) { Fail-Closed 'candidate provider artifact name mismatch' 6 }
+    if ([bool]$candidateMetadata.expired) { Fail-Closed 'candidate provider artifact is expired' 6 }
+    if ([string]$candidateMetadata.digest -cne ('sha256:' + $candidateProviderDigestRaw)) { Fail-Closed 'candidate provider digest/request mismatch' 6 }
+    if ([long]$candidateMetadata.workflow_run.id -ne $candidateProviderBuildRunId) { Fail-Closed 'candidate provider build run mismatch' 6 }
+    if ([string]$candidateMetadata.workflow_run.head_sha -cne $sourceSha) { Fail-Closed 'candidate provider source SHA mismatch' 6 }
+
+    $downloadCandidate = & gh run download $candidateProviderBuildRunId --repo $Repository --name $expectedCandidateProviderName --dir $candidateProviderDir 2>&1
+    if ($LASTEXITCODE -ne 0) { Fail-Closed ('candidate artifact download failed: ' + ($downloadCandidate -join ' ')) 6 }
+}
+
+$inner = Join-Path $candidateProviderDir $innerName
+if (-not (Test-Path -LiteralPath $inner -PathType Leaf)) { Fail-Closed "inner candidate missing: $innerName" 7 }
+$innerInfo = Get-Item -LiteralPath $inner
+if ([long]$innerInfo.Length -ne $innerExpectedSize) { Fail-Closed "inner candidate size mismatch: $($innerInfo.Length)" 7 }
+$innerSha = Get-FileSha256 $inner
+if ($innerSha -cne $innerExpectedSha) { Fail-Closed "inner candidate SHA-256 mismatch: $innerSha" 7 }
+
+$candidateManifestPath = Join-Path $candidateProviderDir 'candidate-manifest.json'
+if (-not (Test-Path -LiteralPath $candidateManifestPath -PathType Leaf)) { Fail-Closed 'candidate-manifest.json missing from provider bundle' 7 }
+try { $candidateManifest = Get-Content -LiteralPath $candidateManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json } catch { Fail-Closed ('candidate manifest JSON invalid: ' + $_.Exception.Message) 7 }
+if ([string]$candidateManifest.candidate_id -cne $candidateId) { Fail-Closed 'candidate manifest/request candidate_id mismatch' 7 }
+if ([string]$candidateManifest.source.commit_sha -cne $sourceSha) { Fail-Closed 'candidate manifest/request source SHA mismatch' 7 }
+if ([string]$candidateManifest.artifact.filename -cne $innerName) { Fail-Closed 'candidate manifest/request filename mismatch' 7 }
+if ([string]$candidateManifest.artifact.sha256 -cne $innerExpectedSha) { Fail-Closed 'candidate manifest/request artifact SHA mismatch' 7 }
+if ([long]$candidateManifest.artifact.size_bytes -ne $innerExpectedSize) { Fail-Closed 'candidate manifest/request artifact size mismatch' 7 }
+if ([string]$candidateManifest.runtime.qualification_state -cne 'NOT_VERIFIED') { Fail-Closed 'candidate manifest must remain NOT_VERIFIED before PRIVATE_RUNTIME' 7 }
+if ([bool]$candidateManifest.runtime.promotion_eligible) { Fail-Closed 'candidate manifest cannot be promotion eligible' 7 }
+
+$governedRequestPath = Join-Path $requestDir 'runtime-qualification-request.json'
+Copy-Item -LiteralPath $requestPath -Destination $governedRequestPath -Force
 $agentSource = Join-Path (Get-Location) $ExpectedAgentRelative
-if (-not (Test-Path -LiteralPath $requestSource -PathType Leaf)) { Fail-Closed 'governed request source missing from repository checkout' 6 }
-if (-not (Test-Path -LiteralPath $agentSource -PathType Leaf)) { Fail-Closed 'runtime agent source missing from repository checkout' 6 }
-Copy-Item -LiteralPath $requestSource -Destination (Join-Path $requestDir 'runtime-qualification-request.json') -Force
+if (-not (Test-Path -LiteralPath $agentSource -PathType Leaf)) { Fail-Closed 'runtime agent source missing from repository checkout' 8 }
 Copy-Item -LiteralPath $agentSource -Destination (Join-Path $agentDir 'Invoke-PnccRuntimeQualificationAgent.ps1') -Force
 
 $manifest = [ordered]@{
-    schema_version = 1
-    bootstrap_id = 'PNCC_RUNTIME_WORKSPACE_BOOTSTRAP_V1'
+    schema_version = 2
+    bootstrap_id = 'PNCC_RUNTIME_WORKSPACE_BOOTSTRAP_V2'
     created_utc = [DateTime]::UtcNow.ToString('o')
     mode = $Mode
     repository = $Repository
+    request_provider = [ordered]@{
+        artifact_id = $RequestProviderArtifactId
+        artifact_name = $ExpectedRequestArtifactName
+        artifact_digest = $ExpectedRequestProviderDigest
+        provider_build_run_id = $RequestProviderBuildRunId
+        source_sha = $ExpectedRequestSourceSha
+        request_id = $requestId
+    }
     candidate = [ordered]@{
-        source_sha = $ExpectedSourceSha
-        artifact_filename = $ExpectedInnerName
+        candidate_id = $candidateId
+        source_sha = $sourceSha
+        artifact_filename = $innerName
         artifact_sha256 = $innerSha
         artifact_size_bytes = [long]$innerInfo.Length
-        provider_artifact_id = $ProviderArtifactId
-        provider_artifact_digest = $ExpectedProviderDigest
-        provider_build_run_id = $ProviderBuildRunId
+        provider_artifact_id = $candidateProviderArtifactId
+        provider_artifact_name = $expectedCandidateProviderName
+        provider_artifact_digest = ('sha256:' + $candidateProviderDigestRaw)
+        provider_build_run_id = $candidateProviderBuildRunId
     }
     boundaries = [ordered]@{
         private_evidence = 'private-evidence'
@@ -115,16 +198,16 @@ $manifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $manifestPath -En
 
 $agentOutput = Join-Path $workspace 'agent-dry-run'
 & (Join-Path $agentDir 'Invoke-PnccRuntimeQualificationAgent.ps1') `
-    -RequestPath (Join-Path $requestDir 'runtime-qualification-request.json') `
+    -RequestPath $governedRequestPath `
     -OutputDirectory $agentOutput `
-    -ExpectedRequestId $ExpectedRequestId `
-    -ExpectedCandidateId $ExpectedCandidateId `
-    -ExpectedSourceSha $ExpectedSourceSha `
-    -ExpectedArtifactSha256 $ExpectedInnerSha256 `
+    -ExpectedRequestId $requestId `
+    -ExpectedCandidateId $candidateId `
+    -ExpectedSourceSha $sourceSha `
+    -ExpectedArtifactSha256 $innerExpectedSha `
     -DryRun
-if ($LASTEXITCODE -ne 0) { Fail-Closed "runtime agent dry-run failed with exit code $LASTEXITCODE" 7 }
+if ($LASTEXITCODE -ne 0) { Fail-Closed "runtime agent dry-run failed with exit code $LASTEXITCODE" 8 }
 
-Write-Output "PNCC_RUNTIME_BOOTSTRAP=PASS MODE=$Mode SOURCE_SHA=$ExpectedSourceSha ARTIFACT_SHA256=$innerSha RUNTIME_MUTATION=false RUNTIME_AUTHORITY=false PROMOTION_ELIGIBLE=false"
+Write-Output "PNCC_RUNTIME_BOOTSTRAP=PASS MODE=$Mode REQUEST_ID=$requestId CANDIDATE_ID=$candidateId SOURCE_SHA=$sourceSha ARTIFACT_SHA256=$innerSha RUNTIME_MUTATION=false RUNTIME_AUTHORITY=false PROMOTION_ELIGIBLE=false"
 Write-Output "WORKSPACE=$workspace"
 Write-Output "MANIFEST=$manifestPath"
 Write-Output "PRIVATE_EVIDENCE=$privateDir"

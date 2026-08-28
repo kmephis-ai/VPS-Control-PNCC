@@ -1,16 +1,26 @@
 {
-  "schema_version": 1,
-  "contract_id": "PNCC_RUNTIME_WORKSPACE_BOOTSTRAP_POLICY_V1",
-  "mode": "ACQUIRE_VERIFY_STAGE_DRY_RUN_ONLY",
+  "schema_version": 2,
+  "contract_id": "PNCC_RUNTIME_WORKSPACE_BOOTSTRAP_POLICY_V2",
+  "mode": "PIN_REQUEST_PROVIDER_THEN_DERIVE_CANDIDATE_DRY_RUN_ONLY",
   "runtime_mutation_permitted": false,
   "runtime_authority": false,
   "promotion_eligible": false,
   "public_self_hosted_runner_allowed": false,
-  "required_candidate": {
-    "source_sha": "90c9e8698c6468d576aecbc60d940be9d5c6baab",
-    "provider_artifact_id": 9661221985,
-    "provider_build_run_id": 33107824902,
-    "inner_artifact_sha256": "8caad796469886b90d9928fba385fc4a4f0f3d60bcb6ee6b7cb98c4c2e4390b3",
-    "inner_artifact_size_bytes": 700961
-  }
+  "authority_chain": [
+    "CALLER_PINNED_REQUEST_PROVIDER_ARTIFACT",
+    "GOVERNED_RUNTIME_QUALIFICATION_REQUEST",
+    "REQUEST_PINNED_CANDIDATE_PROVIDER_ARTIFACT",
+    "EXACT_INNER_CANDIDATE_BYTES",
+    "REQUEST_BOUND_RUNTIME_AGENT_DRY_RUN"
+  ],
+  "request_provider": {
+    "artifact_id": 9692080862,
+    "artifact_name": "PNCC-V7.0.0-RUNTIME-REQUEST-56f1e3798be0f5f034860adc04b609d0a07c2fc3",
+    "artifact_digest": "sha256:a56c89028ba7a234fee78d2f27ce24e898d4abeb4f60eb4afd5410d70067a793",
+    "provider_build_run_id": 33186877990,
+    "source_sha": "56f1e3798be0f5f034860adc04b609d0a07c2fc3"
+  },
+  "required_request_state": "RUNTIME_PENDING",
+  "candidate_provider_digest_semantic": "GITHUB_METADATA_DIGEST_EQUALS_SHA256_PREFIX_PLUS_REQUEST_PROVIDER_DIGEST",
+  "same_run_and_source_required": true
 }
