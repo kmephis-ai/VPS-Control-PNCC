@@ -50,7 +50,6 @@ jobs:
         shell: powershell
         run: |
           $ErrorActionPreference='Stop'
-          $out=Join-Path $env:RUNNER_TEMP 'live-executor-fixture.json'
           powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\tools\runtime-agent\Invoke-PnccStablePrimary1081ControlledRestart.ps1 -Mode Fixture -FixturePath .\.pncc-dev\fixtures\stable-primary-1081-live-controlled-restart-admitted.json -OutputDirectory $env:RUNNER_TEMP
           if($LASTEXITCODE -ne 0){throw "fixture failed rc=$LASTEXITCODE"}
           $r=Get-Content (Join-Path $env:RUNNER_TEMP 'stable-primary-1081-live-restart-result.json') -Raw|ConvertFrom-Json
@@ -62,8 +61,9 @@ jobs:
         shell: powershell
         run: |
           $ErrorActionPreference='Continue'
-          & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\tools\runtime-agent\Invoke-PnccStablePrimary1081ControlledRestart.ps1 -Mode Live -RepositoryRoot $env:GITHUB_WORKSPACE -OutputDirectory $env:RUNNER_TEMP 2>&1 | Out-String | Set-Variable text
-          if($LASTEXITCODE -eq 0){throw 'Live mode unexpectedly succeeded without owner token'}
+          $text=(& powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\tools\runtime-agent\Invoke-PnccStablePrimary1081ControlledRestart.ps1 -Mode Live -RepositoryRoot $env:GITHUB_WORKSPACE -OutputDirectory $env:RUNNER_TEMP 2>&1 | Out-String)
+          $rc=$LASTEXITCODE
+          if($rc -eq 0){throw 'Live mode unexpectedly succeeded without owner token'}
           if($text -notmatch 'DEFAULT_DENY: valid OwnerAuthorizationPath required for Live mutation'){throw "missing default-deny proof: $text"}
 
       - name: Assert repository remains clean
