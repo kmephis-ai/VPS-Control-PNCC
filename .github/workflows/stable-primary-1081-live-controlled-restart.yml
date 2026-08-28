@@ -56,10 +56,10 @@ jobs:
           )){if($raw -notlike ('*'+$required+'*')){throw "missing safety marker: $required"}}
           if($raw.IndexOf('$preRoute=SocksIdentity') -gt $raw.IndexOf("Move-Item -LiteralPath `$OwnerAuthorizationPath")){throw 'route probe must remain before token consumption'}
           if($raw.IndexOf('Move-Item -LiteralPath $OwnerAuthorizationPath') -gt $raw.IndexOf('Start-Process $PsExe')){throw 'token must be consumed before RestartTunnel invocation'}
-          if(($raw | Select-String -Pattern 'Start-Process \$PsExe' -AllMatches).Matches.Count -ne 1){throw 'exactly one RestartTunnel process invocation allowed'}
+          if(($raw | Select-String -Pattern 'Start-Process \\$PsExe' -AllMatches).Matches.Count -ne 1){throw 'exactly one RestartTunnel process invocation allowed'}
           if($raw -match '(?i)Stop-Process'){throw 'broad Stop-Process forbidden'}
           if($raw -match '(?i)taskkill'){throw 'taskkill forbidden'}
-          if($raw -match '(?i)\$arguments\s*\+=\s*@\(\s*["'']-pw["'']'){throw 'plaintext -pw construction forbidden'}
+          if($raw -match '(?i)\\$arguments\\s*\\+=\\s*@\\(\\s*["'']-pw["'']'){throw 'plaintext -pw construction forbidden'}
 
       - name: Execute admitted fixture under Windows PowerShell 5.1
         shell: powershell
@@ -87,6 +87,35 @@ jobs:
           if($text -notmatch 'DEFAULT_DENY: valid OwnerAuthorizationPath required for Live mutation'){throw "missing default-deny proof: $text"}
           if(Test-Path (Join-Path $env:RUNNER_TEMP 'restart-tunnel.stdout.log')){throw 'RestartTunnel stdout evidence unexpectedly created before authorization'}
           if(Test-Path (Join-Path $env:RUNNER_TEMP 'restart-tunnel.stderr.log')){throw 'RestartTunnel stderr evidence unexpectedly created before authorization'}
+
+      - name: Prove redirected child exit code capture under Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $child=Join-Path $env:RUNNER_TEMP 'wu069-child-exit1.ps1'
+          $stdout=Join-Path $env:RUNNER_TEMP 'wu069-child.out'
+          $stderr=Join-Path $env:RUNNER_TEMP 'wu069-child.err'
+          [IO.File]::WriteAllText($child,"Write-Output 'WU069_CHILD_MARKER'; exit 1",(New-Object Text.UTF8Encoding($true)))
+          $args="-NoLogo -NoProfile -ExecutionPolicy Bypass -File `"$child`""
+          $p=Start-Process powershell.exe -ArgumentList $args -PassThru -WindowStyle Hidden -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+          if(-not$p.WaitForExit(20000)){try{$p.Kill()}catch{};throw 'synthetic child timeout'}
+          $p.Refresh()
+          $rc=[int]$p.ExitCode
+          if($rc-ne1){throw "redirected exit-code capture mismatch: expected=1 actual=$rc"}
+          if((Get-Content $stdout -Raw) -notmatch 'WU069_CHILD_MARKER'){throw 'synthetic stdout capture missing'}
+          Write-Host 'WU069_REDIRECTED_EXITCODE_CAPTURE=PASS EXPECTED=1 ACTUAL=1'
+
+      - name: Prove nested false propagates through mutation-lock shape
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          function Invoke-Wu069Lock([scriptblock]$ScriptBlock){try{return (& $ScriptBlock)}finally{}}
+          function Invoke-Wu069Apply{return $false}
+          function Invoke-Wu069Restart{return Invoke-Wu069Lock {if(-not(Invoke-Wu069Apply)){return $false};return $true}}
+          $value=Invoke-Wu069Restart
+          if($value -is [Array]){throw 'nested false unexpectedly became array'}
+          if([bool]$value){throw 'nested false unexpectedly became truthy'}
+          Write-Host 'WU069_NESTED_FALSE_PROPAGATION=PASS'
 
       - name: Assert repository remains clean
         shell: powershell
