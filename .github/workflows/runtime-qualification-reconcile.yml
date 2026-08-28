@@ -1,0 +1,40 @@
+name: runtime-qualification-reconcile
+on:
+  pull_request:
+    paths:
+      - 'tools/runtime-agent/Invoke-PnccRuntimeQualificationReconcile.ps1'
+      - 'tests/fixtures/runtime-qualification-reconcile-plan.json'
+      - '.github/workflows/runtime-qualification-reconcile.yml'
+permissions:
+  contents: read
+jobs:
+  contract:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: PowerShell 5.1 parse and BOM preflight
+        shell: powershell
+        run: |
+          $p='tools/runtime-agent/Invoke-PnccRuntimeQualificationReconcile.ps1'
+          $b=[IO.File]::ReadAllBytes($p)
+          if($b.Length -lt 3 -or $b[0] -ne 0xEF -or $b[1] -ne 0xBB -or $b[2] -ne 0xBF){throw 'UTF-8 BOM required'}
+          $t=$null;$e=$null;[void][Management.Automation.Language.Parser]::ParseFile((Resolve-Path $p),[ref]$t,[ref]$e)
+          if($e.Count){$e|ForEach-Object{Write-Error $_.Message};exit 1}
+          if($PSVersionTable.PSVersion.Major -ne 5){throw 'Windows PowerShell 5.1 required'}
+      - name: Assert reconciliation safety contract
+        shell: powershell
+        run: |
+          $raw=Get-Content 'tools/runtime-agent/Invoke-PnccRuntimeQualificationReconcile.ps1' -Raw
+          foreach($n in @('PROXIFIER_DESCENDANT_CLEANUP','NOT_EXECUTED','NEXT_SCOPE=PROXIFIER_DESCENDANT_CLEANUP','RUNTIME_MUTATION=false','RESERVE_1080_MUTATION=false','runtime_authority=$false','promotion_eligible=$false')){if($raw -notlike "*$n*"){throw "missing marker: $n"}}
+          if($raw -match '(?i)Stop-Process|RestartTunnel|-Action\s+Watchdog|-D\s+.*1080'){throw 'runtime mutation primitive forbidden'}
+      - name: Execute non-mutating Plan mode
+        shell: powershell
+        run: |
+          $out=Join-Path $env:RUNNER_TEMP 'pncc-wu031-plan'
+          $text=& powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File 'tools/runtime-agent/Invoke-PnccRuntimeQualificationReconcile.ps1' -Mode Plan -FixturePath 'tests/fixtures/runtime-qualification-reconcile-plan.json' -OutputDirectory $out
+          if($LASTEXITCODE -ne 0){throw "plan failed rc=$LASTEXITCODE"}
+          if(($text -join "`n") -notmatch 'PNCC_RUNTIME_QUALIFICATION_RECONCILE=PLAN_PASS RUNTIME_MUTATION=false RESERVE_1080_MUTATION=false'){throw 'plan PASS marker missing'}
+      - name: Assert repository remains clean
+        shell: powershell
+        run: |
+          if(git status --porcelain){git status --short;throw 'workflow mutated repository'}
