@@ -1,0 +1,66 @@
+name: wu069-exitcode-proof
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prove-exit-semantics:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Prove redirected child exit code capture under Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $child=Join-Path $env:RUNNER_TEMP 'wu069-child-exit1.ps1'
+          $stdout=Join-Path $env:RUNNER_TEMP 'wu069-child.out'
+          $stderr=Join-Path $env:RUNNER_TEMP 'wu069-child.err'
+          [IO.File]::WriteAllText($child,"Write-Output 'WU069_CHILD_MARKER'; exit 1",(New-Object Text.UTF8Encoding($true)))
+          $args="-NoLogo -NoProfile -ExecutionPolicy Bypass -File `"$child`""
+          $p=Start-Process powershell.exe -ArgumentList $args -PassThru -WindowStyle Hidden -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+          if(-not$p.WaitForExit(20000)){try{$p.Kill()}catch{};throw 'synthetic child timeout'}
+          $p.Refresh()
+          $rc=[int]$p.ExitCode
+          if($rc-ne1){throw "redirected exit-code capture mismatch: expected=1 actual=$rc"}
+          if((Get-Content $stdout -Raw) -notmatch 'WU069_CHILD_MARKER'){throw 'synthetic stdout capture missing'}
+          Write-Host 'WU069_REDIRECTED_EXITCODE_CAPTURE=PASS EXPECTED=1 ACTUAL=1'
+
+      - name: Prove nested false propagates through mutation-lock shape
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          function Invoke-Wu069Lock([scriptblock]$ScriptBlock){try{return (& $ScriptBlock)}finally{}}
+          function Invoke-Wu069Apply{return $false}
+          function Invoke-Wu069Restart{return Invoke-Wu069Lock {if(-not(Invoke-Wu069Apply)){return $false};return $true}}
+          $value=Invoke-Wu069Restart
+          if($value -is [Array]){throw 'nested false unexpectedly became array'}
+          if([bool]$value){throw 'nested false unexpectedly became truthy'}
+          Write-Host 'WU069_NESTED_FALSE_PROPAGATION=PASS'
+
+      - name: Prove top-level false becomes process exit 1
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $child=Join-Path $env:RUNNER_TEMP 'wu069-nested-exit1.ps1'
+          $stdout=Join-Path $env:RUNNER_TEMP 'wu069-nested.out'
+          $stderr=Join-Path $env:RUNNER_TEMP 'wu069-nested.err'
+          $script=@'
+          function Invoke-Wu069Lock([scriptblock]$ScriptBlock){try{return (& $ScriptBlock)}finally{}}
+          function Invoke-Wu069Apply{return $false}
+          function Restart-Tunnel{return Invoke-Wu069Lock {if(-not(Invoke-Wu069Apply)){return $false};return $true}}
+          Write-Output 'WU069_NESTED_MARKER'
+          if(-not(Restart-Tunnel)){exit 1}
+          '@
+          [IO.File]::WriteAllText($child,$script,(New-Object Text.UTF8Encoding($true)))
+          $args="-NoLogo -NoProfile -ExecutionPolicy Bypass -File `"$child`""
+          $p=Start-Process powershell.exe -ArgumentList $args -PassThru -WindowStyle Hidden -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+          if(-not$p.WaitForExit(20000)){try{$p.Kill()}catch{};throw 'nested child timeout'}
+          $p.Refresh()
+          $rc=[int]$p.ExitCode
+          if($rc-ne1){throw "nested top-level exit mismatch: expected=1 actual=$rc"}
+          Write-Host 'WU069_TOP_LEVEL_FALSE_EXIT=PASS EXPECTED=1 ACTUAL=1'
