@@ -1,0 +1,38 @@
+name: runtime-proxifier-after-watchdog-refresh
+on:
+  pull_request:
+    paths:
+      - 'tools/runtime-agent/Invoke-PnccProxifierDescendantQualificationAfterWatchdogRefresh.ps1'
+      - '.pncc-dev/fixtures/runtime-proxifier-after-watchdog-refresh-plan.json'
+      - '.github/workflows/runtime-proxifier-after-watchdog-refresh.yml'
+permissions:
+  contents: read
+jobs:
+  contract:
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: PowerShell 5.1 parse and BOM preflight
+        shell: powershell
+        run: |
+          $p='tools/runtime-agent/Invoke-PnccProxifierDescendantQualificationAfterWatchdogRefresh.ps1'
+          $b=[IO.File]::ReadAllBytes($p)
+          if($b.Length-lt3-or$b[0]-ne0xEF-or$b[1]-ne0xBB-or$b[2]-ne0xBF){throw 'UTF8 BOM required'}
+          $t=$null;$e=$null;[void][Management.Automation.Language.Parser]::ParseFile((Resolve-Path $p),[ref]$t,[ref]$e)
+          if($e.Count){$e|ForEach-Object{Write-Error $_};throw 'parse failed'}
+      - name: Assert V3 observation-only contract
+        shell: powershell
+        run: |
+          $raw=Get-Content 'tools/runtime-agent/Invoke-PnccProxifierDescendantQualificationAfterWatchdogRefresh.ps1' -Raw
+          foreach($required in @('PNCC_PROXIFIER_DESCENDANT_QUALIFICATION_V3','WU037_REFRESH_EVIDENCE','max_proxifier_descendants','runtime_mutation=$false','reserve_1080_mutation=$false')){if(-not $raw.Contains($required)){throw "missing $required"}}
+      - name: Execute Plan regression
+        shell: powershell
+        run: |
+          powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File tools/runtime-agent/Invoke-PnccProxifierDescendantQualificationAfterWatchdogRefresh.ps1 -Mode Plan -FixturePath .pncc-dev/fixtures/runtime-proxifier-after-watchdog-refresh-plan.json -OutputDirectory "$env:RUNNER_TEMP\wu038-plan"
+          if($LASTEXITCODE-ne0){throw "Plan failed rc=$LASTEXITCODE"}
+      - name: Assert repository remains clean
+        shell: powershell
+        run: |
+          if(git status --porcelain){throw 'repository dirty'}
