@@ -60,10 +60,13 @@ jobs:
       - name: Prove Live mode default-denies without owner token
         shell: powershell
         run: |
-          $ErrorActionPreference='Continue'
-          $text=(& powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\tools\runtime-agent\Invoke-PnccStablePrimary1081ControlledRestart.ps1 -Mode Live -RepositoryRoot $env:GITHUB_WORKSPACE -OutputDirectory $env:RUNNER_TEMP 2>&1 | Out-String)
-          $rc=$LASTEXITCODE
-          if($rc -eq 0){throw 'Live mode unexpectedly succeeded without owner token'}
+          $ErrorActionPreference='Stop'
+          $stdout=Join-Path $env:RUNNER_TEMP 'default-deny.out'
+          $stderr=Join-Path $env:RUNNER_TEMP 'default-deny.err'
+          $arguments="-NoLogo -NoProfile -ExecutionPolicy Bypass -File `"$env:GITHUB_WORKSPACE\tools\runtime-agent\Invoke-PnccStablePrimary1081ControlledRestart.ps1`" -Mode Live -RepositoryRoot `"$env:GITHUB_WORKSPACE`" -OutputDirectory `"$env:RUNNER_TEMP`""
+          $p=Start-Process powershell.exe -ArgumentList $arguments -PassThru -Wait -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+          $text=((Get-Content $stdout -Raw -ErrorAction SilentlyContinue)+(Get-Content $stderr -Raw -ErrorAction SilentlyContinue))
+          if($p.ExitCode -eq 0){throw 'Live mode unexpectedly succeeded without owner token'}
           if($text -notmatch 'DEFAULT_DENY: valid OwnerAuthorizationPath required for Live mutation'){throw "missing default-deny proof: $text"}
 
       - name: Assert repository remains clean
