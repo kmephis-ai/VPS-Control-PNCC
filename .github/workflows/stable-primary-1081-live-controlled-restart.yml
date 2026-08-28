@@ -37,11 +37,16 @@ jobs:
             'owner token exact target identity/fingerprint mismatch',
             'owner token expired or validity window exceeds 10 minutes',
             'owner token already consumed',
+            '$RouteProbeMaxAttempts=3',
+            'SOCKS identity probe failed after attempts=',
+            'last_exit_code=',
+            '$preRoute=SocksIdentity',
             '-Action RestartTunnel -NoAppLaunch',
             'CRITICAL 1080 snapshot changed',
             'post-restart routed identity changed',
             'RUNTIME_AUTHORITY=false PROMOTION_ELIGIBLE=false'
           )){if($raw -notlike ('*'+$required+'*')){throw "missing safety marker: $required"}}
+          if($raw.IndexOf('$preRoute=SocksIdentity') -gt $raw.IndexOf("Move-Item -LiteralPath `$OwnerAuthorizationPath")){throw 'route probe must remain before token consumption'}
           if($raw -match '(?i)Stop-Process'){throw 'broad Stop-Process forbidden'}
           if($raw -match '(?i)taskkill'){throw 'taskkill forbidden'}
           if($raw -match '(?i)\$arguments\s*\+=\s*@\(\s*["'']-pw["'']'){throw 'plaintext -pw construction forbidden'}
