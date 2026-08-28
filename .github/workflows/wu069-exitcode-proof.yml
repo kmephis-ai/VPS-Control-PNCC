@@ -13,7 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
-      - name: Prove redirected child exit code capture under Windows PowerShell 5.1
+      - name: Prove redirected child exit code capture and canonical fix under Windows PowerShell 5.1
         shell: powershell
         run: |
           $ErrorActionPreference='Stop'
@@ -25,10 +25,13 @@ jobs:
           $p=Start-Process powershell.exe -ArgumentList $args -PassThru -WindowStyle Hidden -RedirectStandardOutput $stdout -RedirectStandardError $stderr
           if(-not$p.WaitForExit(20000)){try{$p.Kill()}catch{};throw 'synthetic child timeout'}
           $p.Refresh()
-          $rc=[int]$p.ExitCode
-          if($rc-ne1){throw "redirected exit-code capture mismatch: expected=1 actual=$rc"}
+          $rcBeforeDrain=[int]$p.ExitCode
+          $p.WaitForExit()
+          $p.Refresh()
+          $rcAfterDrain=[int]$p.ExitCode
+          if($rcAfterDrain-ne1){throw "canonical WaitForExit fix failed: expected=1 actual=$rcAfterDrain before=$rcBeforeDrain"}
           if((Get-Content $stdout -Raw) -notmatch 'WU069_CHILD_MARKER'){throw 'synthetic stdout capture missing'}
-          Write-Host 'WU069_REDIRECTED_EXITCODE_CAPTURE=PASS EXPECTED=1 ACTUAL=1'
+          Write-Host ("WU069_REDIRECTED_EXITCODE_CAPTURE=PASS BEFORE_DRAIN={0} AFTER_DRAIN={1}" -f $rcBeforeDrain,$rcAfterDrain)
 
       - name: Prove nested false propagates through mutation-lock shape
         shell: powershell
@@ -42,7 +45,7 @@ jobs:
           if([bool]$value){throw 'nested false unexpectedly became truthy'}
           Write-Host 'WU069_NESTED_FALSE_PROPAGATION=PASS'
 
-      - name: Prove top-level false becomes process exit 1
+      - name: Prove top-level false becomes process exit 1 with canonical drain
         shell: powershell
         run: |
           $ErrorActionPreference='Stop'
@@ -60,6 +63,7 @@ jobs:
           $args="-NoLogo -NoProfile -ExecutionPolicy Bypass -File `"$child`""
           $p=Start-Process powershell.exe -ArgumentList $args -PassThru -WindowStyle Hidden -RedirectStandardOutput $stdout -RedirectStandardError $stderr
           if(-not$p.WaitForExit(20000)){try{$p.Kill()}catch{};throw 'nested child timeout'}
+          $p.WaitForExit()
           $p.Refresh()
           $rc=[int]$p.ExitCode
           if($rc-ne1){throw "nested top-level exit mismatch: expected=1 actual=$rc"}
