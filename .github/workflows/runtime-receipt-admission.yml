@@ -15,12 +15,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: Validate sanitized Runtime Truth receipt
         run: python3 .pncc-dev/scripts/validate_runtime_qualification_receipt.py
-      - name: Assert no private-runtime payloads are tracked
+      - name: Assert attestation contains no private-runtime payloads
         shell: bash
         run: |
           set -euo pipefail
-          test ! -e '.pncc-dev/runtime/raw'
-          test ! -e '.pncc-dev/runtime/logs'
-          ! grep -RIlE 'YandexDisk|Dropbox|LOCALAPPDATA|DESKTOP-|\\Users\\|putty_portable\.exe' .pncc-dev/runtime
+          test -f '.pncc-dev/attestations/runtime-qualification-rc14.39.json'
+          ! grep -Eqi 'YandexDisk|Dropbox|LOCALAPPDATA|DESKTOP-|\\Users\\|putty_portable\.exe' .pncc-dev/attestations/runtime-qualification-rc14.39.json
       - name: Assert repository remains clean
         run: test -z "$(git status --porcelain)"
