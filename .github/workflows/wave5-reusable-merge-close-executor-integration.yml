@@ -50,7 +50,7 @@ jobs:
           t=Path('.github/workflows/wave5-reusable-merge-close-executor-integration.yml').read_text(encoding='utf-8').lower()
           for token in [
               'contents:'+' write', 'issues:'+' write', 'pull-requests:'+' write',
-              'persist-credentials: true', 'execute_reusable_merge_close.py --execute',
+              'persist-credentials:'+' true', 'execute_reusable_merge_close.py --execute',
               'gh'+' pr merge', 'gh'+' issue close'
           ]:
               assert token not in t, token
