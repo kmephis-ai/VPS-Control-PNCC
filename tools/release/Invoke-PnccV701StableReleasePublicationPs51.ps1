@@ -49,12 +49,13 @@ try {
     $reader = New-Object IO.StreamReader($OriginalPath,[Text.Encoding]::UTF8,$true)
     try { $text = $reader.ReadToEnd() }
     finally { $reader.Dispose() }
+    $text = $text -replace "`r`n","`n"
 
-    $pattern = '(?m)^    \$raw = @\(& \$script:GhPath @Arguments 2>&1\)\r?\n    \$code = \$LASTEXITCODE$'
-    $matches = [regex]::Matches($text,$pattern)
-    if ($matches.Count -ne 1) {
-        throw ('PS51_NATIVE_COMMAND_PATCH_SITE_COUNT expected=1 actual=' + $matches.Count)
-    }
+    $needle = "    `$raw = @(& `$script:GhPath @Arguments 2>&1)`n    `$code = `$LASTEXITCODE"
+    $first = $text.IndexOf($needle,[StringComparison]::Ordinal)
+    $last = $text.LastIndexOf($needle,[StringComparison]::Ordinal)
+    if ($first -lt 0) { throw 'PS51_NATIVE_COMMAND_PATCH_SITE_NOT_FOUND' }
+    if ($first -ne $last) { throw 'PS51_NATIVE_COMMAND_PATCH_SITE_NOT_UNIQUE' }
 
     $replacement = @'
     $savedErrorActionPreference = $ErrorActionPreference
@@ -67,14 +68,10 @@ try {
         $ErrorActionPreference = $savedErrorActionPreference
     }
 '@
-    $patched = [regex]::Replace($text,$pattern,[System.Text.RegularExpressions.MatchEvaluator]{ param($m) $replacement },1)
+    $patched = $text.Replace($needle,$replacement)
     if ($patched -eq $text) { throw 'PS51_NATIVE_COMMAND_PATCH_NOT_APPLIED' }
-    if (-not $patched.Contains("`$ErrorActionPreference = 'Continue'")) {
-        throw 'PS51_NATIVE_COMMAND_PATCH_INVARIANT_FAILED'
-    }
-    if (-not $patched.Contains('$ErrorActionPreference = $savedErrorActionPreference')) {
-        throw 'PS51_NATIVE_COMMAND_RESTORE_INVARIANT_FAILED'
-    }
+    if (-not $patched.Contains("`$ErrorActionPreference = 'Continue'")) { throw 'PS51_NATIVE_COMMAND_PATCH_INVARIANT_FAILED' }
+    if (-not $patched.Contains('$ErrorActionPreference = $savedErrorActionPreference')) { throw 'PS51_NATIVE_COMMAND_RESTORE_INVARIANT_FAILED' }
     Write-Host 'PS51_NATIVE_COMMAND_PATCH=PASS'
 
     Set-Content -LiteralPath $PatchedPath -Value $patched -Encoding UTF8
