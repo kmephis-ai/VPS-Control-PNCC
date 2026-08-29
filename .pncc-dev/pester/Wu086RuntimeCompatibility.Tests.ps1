@@ -29,12 +29,14 @@ Describe 'PIPE-WU-086 runtime qualification compatibility' {
         $bootstrapText | Should -Match ([regex]::Escape("'PNCC-RC14.39-' + `$sourceSha"))
     }
 
-    It 'derives Stable provider bundle name from the protected-main candidate-builder contract' {
+    It 'preserves historical v7.0.0 provider naming while using the current builder contract for later 7.0.x' {
         $builderText | Should -Match ([regex]::Escape('name: PNCC-CANDIDATE-${{ github.sha }}'))
         $bootstrapText | Should -Match '\^PNCC-V\(7\\\.0\\\.\[0-9\]\+\)-'
+        $bootstrapText | Should -Match ([regex]::Escape("if (`$stableVersion -ceq '7.0.0')"))
+        $bootstrapText | Should -Match ([regex]::Escape("'PNCC-V7.0.0-' + `$sourceSha"))
         $bootstrapText | Should -Match ([regex]::Escape("'PNCC-CANDIDATE-' + `$sourceSha"))
-        $legacyStableName = "'PNCC-V' + " + '$stableVersion' + " + '-' + " + '$sourceSha'
-        $bootstrapText | Should -Not -Match ([regex]::Escape($legacyStableName))
+        $legacyDynamicName = "'PNCC-V' + " + '$stableVersion' + " + '-' + " + '$sourceSha'
+        $bootstrapText | Should -Not -Match ([regex]::Escape($legacyDynamicName))
     }
 
     It 'requires provider build run identity and cannot grant runtime authority in dry-run' {
