@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "stable_version": "7.0.0",
+  "state": "STABLE_COMPLETE",
+  "runtime_authority": true,
+  "tag": "v7.0.0",
+  "tag_target_commit": "d889b52879fd21612f639cb2441fbd1ff8bc3f02",
+  "release_name": "VPS Control PNCC v7.0.0",
+  "artifact_filename": "VPS-Control-v7.0.0.zip",
+  "artifact_sha256": "1407f82b15ea2b70ba56b7406bb8dd0d9097c459b630d016d6a7b5f10a49e599",
+  "artifact_size_bytes": 700897,
+  "release_asset_verified": true,
+  "fresh_nine_scope_reconcile": "PASS",
+  "artifact_rebuilt": false,
+  "artifact_substituted": false,
+  "runtime_mutation": false,
+  "product_bytes_mutated": false,
+  "runtime_bytes_mutated": false
+}
