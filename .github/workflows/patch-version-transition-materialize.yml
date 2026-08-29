@@ -1,0 +1,173 @@
+name: patch-version-transition-materialize
+
+on:
+  push:
+    branches:
+      - agent/PIPE-WU-081-v7.0.1-patch-transition-a1
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wu081-patch-materialize
+  cancel-in-progress: false
+
+jobs:
+  materialize:
+    if: github.ref == 'refs/heads/agent/PIPE-WU-081-v7.0.1-patch-transition-a1'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.ref }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Materialize governed 7.0.1 source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          OLD='7.0.0'
+          NEW='7.0.1'
+          branch='agent/PIPE-WU-081-v7.0.1-patch-transition-a1'
+
+          def replace_exact(path, old, new, count=1):
+              p=Path(path)
+              raw=p.read_bytes()
+              bom=raw.startswith(b'\xef\xbb\xbf')
+              text=raw.decode('utf-8-sig')
+              actual=text.count(old)
+              if actual < count:
+                  raise SystemExit(f'{path}: expected at least {count} occurrence(s) of {old!r}, got {actual}')
+              text=text.replace(old,new,count)
+              p.write_bytes((b'\xef\xbb\xbf' if bom else b'') + text.encode('utf-8'))
+
+          declaration_path=Path('.pncc-dev/candidate-source.json')
+          declaration=json.loads(declaration_path.read_text(encoding='utf-8-sig'))
+          if declaration.get('candidate_version') == NEW:
+              print('WU081_MATERIALIZE=ALREADY_APPLIED')
+              raise SystemExit(0)
+          if declaration.get('candidate_version') != OLD:
+              raise SystemExit(f'unexpected candidate version: {declaration.get("candidate_version")}')
+
+          # Current identity only. Historical rc14.x/v7.0.0 references are intentionally preserved.
+          replace_exact('src/windows-v7/VPS-Control-v7-ARCHITECTURE.md', '# VPS Control Center v7.0.0 — Candidate build-input activation', '# VPS Control Center v7.0.1 — Candidate build-input activation')
+          replace_exact('src/windows-v7/VPS-Control-v7-CAPABILITY-TRUTH.md', '# VPS Control Center v7.0.0 — Capability Truth', '# VPS Control Center v7.0.1 — Capability Truth')
+          replace_exact('src/windows-v7/VPS-Control-v7-README.txt', 'VPS CONTROL CENTER v7.0.0 — CANDIDATE BUILD INPUT ACTIVATION', 'VPS CONTROL CENTER v7.0.1 — CANDIDATE BUILD INPUT ACTIVATION')
+          replace_exact('src/windows-v7/VPS-Control-v7-TUNNEL-CONTRACT.json', '"ContractVersion": "7.0.0"', '"ContractVersion": "7.0.1"')
+          replace_exact('src/windows-v7/VPS-Control-v7-launch.ps1', "$LauncherVersion = '7.0.0'", "$LauncherVersion = '7.0.1'")
+          replace_exact('src/windows-v7/VPS-Control-v7.ps1', 'VPS Control Center v7.0.0', 'VPS Control Center v7.0.1')
+          replace_exact('src/windows-v7/VPS-Control-v7.ps1', "$UiVersion = '7.0.0'", "$UiVersion = '7.0.1'")
+
+          declaration['candidate_version']=NEW
+          declaration['provenance_path']='.pncc-dev/provenance/canonical-source-v7.0.1-patch.json'
+          declaration_path.write_text(json.dumps(declaration,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+
+          recipe_path=Path('build/windows-v7-candidate-recipe.json')
+          recipe=json.loads(recipe_path.read_text(encoding='utf-8-sig'))
+          if recipe.get('candidate_version') != OLD or recipe.get('output_filename') != 'VPS-Control-v7.0.0.zip':
+              raise SystemExit('unexpected pre-transition build recipe')
+          recipe['candidate_version']=NEW
+          recipe['output_filename']='VPS-Control-v7.0.1.zip'
+          recipe_path.write_text(json.dumps(recipe,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+
+          # Existing provenance contract deliberately keeps the original pre-stable runtime baseline.
+          # Immediate patch predecessor is recorded in the new provenance parent block below.
+          print('WU081_PHASE1=READY')
+          PY
+
+          if git diff --quiet; then
+            echo 'WU081_MATERIALIZE=NO_CHANGES'
+            exit 0
+          fi
+          git config user.name 'pncc-governed-writer'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- .pncc-dev/candidate-source.json build/windows-v7-candidate-recipe.json src/windows-v7/VPS-Control-v7-ARCHITECTURE.md src/windows-v7/VPS-Control-v7-CAPABILITY-TRUTH.md src/windows-v7/VPS-Control-v7-README.txt src/windows-v7/VPS-Control-v7-TUNNEL-CONTRACT.json src/windows-v7/VPS-Control-v7-launch.ps1 src/windows-v7/VPS-Control-v7.ps1
+          git commit -m 'PIPE-WU-081: transition current version surfaces to 7.0.1'
+
+          python3 - <<'PY'
+          from pathlib import Path, PurePosixPath
+          import hashlib, subprocess
+          root='src/windows-v7'
+          manifest_rel='VPS-Control-v7-SHA256.txt'
+          tracked=subprocess.check_output(['git','ls-files',root],text=True,encoding='utf-8').splitlines()
+          rels=sorted(PurePosixPath(p).relative_to(PurePosixPath(root)).as_posix() for p in tracked if PurePosixPath(p).name != manifest_rel)
+          rows=[]
+          for rel in rels:
+              blob=subprocess.check_output(['git','show',f'HEAD:{root}/{rel}'])
+              display=rel.replace('/','\\')
+              rows.append(f'{hashlib.sha256(blob).hexdigest()}  {display}')
+          content='# VPS Control Center v7.0.1 deterministic canonical Git-blob source manifest\n'+'\n'.join(rows)+'\n'
+          Path(root,manifest_rel).write_text(content,encoding='utf-8',newline='\n')
+          print(f'WU081_MANIFEST_ROWS={len(rows)}')
+          PY
+          git add -- src/windows-v7/VPS-Control-v7-SHA256.txt
+          git commit -m 'PIPE-WU-081: regenerate 7.0.1 canonical Git-blob manifest'
+
+          python3 - <<'PY'
+          from pathlib import Path, PurePosixPath
+          import hashlib, json, subprocess
+          root='src/windows-v7'
+          tracked=subprocess.check_output(['git','ls-files',root],text=True,encoding='utf-8').splitlines()
+          inventory=[]
+          for full in sorted(tracked):
+              rel=PurePosixPath(full).relative_to(PurePosixPath(root)).as_posix()
+              blob=subprocess.check_output(['git','show',f'HEAD:{full}'])
+              inventory.append({'bytes':len(blob),'path':rel,'sha256':hashlib.sha256(blob).hexdigest()})
+          prov={
+            'activation':{
+              'builder_introduced':True,
+              'candidate_artifact_generated':False,
+              'exact_base_main_sha':'9f4ca80e4396c5ff61a5b024f33063d4b18ff308',
+              'work_unit':'PIPE-WU-081'
+            },
+            'baseline':{
+              'activated_candidate_version':'7.0.1',
+              'embedded_version':'7.0.1',
+              'preimport_evidence_zip_sha256':'e25ed4fff7aa2b44dc81e460155fc3fcb3af86d5f5782ecdcb7d78eeed631cc4',
+              'previous_runtime_version':'7.0.0-rc14.38',
+              'remediated_file_sha256':{'modules/V7-Consistency.ps1':'81c0d8afacd7644d8a8afb3c0819a5175b15f9d897b3de131a922073a2fa8c34'},
+              'remediated_files':['modules/V7-Consistency.ps1'],
+              'remediation_class':'PRODUCT_DEFECT_STARTUP_BLOCKING_FALSE_POSITIVE_CONSISTENCY_GATE_PATCH_LINEAGE',
+              'requires_version_bump_before_build':False
+            },
+            'hash_semantics':'CANONICAL_GIT_BLOB_BYTES',
+            'inventory':inventory,
+            'parent':{
+              'previous_release_version':'7.0.0',
+              'previous_provenance_path':'.pncc-dev/provenance/canonical-source-wu080-startup-remediation.json',
+              'startup_remediation_module_git_blob_sha256':'81c0d8afacd7644d8a8afb3c0819a5175b15f9d897b3de131a922073a2fa8c34'
+            },
+            'provenance_id':'PNCC_CANONICAL_SOURCE_V7_0_1_PATCH_V1',
+            'safety':{
+              'artifact_exists':False,
+              'build_authority':False,
+              'build_input_ready':True,
+              'ci_is_runtime_truth':False,
+              'promotion_authority':False,
+              'runtime_authority':False,
+              'stable_done':False
+            },
+            'schema_version':3,
+            'source_identity_semantic':'UNBUILT_V7_0_1_PATCH_SOURCE_BASELINE',
+            'source_root':root
+          }
+          Path('.pncc-dev/provenance/canonical-source-v7.0.1-patch.json').write_text(json.dumps(prov,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          print(f'WU081_PROVENANCE_FILES={len(inventory)}')
+          PY
+          git add -- .pncc-dev/provenance/canonical-source-v7.0.1-patch.json
+          git commit -m 'PIPE-WU-081: bind exact 7.0.1 canonical source provenance'
+
+          git status --short
+          test -z "$(git status --porcelain)"
+          git push origin HEAD:agent/PIPE-WU-081-v7.0.1-patch-transition-a1
+          echo 'WU081_MATERIALIZE=PASS'
+          echo 'RUNTIME_MUTATION=false'
+          echo 'RUNTIME_AUTHORITY=false'
+          echo 'RELEASE_OR_TAG_AUTHORIZED=false'
