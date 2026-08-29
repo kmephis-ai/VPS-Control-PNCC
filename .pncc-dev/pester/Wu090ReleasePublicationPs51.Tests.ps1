@@ -5,12 +5,15 @@ Describe 'WU-090 PS5.1 release publication compatibility shim' {
     BeforeAll {
         $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
         $path = Join-Path $repoRoot 'tools\release\Invoke-PnccV701StableReleasePublicationPs51.ps1'
+        $executorPath = Join-Path $repoRoot 'tools\release\Invoke-PnccV701StableReleasePublication.ps1'
         $raw = Get-Content -LiteralPath $path -Raw
+        $executorRaw = (Get-Content -LiteralPath $executorPath -Raw) -replace "`r`n","`n"
         $tokens = $null
         $errors = $null
         [void][System.Management.Automation.Language.Parser]::ParseFile($path,[ref]$tokens,[ref]$errors)
         $script:ShimRaw = $raw
         $script:ShimErrors = @($errors)
+        $script:ExecutorRaw = $executorRaw
     }
 
     It 'is Windows PowerShell 5.1 parse-safe' {
@@ -24,11 +27,39 @@ Describe 'WU-090 PS5.1 release publication compatibility shim' {
         $script:ShimRaw.Contains("`$PinnedExecutorPath = 'tools/release/Invoke-PnccV701StableReleasePublication.ps1'") | Should -BeTrue
     }
 
-    It 'patches exactly the native gh invocation site' {
-        $script:ShimRaw.Contains('PS51_NATIVE_COMMAND_PATCH_SITE_COUNT expected=1') | Should -BeTrue
-        $script:ShimRaw.Contains("`$ErrorActionPreference = 'Continue'") | Should -BeTrue
-        $script:ShimRaw.Contains('finally {') | Should -BeTrue
-        $script:ShimRaw.Contains('$ErrorActionPreference = $savedErrorActionPreference') | Should -BeTrue
+    It 'applies the exact literal native gh patch once to normalized executor text' {
+        $needle = "    `$raw = @(& `$script:GhPath @Arguments 2>&1)`n    `$code = `$LASTEXITCODE"
+        $first = $script:ExecutorRaw.IndexOf($needle,[StringComparison]::Ordinal)
+        $last = $script:ExecutorRaw.LastIndexOf($needle,[StringComparison]::Ordinal)
+        $first | Should -BeGreaterOrEqual 0
+        $last | Should -Be $first
+        $replacement = @'
+    $savedErrorActionPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        $raw = @(& $script:GhPath @Arguments 2>&1)
+        $code = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $savedErrorActionPreference
+    }
+'@
+        $patched = $script:ExecutorRaw.Replace($needle,$replacement)
+        $patched | Should -Not -Be $script:ExecutorRaw
+        $patched.Contains("`$ErrorActionPreference = 'Continue'") | Should -BeTrue
+        $patched.Contains('$ErrorActionPreference = $savedErrorActionPreference') | Should -BeTrue
+        $tokens=$null; $errors=$null
+        [void][System.Management.Automation.Language.Parser]::ParseInput($patched,[ref]$tokens,[ref]$errors)
+        @($errors).Count | Should -Be 0
+    }
+
+    It 'uses literal patch site and invariant checks' {
+        $script:ShimRaw.Contains('$text = $text -replace "`r`n","`n"') | Should -BeTrue
+        $script:ShimRaw.Contains('$text.IndexOf($needle,[StringComparison]::Ordinal)') | Should -BeTrue
+        $script:ShimRaw.Contains('$text.LastIndexOf($needle,[StringComparison]::Ordinal)') | Should -BeTrue
+        $script:ShimRaw.Contains('PS51_NATIVE_COMMAND_PATCH_SITE_NOT_FOUND') | Should -BeTrue
+        $script:ShimRaw.Contains('PS51_NATIVE_COMMAND_PATCH_SITE_NOT_UNIQUE') | Should -BeTrue
+        $script:ShimRaw.Contains('PS51_NATIVE_COMMAND_PATCH=PASS') | Should -BeTrue
     }
 
     It 'does not weaken the outer fail-fast policy' {
