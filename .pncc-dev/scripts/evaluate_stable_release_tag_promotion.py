@@ -3,7 +3,7 @@ import json, pathlib
 
 ROOT=pathlib.Path(__file__).resolve().parents[2]
 P=ROOT/'.pncc-dev/attestations/stable-release-tag-promotion-v7.0.0.json'
-EXPECTED_MAIN='30e51b6a2af7b1c9821d23873596abf59c0dc01e'
+EXPECTED_MAIN='d889b52879fd21612f639cb2441fbd1ff8bc3f02'
 EXPECTED_STABLE='1407f82b15ea2b70ba56b7406bb8dd0d9097c459b630d016d6a7b5f10a49e599'
 
 def fail(msg):
@@ -26,18 +26,19 @@ if d.get('wu073_state')!='STABLE_NINE_SCOPE_RECONCILE_PASS': fail('wu073_state')
 if d.get('wu074_decision_state')!='ELIGIBLE_FOR_OWNER_PROMOTION_DECISION': fail('wu074_state')
 if d.get('wu075_grant_state')!='RUNTIME_AUTHORITY_GRANTED' or d.get('runtime_authority') is not True: fail('runtime_authority_missing')
 if d.get('target_tag')!='v7.0.0' or d.get('target_release_name')!='VPS Control PNCC v7.0.0': fail('target_identity')
-if d.get('owner_release_authorization_present') is not False or d.get('owner_release_authorization_binding_complete') is not False: fail('unexpected_owner_authorization')
-if d.get('promotion_state')!='WAITING_OWNER_AUTHORIZATION': fail('promotion_state')
-for k in ('promotion_eligible','release_or_tag_authorized','tag_created','release_created','stable_declared','artifact_rebuilt','artifact_substituted','runtime_mutation','product_bytes_mutated','runtime_bytes_mutated'):
-    if d.get(k) is not False: fail('forbidden_true_'+k)
+if d.get('owner_release_authorization_present') is not True or d.get('owner_release_authorization_binding_complete') is not True: fail('owner_authorization_missing')
+if d.get('promotion_state')!='AUTHORIZED_PENDING_EXECUTION': fail('promotion_state')
+if d.get('promotion_eligible') is not True or d.get('release_or_tag_authorized') is not True: fail('authorization_flags')
+for k in ('tag_created','release_created','stable_declared','artifact_rebuilt','artifact_substituted','runtime_mutation','product_bytes_mutated','runtime_bytes_mutated'):
+    if d.get(k) is not False: fail('unexpected_true_'+k)
 for k in ('overwrite_existing_tag_forbidden','overwrite_existing_release_forbidden'):
     if d.get(k) is not True: fail('overwrite_guard_missing_'+k)
-if d.get('next_transaction')!='EXPLICIT_OWNER_RELEASE_TAG_AUTHORIZATION_REQUIRED': fail('next_transaction')
+if d.get('next_transaction')!='CREATE_EXACT_TAG_AND_RELEASE_NO_OVERWRITE': fail('next_transaction')
 
-print('STABLE_RELEASE_TAG_PROMOTION=WAITING_OWNER_AUTHORIZATION')
+print('STABLE_RELEASE_TAG_PROMOTION=AUTHORIZED_PENDING_EXECUTION')
 print('RUNTIME_AUTHORITY=true')
-print('OWNER_RELEASE_AUTHORIZATION_PRESENT=false')
-print('PROMOTION_ELIGIBLE=false')
-print('RELEASE_OR_TAG_AUTHORIZED=false')
+print('OWNER_RELEASE_AUTHORIZATION_PRESENT=true')
+print('PROMOTION_ELIGIBLE=true')
+print('RELEASE_OR_TAG_AUTHORIZED=true')
 print('TAG_CREATED=false')
 print('RELEASE_CREATED=false')
