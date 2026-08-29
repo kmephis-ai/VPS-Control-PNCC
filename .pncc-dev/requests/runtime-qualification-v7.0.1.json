@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "contract_id": "PNCC_RUNTIME_QUALIFICATION_REQUEST_V1",
+  "request_id": "PNCC-RQ-V7.0.1-D58023321360",
+  "origin_work_unit_id": "PIPE-WU-085",
+  "candidate": {
+    "candidate_id": "PNCC-V7.0.1-D58023321360",
+    "source_sha": "d5802332136087339482c9b3171c1c5c9c18411e",
+    "artifact_filename": "VPS-Control-v7.0.1.zip",
+    "artifact_sha256": "22b843330516e481c467fe5cbe6d1d4c6758510c71bd2c46ebeec337f403ae72",
+    "artifact_size_bytes": 701893,
+    "provider_artifact_id": 9711822972,
+    "provider_artifact_digest": "47b036f4d328d516e193e0eda5ea480ae08bbabce32235da26692b931154dfd5"
+  },
+  "physical_acceptance_prerequisite": {
+    "work_units": ["PIPE-WU-083", "PIPE-WU-084"],
+    "status": "PASS",
+    "owner_return_bundle_sha256": "236a590120fe8a4e9a32069186b6d03aa06c8cdc6ff037143e76c6d16ead9c84",
+    "manifest_entries": 31,
+    "powershell_ast_files": 23,
+    "functional_consistency_checks": 203,
+    "functional_consistency_passed": 203,
+    "ui_observed": true,
+    "clean_exit": true,
+    "ports_1080_1081_unchanged": true
+  },
+  "required_scopes": [
+    "WINDOWS_BASELINE",
+    "PROCESS_OWNERSHIP_BASELINE",
+    "WATCHDOG_LIFECYCLE",
+    "PROXIFIER_DESCENDANT_CLEANUP",
+    "PRIMARY_AUTO_1081",
+    "RESERVE_MANUAL_1080",
+    "CREDENTIAL_HOSTKEY",
+    "NETWORK_QUALIFICATION",
+    "ROLLBACK_IDENTITY"
+  ],
+  "expected_invariants": {
+    "primary_auto_port": 1081,
+    "reserve_manual_port": 1080,
+    "reserve_manual_lifecycle": "MANUAL_ONLY",
+    "v6_3_1_sha256": "385e5178f10e79b0b234376e6a6671b64ce523a3971b2b4341ec94ce1efee11e",
+    "putty_password_argument": "-pwfile",
+    "plaintext_pw_allowed": false,
+    "hostkey_verification_disable_allowed": false
+  },
+  "state": "RUNTIME_PENDING",
+  "runtime_authority": false,
+  "promotion_eligible": false,
+  "authority_source": null,
+  "runtime_receipt_path": null
+}
