@@ -46,12 +46,16 @@ jobs:
           & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File '.pncc-dev\tests\Test-V7ConsistencyStartupRegression.ps1'
           if($LASTEXITCODE -ne 0){ throw "startup consistency regression failed rc=$LASTEXITCODE" }
 
-      - name: Emit exact corrected module SHA256
+      - name: Verify corrected module SHA256 is sealed in package manifest
         shell: powershell
         run: |
           $ErrorActionPreference='Stop'
           $hash=([string](Get-FileHash -LiteralPath 'src\windows-v7\modules\V7-Consistency.ps1' -Algorithm SHA256).Hash).ToLowerInvariant()
+          $manifest=Get-Content -LiteralPath 'src\windows-v7\VPS-Control-v7-SHA256.txt' -Raw
+          $expectedLine="$hash  modules\V7-Consistency.ps1"
+          if(-not $manifest.Contains($expectedLine)){throw "manifest does not seal corrected module SHA256=$hash"}
           Write-Host "WU080_MODULE_SHA256=$hash"
+          Write-Host 'PACKAGE_MANIFEST_CORRECTED_MODULE=PASS'
 
       - name: Assert physical startup remains private evidence only
         shell: powershell
