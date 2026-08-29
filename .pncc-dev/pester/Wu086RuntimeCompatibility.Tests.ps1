@@ -29,7 +29,8 @@ Describe 'PIPE-WU-086 runtime qualification compatibility' {
     It 'derives Stable provider bundle names from the exact 7.0.x version and source sha' {
         $bootstrapText | Should -Match '\^PNCC-V\(7\\\.0\\\.\[0-9\]\+\)-'
         $bootstrapText | Should -Match ([regex]::Escape("'PNCC-V' + `$stableVersion + '-' + `$sourceSha"))
-        $bootstrapText | Should -Not -Match "PNCC-V7\\\.0\\\.0-' \+ \$sourceSha"
+        $legacyHardcode = "'PNCC-V7.0.0-' + " + '$sourceSha'
+        $bootstrapText | Should -Not -Match ([regex]::Escape($legacyHardcode))
     }
 
     It 'requires provider build run identity and cannot grant runtime authority in dry-run' {
