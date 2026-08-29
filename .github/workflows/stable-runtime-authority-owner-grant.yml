@@ -13,30 +13,53 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - name: Evaluate explicit Owner Runtime Authority grant
+      - name: Validate historical v7.0.0 Owner Runtime Authority grant
         run: python3 .pncc-dev/scripts/evaluate_stable_runtime_authority_owner_grant.py
-      - name: Assert grant is authority-only with no release side effects
+      - name: Validate v7.0.1 default-deny Owner Runtime Authority boundary
+        run: python3 .pncc-dev/scripts/evaluate_stable_runtime_authority_owner_grant_v701.py
+      - name: Assert historical grant and v7.0.1 waiting boundary remain isolated
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           import json
           from pathlib import Path
-          d=json.load(open('.pncc-dev/attestations/stable-runtime-authority-owner-grant-v7.0.0.json',encoding='utf-8'))
-          assert d['grant_state']=='RUNTIME_AUTHORITY_GRANTED'
-          assert d['owner_authorization_present'] is True
-          assert d['owner_authorization_binding_complete'] is True
-          assert d['runtime_authority'] is True
-          assert d['promotion_eligible'] is False
-          assert d['release_or_tag_authorized'] is False
-          assert d['tag_created'] is False
-          assert d['release_created'] is False
-          assert d['stable_declared'] is False
-          assert d['artifact_rebuilt'] is False
-          assert d['artifact_substituted'] is False
-          assert d['runtime_mutation'] is False
-          assert d['product_bytes_mutated'] is False
-          assert d['runtime_bytes_mutated'] is False
+
+          old=json.load(open('.pncc-dev/attestations/stable-runtime-authority-owner-grant-v7.0.0.json',encoding='utf-8'))
+          assert old['grant_state']=='RUNTIME_AUTHORITY_GRANTED'
+          assert old['owner_authorization_present'] is True
+          assert old['owner_authorization_binding_complete'] is True
+          assert old['runtime_authority'] is True
+          assert old['promotion_eligible'] is False
+          assert old['release_or_tag_authorized'] is False
+          assert old['tag_created'] is False
+          assert old['release_created'] is False
+          assert old['stable_declared'] is False
+          assert old['artifact_rebuilt'] is False
+          assert old['artifact_substituted'] is False
+          assert old['runtime_mutation'] is False
+          assert old['product_bytes_mutated'] is False
+          assert old['runtime_bytes_mutated'] is False
+
+          new=json.load(open('.pncc-dev/attestations/stable-runtime-authority-owner-grant-v7.0.1.json',encoding='utf-8'))
+          assert new['grant_state']=='WAITING_OWNER_AUTHORIZATION'
+          assert new['runtime_authority_candidate'] is True
+          assert new['owner_authorization_present'] is False
+          assert new['owner_authorization_binding_complete'] is False
+          assert new['owner_authorization_scope']=='RUNTIME_AUTHORITY_GRANT_ONLY'
+          assert new['runtime_authority'] is False
+          assert new['promotion_eligible'] is False
+          assert new['release_or_tag_authorized'] is False
+          assert new['tag_created'] is False
+          assert new['release_created'] is False
+          assert new['stable_declared'] is False
+          assert new['artifact_rebuilt'] is False
+          assert new['artifact_substituted'] is False
+          assert new['runtime_mutation'] is False
+          assert new['product_bytes_mutated'] is False
+          assert new['runtime_bytes_mutated'] is False
+          assert new['private_runtime_payload_published'] is False
+
           s=Path('.github/workflows/stable-runtime-authority-owner-grant.yml').read_text(encoding='utf-8')
           assert sum(1 for line in s.splitlines() if line.strip() == 'contents: read') == 1
           forbidden=['git'+' push','git'+' tag','gh'+' release','contents:'+' write','releases:'+' write']
@@ -44,4 +67,4 @@ jobs:
               assert token.lower() not in s.lower(), token
           PY
       - name: Assert repository remains clean
-        run: test -z "$(git status --porcelain)"
+        run: test -z "$(git status --porcelain --untracked-files=all)"
