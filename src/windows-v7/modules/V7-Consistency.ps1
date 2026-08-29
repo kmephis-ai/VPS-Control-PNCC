@@ -40,6 +40,33 @@ function Get-V7FirstNonEmptyLine([string]$Text) {
     return ''
 }
 
+function Test-V7ContainsMarkerStrictModeSafety {
+    param([Parameter(Mandatory=$true)][AllowEmptyString()][string]$SourceText)
+
+    $tokens=$null
+    $parseErrors=$null
+    $ast=[System.Management.Automation.Language.Parser]::ParseInput($SourceText,[ref]$tokens,[ref]$parseErrors)
+    if(@($parseErrors).Count -gt 0){
+        return [pscustomobject]@{Safe=$false;Reason='PARSE_ERROR';UnsafeExtent=$null}
+    }
+
+    $unsafeCalls=@($ast.FindAll({
+        param($node)
+        if($node -isnot [System.Management.Automation.Language.InvokeMemberExpressionAst]){return $false}
+        if($node.Member -isnot [System.Management.Automation.Language.StringConstantExpressionAst]){return $false}
+        if(-not [string]::Equals([string]$node.Member.Value,'Contains',[StringComparison]::OrdinalIgnoreCase)){return $false}
+        foreach($arg in @($node.Arguments)){
+            if($arg -is [System.Management.Automation.Language.ExpandableStringExpressionAst] -and @($arg.NestedExpressions).Count -gt 0){return $true}
+        }
+        return $false
+    },$true))
+
+    if($unsafeCalls.Count -gt 0){
+        return [pscustomobject]@{Safe=$false;Reason='UNESCAPED_CONTAINS_INTERPOLATION';UnsafeExtent=[string]$unsafeCalls[0].Extent.Text}
+    }
+    return [pscustomobject]@{Safe=$true;Reason='PASS';UnsafeExtent=$null}
+}
+
 function Test-V7FunctionalConsistency {
     param(
         [Parameter(Mandatory=$true)][string]$BaseDir,
@@ -292,15 +319,8 @@ function Test-V7FunctionalConsistency {
         $engineUpgradeText.Contains('не доказанным как VCC-managed tunnel')
     ) 'Stop/restart должен иметь ownership guard и работать только с `$SocksPort` generated as 1081' $true
 
-    $unsafeMarkerInterpolation=$false
-    foreach($line in @($consistencyText -split "`r?`n")){
-        if($line -match '\.Contains\(".*\$[A-Za-z_][A-Za-z0-9_]*.*"\)'){
-            # Existing intentionally escaped markers use backtick before the variable.
-            $candidate=$Matches[0]
-            if($candidate -match '(?<!`)\$[A-Za-z_][A-Za-z0-9_]*'){$unsafeMarkerInterpolation=$true;break}
-        }
-    }
-    Add-Check 'CONSISTENCY_MARKER_STRICTMODE_SAFE' (-not $unsafeMarkerInterpolation) 'V7-Consistency marker strings must not expand undefined variables under Set-StrictMode' $true
+    $markerStrictModeSafety=Test-V7ContainsMarkerStrictModeSafety -SourceText $consistencyText
+    Add-Check 'CONSISTENCY_MARKER_STRICTMODE_SAFE' ([bool]$markerStrictModeSafety.Safe) 'V7-Consistency marker strings must not expand undefined variables under Set-StrictMode' $true
 
     $unsafeGeneratedVariableColon = [regex]::IsMatch(
         $engineUpgradeText,

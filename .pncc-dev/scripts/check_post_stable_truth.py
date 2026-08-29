@@ -4,6 +4,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 ATT = ROOT / '.pncc-dev' / 'attestations' / 'stable-v7.0.0-completion.json'
+DEFECT_ATT = ROOT / '.pncc-dev' / 'attestations' / 'stable-v7.0.0-startup-defect.json'
 README = ROOT / 'README.md'
 ROADMAP = ROOT / 'docs' / 'roadmap' / 'PNCC_PIPELINE_ROADMAP.md'
 LICENSE_DECISION = ROOT / 'LICENSE_DECISION_REQUIRED.md'
@@ -25,6 +26,33 @@ EXPECTED = {
     'runtime_mutation': False,
     'product_bytes_mutated': False,
     'runtime_bytes_mutated': False,
+}
+
+EXPECTED_DEFECT = {
+    'schema_version': 1,
+    'role': 'STABLE_RELEASE_DEFECT_ATTESTATION',
+    'release_version': '7.0.0',
+    'tag': 'v7.0.0',
+    'artifact_filename': 'VPS-Control-v7.0.0.zip',
+    'artifact_sha256': '1407f82b15ea2b70ba56b7406bb8dd0d9097c459b630d016d6a7b5f10a49e599',
+    'artifact_size_bytes': 700897,
+    'artifact_identity_verified': True,
+    'release_history_state': 'PUBLISHED_IMMUTABLE_KNOWN_STARTUP_DEFECT',
+    'classification': 'PRODUCT_DEFECT_STARTUP_BLOCKING_FALSE_POSITIVE_CONSISTENCY_GATE',
+    'affected_gate': 'CONSISTENCY_MARKER_STRICTMODE_SAFE',
+    'root_cause': 'GREEDY_SOURCE_REGEX_CROSSES_CONTAINS_CALL_BOUNDARIES',
+    'functional_ui_startup_accepted': False,
+    'runtime_engine_evidence_invalidated': False,
+    'fresh_nine_scope_runtime_reconcile_historical_result': 'PASS',
+    'runtime_mutation_observed': False,
+    'reserve_1080_mutation_observed': False,
+    'primary_1081_mutation_observed': False,
+    'release_asset_mutation_allowed': False,
+    'release_tag_retarget_allowed': False,
+    'remediation_work_unit': 'PIPE-WU-080',
+    'remediation_issue': 190,
+    'supersession_target': '7.0.1',
+    'patch_startup_acceptance_contract': '.pncc-dev/contracts/patch-release-startup-acceptance-policy.json',
 }
 
 
@@ -53,17 +81,30 @@ for key, value in EXPECTED.items():
     if att.get(key) != value:
         fail('attestation_' + key)
 
+try:
+    defect = json.loads(DEFECT_ATT.read_text(encoding='utf-8-sig'))
+except Exception as exc:
+    fail('defect_attestation_load_' + type(exc).__name__)
+
+if set(defect) != set(EXPECTED_DEFECT):
+    fail('defect_attestation_schema')
+for key, value in EXPECTED_DEFECT.items():
+    if defect.get(key) != value:
+        fail('defect_attestation_' + key)
+
 readme = README.read_text(encoding='utf-8-sig')
 roadmap = ROADMAP.read_text(encoding='utf-8-sig')
 license_text = LICENSE_DECISION.read_text(encoding='utf-8-sig')
 
 for needle, label in [
-    ('Stable v7.0.0 released / post-Stable development active.', 'readme_stable_status'),
+    ('Stable v7.0.0 released / immutable / known startup UI defect; patch remediation active.', 'readme_stable_status'),
     ('`v7.0.0`', 'readme_tag'),
     (EXPECTED['artifact_sha256'], 'readme_sha'),
     ('`700897` bytes', 'readme_size'),
+    ('KNOWN_DEFECT / FAIL', 'readme_startup_defect'),
     ('L4 — Artifact + Runtime Truth', 'readme_l4'),
     ('Wave 5', 'readme_wave5'),
+    ('expected patch lineage is v7.0.1', 'readme_patch_line'),
 ]:
     require(readme, needle, label)
 
@@ -94,8 +135,11 @@ require(license_text, 'project-wide open-source license is intentionally **not s
 print('POST_STABLE_TRUTH=PASS')
 print('STABLE_VERSION=7.0.0')
 print('RUNTIME_AUTHORITY=true')
+print('V7_0_0_UI_STARTUP_ACCEPTED=false')
+print('V7_0_0_RELEASE_HISTORY=PUBLISHED_IMMUTABLE_KNOWN_STARTUP_DEFECT')
+print('PATCH_TARGET=7.0.1')
 print('WAVE3=COMPLETE')
 print('WAVE4=COMPLETE')
 print('MATURITY=L4_ARTIFACT_RUNTIME_TRUTH')
-print('NEXT_FRONTIER=WAVE5_ADWF_AUTONOMOUS_EXECUTION')
+print('NEXT_FRONTIER=WAVE5_ADWF_AUTONOMOUS_EXECUTION_AFTER_STARTUP_REMEDIATION')
 print('LICENSE_REVIEW=OPEN')

@@ -6,7 +6,7 @@
     "src/windows-v7"
   ],
   "build_recipe": "build/windows-v7-candidate-recipe.json",
-  "provenance_path": ".pncc-dev/provenance/canonical-source-post-rc14.38.json",
+  "provenance_path": ".pncc-dev/provenance/canonical-source-wu080-startup-remediation.json",
   "runtime_authority": false,
   "promotion_authority": false
 }

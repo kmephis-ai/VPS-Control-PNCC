@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "work_unit_id": "PIPE-WU-080",
+  "title": "v7.0.0 startup-blocking FUNCTIONAL_CONSISTENCY false-positive remediation",
+  "state": "ACTIVE",
+  "base_sha": "1f1b36f07d06f1e84cc7af2cb72deae261301046",
+  "branch": "agent/PIPE-WU-080-startup-consistency-fix-a1",
+  "conflict_domain": "stable-startup-remediation",
+  "runtime_required": false,
+  "product_runtime_source_mutation": true,
+  "runtime_mutation_permitted": false,
+  "runtime_authority": false,
+  "promotion_eligible": false
+}

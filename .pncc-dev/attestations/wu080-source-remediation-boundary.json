@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "role": "SOURCE_REMEDIATION_BOUNDARY",
+  "work_unit_id": "PIPE-WU-080",
+  "base_sha": "1f1b36f07d06f1e84cc7af2cb72deae261301046",
+  "published_release_immutable": true,
+  "published_version": "7.0.0",
+  "published_artifact_sha256": "1407f82b15ea2b70ba56b7406bb8dd0d9097c459b630d016d6a7b5f10a49e599",
+  "corrected_source_is_stable_release": false,
+  "candidate_build_authorized_in_this_work_unit": false,
+  "next_version_transition": "7.0.1",
+  "runtime_mutation": false,
+  "promotion_authority": false,
+  "next_boundary": "PATCH_VERSION_TRANSITION_AND_DETERMINISTIC_BUILD"
+}
