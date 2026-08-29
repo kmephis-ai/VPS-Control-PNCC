@@ -18,7 +18,7 @@ Describe 'PIPE-WU-086 runtime qualification compatibility' {
     It 'admits governed Stable 7.0.x candidate and request identities' {
         $agentText | Should -Match '\^PNCC-V7\\\.0\\\.\[0-9\]\+-\(\[0-9A-F\]\{12\}\)\$'
         $agentText | Should -Match '\^PNCC-V\(7\\\.0\\\.\[0-9\]\+\)-\(\[0-9A-F\]\{12\}\)\$'
-        $agentText | Should -Contain 'PNCC-RQ-V'
+        $agentText | Should -Match ([regex]::Escape('PNCC-RQ-V'))
     }
 
     It 'preserves historical RC14.39 identity admission' {
@@ -28,23 +28,23 @@ Describe 'PIPE-WU-086 runtime qualification compatibility' {
 
     It 'derives Stable provider bundle names from the exact 7.0.x version and source sha' {
         $bootstrapText | Should -Match '\^PNCC-V\(7\\\.0\\\.\[0-9\]\+\)-'
-        $bootstrapText | Should -Contain "'PNCC-V' + `$stableVersion + '-' + `$sourceSha"
+        $bootstrapText | Should -Match ([regex]::Escape("'PNCC-V' + `$stableVersion + '-' + `$sourceSha"))
         $bootstrapText | Should -Not -Match "PNCC-V7\\\.0\\\.0-' \+ \$sourceSha"
     }
 
     It 'requires provider build run identity and cannot grant runtime authority in dry-run' {
-        $agentText | Should -Contain 'provider_build_run_id must be positive'
-        $agentText | Should -Contain 'runtime_mutation_permitted = $false'
-        $agentText | Should -Contain 'public_ci_runtime_authority = $false'
-        $agentText | Should -Contain 'promotion_eligible = $false'
-        $bootstrapText | Should -Contain 'request and candidate provider build runs must match'
+        $agentText | Should -Match ([regex]::Escape('provider_build_run_id must be positive'))
+        $agentText | Should -Match ([regex]::Escape('runtime_mutation_permitted = $false'))
+        $agentText | Should -Match ([regex]::Escape('public_ci_runtime_authority = $false'))
+        $agentText | Should -Match ([regex]::Escape('promotion_eligible = $false'))
+        $bootstrapText | Should -Match ([regex]::Escape('request and candidate provider build runs must match'))
     }
 
     It 'keeps fixed tunnel and credential safety invariants' {
-        $agentText | Should -Contain 'PRIMARY_AUTO port invariant mismatch'
-        $agentText | Should -Contain 'RESERVE_MANUAL port invariant mismatch'
-        $agentText | Should -Contain '1080 lifecycle invariant mismatch'
-        $agentText | Should -Contain 'plaintext -pw cannot be allowed'
-        $agentText | Should -Contain 'host-key verification cannot be disabled'
+        $agentText | Should -Match ([regex]::Escape('PRIMARY_AUTO port invariant mismatch'))
+        $agentText | Should -Match ([regex]::Escape('RESERVE_MANUAL port invariant mismatch'))
+        $agentText | Should -Match ([regex]::Escape('1080 lifecycle invariant mismatch'))
+        $agentText | Should -Match ([regex]::Escape('plaintext -pw cannot be allowed'))
+        $agentText | Should -Match ([regex]::Escape('host-key verification cannot be disabled'))
     }
 }
