@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "role": "PNCC_WAVE5_ADWF_PROOF_READINESS",
+  "state": "WAVE5_ADWF_PROOF_BASELINE_READY",
+  "stable_baseline": {
+    "version": "7.0.0",
+    "completion_attestation": ".pncc-dev/attestations/stable-v7.0.0-completion.json",
+    "completion_state": "STABLE_COMPLETE",
+    "runtime_authority": true,
+    "artifact_filename": "VPS-Control-v7.0.0.zip",
+    "artifact_sha256": "1407f82b15ea2b70ba56b7406bb8dd0d9097c459b630d016d6a7b5f10a49e599",
+    "artifact_size_bytes": 700897
+  },
+  "framework": {
+    "repository": "kmephis-ai/AI-Development-Framework",
+    "source_sha": "c7e0c059a901869d6369864e98d06238484778ec",
+    "framework_version": "1.6.0",
+    "external_binding_schema_version": 1,
+    "external_binding_schema_blob_sha": "c3762053920076ea1ac9ba1865cbfacb6fdcf0c0",
+    "powershell_pack_blob_sha": "b4ad2f2459079039a59c3e687ea269d2c6ca73fe",
+    "provider_ops_stage1_present": true,
+    "provider_ops_consumer_authority_granted": false
+  },
+  "consumer": {
+    "repository": "kmephis-ai/VPS-Control-PNCC",
+    "default_branch": "main",
+    "external_binding": ".adwf-consumer/external-binding.json",
+    "project_pack": "powershell",
+    "project_pack_digest": "fbe69c4e93ff8b07e7d0dc6f0cbd1f9ceb80617f472f1fbe5a1ce181279a0c8c",
+    "managed_surface_adopted": false,
+    "mutation_authority": "NONE_BINDING_IS_PROOF_ONLY"
+  },
+  "provider_ruleset_snapshot": {
+    "ruleset_id": 21585301,
+    "name": "PNCC main protection",
+    "enforcement": "active",
+    "bypass_actors": 0,
+    "current_user_can_bypass": "never",
+    "strict_required_status_checks_policy": true,
+    "required_status_checks": [
+      "repo-integrity",
+      "powershell-static",
+      "truth-contract"
+    ],
+    "adwf_binding_required": false,
+    "adwf_binding_required_tracking_issue": 15
+  },
+  "safety": {
+    "monetary_budget_usd": 0,
+    "secrets": "FORBIDDEN",
+    "autonomous_branch_mutation": false,
+    "autonomous_merge": false,
+    "autonomous_issue_close": false,
+    "runtime_action_authority": false,
+    "promotion_authority": false,
+    "release_or_tag_authority": false,
+    "ruleset_or_policy_mutation": false
+  },
+  "next_boundary": "BOUNDED_PROVIDER_TRUTH_READ_ONLY_ORCHESTRATION_DESIGN"
+}
