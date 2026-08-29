@@ -36,6 +36,18 @@ def valid_candidate(c:Any,label:str):
         if not isinstance(c[k],int) or isinstance(c[k],bool) or c[k]<=0: raise ContractError(f'{label}: {k}')
     if not isinstance(c['artifact_filename'],str) or '/' in c['artifact_filename'] or '\\' in c['artifact_filename']: raise ContractError(f'{label}: artifact_filename')
 
+def expected_request_id(candidate:dict[str,Any])->str:
+    cid=candidate['candidate_id']; source=candidate['source_sha']; suffix=source[:12].upper()
+    m=re.fullmatch(r'PNCC-RC14\.39-([0-9A-F]{12})',cid)
+    if m:
+        if m.group(1)!=suffix: raise ContractError('candidate/source suffix mismatch')
+        return 'PNCC-RQ-RC14.39-'+suffix
+    m=re.fullmatch(r'PNCC-V(7\.0\.[0-9]+)-([0-9A-F]{12})',cid)
+    if m:
+        if m.group(2)!=suffix: raise ContractError('candidate/source suffix mismatch')
+        return f'PNCC-RQ-V{m.group(1)}-{suffix}'
+    raise ContractError('unsupported candidate identity')
+
 def governed_candidates(policy:dict[str,Any])->list[dict[str,Any]]:
     values=policy.get('governed_candidates')
     if values is None:
@@ -44,11 +56,12 @@ def governed_candidates(policy:dict[str,Any])->list[dict[str,Any]]:
     out=[]; ids=set()
     for i,c in enumerate(values):
         valid_candidate(c,f'policy.governed_candidates[{i}]')
+        expected_request_id(c)
         cid=c['candidate_id']
         if cid in ids: raise ContractError('duplicate governed candidate id')
         ids.add(cid); out.append(c)
     current=policy.get('current_candidate')
-    valid_candidate(current,'policy.current_candidate')
+    valid_candidate(current,'policy.current_candidate'); expected_request_id(current)
     active_id=policy.get('active_candidate_id',current['candidate_id'])
     if active_id!=current['candidate_id']: raise ContractError('policy active/current candidate mismatch')
     if not any(c==current for c in out): raise ContractError('current candidate must be governed')
@@ -59,6 +72,7 @@ def validate_request(req:dict[str,Any], policy:dict[str,Any])->None:
     if req['schema_version']!=1 or req['contract_id']!=policy['request_contract_id']: raise ContractError('request contract identity')
     governed=governed_candidates(policy)
     if sum(1 for c in governed if c==req['candidate'])!=1: raise ContractError('request candidate is not an exact governed candidate')
+    if req['request_id']!=expected_request_id(req['candidate']): raise ContractError('request_id/candidate/source identity mismatch')
     scopes=req['required_scopes']; expected=policy['required_scopes']
     if not isinstance(scopes,list) or len(scopes)!=len(set(scopes)) or scopes!=expected: raise ContractError('request required_scopes must equal ordered policy scopes')
     exact(req['expected_invariants'],INV_KEYS,'request.expected_invariants')
