@@ -1,0 +1,57 @@
+name: wave5-writer-lease-lifecycle-design
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lifecycle-design:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Run lifecycle adversarial tests
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_writer_lease_lifecycle.py' -v
+      - name: Assert policy remains default deny
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('.pncc-dev/contracts/writer-lease-lifecycle-autonomous-execution-policy.json').read_text(encoding='utf-8'))
+          assert p['role']=='WRITER_LEASE_LIFECYCLE_AUTONOMOUS_EXECUTION_POLICY'
+          assert p['mode']=='READ_ONLY_ADVISORY'
+          assert p['natural_expiry_policy']=='EXPIRED_BY_TIME_IS_HISTORICAL_WITHOUT_PROVIDER_WRITE'
+          assert p['historical_entry_reuse_forbidden'] is True
+          auth=[k for k in p if k.endswith('_authority')]
+          assert auth and all(p[k] is False for k in auth)
+          PY
+      - name: Assert no provider-state or protected-surface mutation in PR
+        if: github.event_name == 'pull_request'
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin "${{ github.event.pull_request.base.sha }}"
+          changed="$(git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}")"
+          printf '%s\n' "$changed"
+          ! printf '%s\n' "$changed" | grep -E '^(\.pncc-state/|src/windows-v7/|\.adwf-consumer/external-binding\.json$|tools/runtime-agent/)'
+      - name: Assert workflow is read only
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          text='\n'.join([
+            Path('.pncc-dev/scripts/evaluate_writer_lease_lifecycle.py').read_text(encoding='utf-8'),
+            Path('.github/workflows/wave5-writer-lease-lifecycle-design.yml').read_text(encoding='utf-8'),
+          ]).lower()
+          forbidden=['contents:'+' write','issues:'+' write','pull-requests:'+' write','git'+' push','gh'+' pr merge','gh'+' issue close','--method'+' post','--method'+' patch','--method'+' put','--method'+' delete']
+          for token in forbidden:
+              assert token not in text,token
+          PY
+      - name: Assert repository remains clean
+        run: test -z "$(git status --porcelain)"
