@@ -1,12 +1,12 @@
 {
   "schema_version": 2,
   "source_identity_semantic": "EXACT_SOURCE_COMMIT",
-  "candidate_version": "7.0.0",
+  "candidate_version": "7.0.1",
   "source_roots": [
     "src/windows-v7"
   ],
   "build_recipe": "build/windows-v7-candidate-recipe.json",
-  "provenance_path": ".pncc-dev/provenance/canonical-source-wu080-startup-remediation.json",
+  "provenance_path": ".pncc-dev/provenance/canonical-source-v7.0.1-patch.json",
   "runtime_authority": false,
   "promotion_authority": false
 }

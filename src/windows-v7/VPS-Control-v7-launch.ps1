@@ -2,7 +2,7 @@
 [CmdletBinding()]
 param([switch]$StartHidden,[switch]$Demo)
 
-$LauncherVersion = '7.0.0'
+$LauncherVersion = '7.0.1'
 
 $ErrorActionPreference='Stop'
 $base=$PSScriptRoot
