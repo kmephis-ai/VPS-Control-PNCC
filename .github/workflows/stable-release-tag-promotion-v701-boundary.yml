@@ -1,0 +1,160 @@
+name: stable-release-tag-promotion-v701-boundary
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.pncc-dev/attestations/stable-release-tag-promotion-v7.0.1.json'
+      - '.pncc-dev/scripts/evaluate_stable_release_tag_promotion_v701.py'
+      - '.pncc-dev/tests/test_v701_release_tag_promotion_boundary.py'
+      - '.github/workflows/stable-release-tag-promotion.yml'
+      - '.github/workflows/stable-release-tag-promotion-v701-boundary.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.pncc-dev/attestations/stable-release-tag-promotion-v7.0.1.json'
+      - '.pncc-dev/scripts/evaluate_stable_release_tag_promotion_v701.py'
+      - '.pncc-dev/tests/test_v701_release_tag_promotion_boundary.py'
+      - '.github/workflows/stable-release-tag-promotion.yml'
+      - '.github/workflows/stable-release-tag-promotion-v701-boundary.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  waiting-owner-release-authorization:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Compile validator and regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          for raw in (
+              '.pncc-dev/scripts/evaluate_stable_release_tag_promotion_v701.py',
+              '.pncc-dev/tests/test_v701_release_tag_promotion_boundary.py',
+          ):
+              path=Path(raw)
+              compile(path.read_text(encoding='utf-8-sig'), str(path), 'exec')
+              print('PY_COMPILE=PASS PATH='+raw)
+          PY
+
+      - name: Validate default-deny v7.0.1 publication boundary
+        run: python3 .pncc-dev/scripts/evaluate_stable_release_tag_promotion_v701.py
+
+      - name: Run WU-090 regressions
+        run: python3 .pncc-dev/tests/test_v701_release_tag_promotion_boundary.py
+
+      - name: Verify target publication namespace remains unused
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          import urllib.error
+          import urllib.request
+
+          repo=os.environ['REPOSITORY']
+          token=os.environ.get('GH_TOKEN','')
+          headers={
+              'Accept':'application/vnd.github+json',
+              'X-GitHub-Api-Version':'2022-11-28',
+              'User-Agent':'pncc-v701-release-boundary',
+          }
+          if token:
+              headers['Authorization']='Bearer '+token
+
+          urls=(
+              f'https://api.github.com/repos/{repo}/git/ref/tags/v7.0.1',
+              f'https://api.github.com/repos/{repo}/releases/tags/v7.0.1',
+          )
+          for url in urls:
+              req=urllib.request.Request(url,headers=headers,method='GET')
+              try:
+                  with urllib.request.urlopen(req,timeout=30) as response:
+                      raise SystemExit('PUBLICATION_NAMESPACE_ALREADY_EXISTS:'+url+':'+str(response.status))
+              except urllib.error.HTTPError as exc:
+                  if exc.code != 404:
+                      raise
+                  print('NAMESPACE_ABSENT=PASS URL='+url)
+          PY
+
+      - name: Assert generic continuation cannot authorize publication
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          p='.pncc-dev/attestations/stable-release-tag-promotion-v7.0.1.json'
+          d=json.load(open(p,encoding='utf-8'))
+          assert d['runtime_authority'] is True
+          assert d['owner_release_authorization_present'] is False
+          assert d['owner_release_authorization_binding_complete'] is False
+          assert d['promotion_state']=='WAITING_OWNER_RELEASE_AUTHORIZATION'
+          assert d['promotion_eligible'] is False
+          assert d['release_or_tag_authorized'] is False
+          assert d['tag_created'] is False
+          assert d['release_created'] is False
+          assert d['release_asset_verified'] is False
+          assert d['stable_declared'] is False
+          assert d['target_tag_commit'] is None
+          PY
+
+      - name: Assert PR cannot mutate product source
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --name-only "${BASE_SHA}...${HEAD_SHA}" > "${RUNNER_TEMP}/wu090-files.txt"
+          if grep -Eq '^src/windows-v7/' "${RUNNER_TEMP}/wu090-files.txt"; then
+            echo 'PRODUCT_SOURCE_MUTATION_FORBIDDEN=true' >&2
+            cat "${RUNNER_TEMP}/wu090-files.txt" >&2
+            exit 1
+          fi
+          echo 'PRODUCT_SOURCE_MUTATION=false'
+
+      - name: Assert no PRIVATE evidence or publication write authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          tracked="$(git ls-files)"
+          if printf '%s\n' "$tracked" | grep -Eq '(^|/)(private-evidence\.zip|PNCC-WU087\.log|wu087-owner-run-result\.json)$'; then
+            echo 'PRIVATE_RUNTIME_PAYLOAD_TRACKED=true' >&2
+            exit 1
+          fi
+          python3 - <<'PY'
+          from pathlib import Path
+          for raw in (
+              '.github/workflows/stable-release-tag-promotion.yml',
+              '.github/workflows/stable-release-tag-promotion-v701-boundary.yml',
+          ):
+              s=Path(raw).read_text(encoding='utf-8')
+              assert 'contents: read' in s
+              forbidden=(
+                  'contents:'+' write',
+                  'releases:'+' write',
+                  'git'+' push',
+                  'git'+' tag',
+                  'gh'+' release',
+              )
+              for token in forbidden:
+                  assert token.lower() not in s.lower(), (raw, token)
+          PY
+
+      - name: Assert repository remains clean
+        run: test -z "$(git status --porcelain --untracked-files=all)"
