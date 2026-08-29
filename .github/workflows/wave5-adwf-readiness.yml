@@ -1,0 +1,40 @@
+name: wave5-adwf-readiness
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  wave5-adwf-readiness:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact PNCC revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Verify Wave 5 proof baseline
+        run: python3 .pncc-dev/scripts/check_wave5_adwf_readiness.py
+
+      - name: Assert readiness workflow is read-only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('.github/workflows/wave5-adwf-readiness.yml').read_text(encoding='utf-8')
+          assert sum(1 for line in s.splitlines() if line.strip() == 'contents: read') == 1
+          forbidden=['contents:'+' write','git'+' push','git'+' tag','gh'+' release','releases:'+' write']
+          for token in forbidden:
+              assert token.lower() not in s.lower(), token
+          PY
+
+      - name: Assert repository remains clean
+        run: test -z "$(git status --porcelain)"
