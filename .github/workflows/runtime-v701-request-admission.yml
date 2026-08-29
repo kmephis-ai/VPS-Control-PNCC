@@ -1,0 +1,44 @@
+name: runtime-v701-request-admission
+
+on:
+  pull_request:
+    paths:
+      - '.pncc-dev/requests/runtime-qualification-v7.0.1.json'
+      - '.pncc-dev/scripts/validate_v701_runtime_request.py'
+      - '.github/workflows/runtime-v701-request-admission.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Validate exact v7.0.1 runtime request
+        run: python3 .pncc-dev/scripts/validate_v701_runtime_request.py
+      - name: Assert request cannot grant authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          p='.pncc-dev/requests/runtime-qualification-v7.0.1.json'
+          d=json.load(open(p,encoding='utf-8-sig'))
+          assert d['state']=='RUNTIME_PENDING'
+          assert d['runtime_authority'] is False
+          assert d['promotion_eligible'] is False
+          assert d['authority_source'] is None
+          assert d['runtime_receipt_path'] is None
+          assert len(d['required_scopes']) == 9
+          PY
+      - name: Assert no RC14.39 authority inheritance
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -q 'runtime-qualification-rc14.39.json' .pncc-dev/requests/runtime-qualification-v7.0.1.json
+          ! grep -q 'PNCC-RQ-RC14.39-90C9E8698C64' .pncc-dev/requests/runtime-qualification-v7.0.1.json
+      - name: Assert repository remains clean
+        run: test -z "$(git status --porcelain)"
