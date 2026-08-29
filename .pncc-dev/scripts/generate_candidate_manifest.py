@@ -18,6 +18,7 @@ class ManifestError(RuntimeError):
 
 
 CANDIDATE_VERSION_RX = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+(?:-rc[0-9]+\.[0-9]+)?$")
+STABLE_PATCH_RX = re.compile(r"^7\.0\.[0-9]+$")
 
 
 def load_json(path: Path) -> Any:
@@ -25,10 +26,10 @@ def load_json(path: Path) -> Any:
 
 
 def candidate_id_for(version: str, source_sha: str) -> str:
-    if version == "7.0.0":
-        return f"PNCC-V7.0.0-{source_sha[:12].upper()}"
     if version == "7.0.0-rc14.39":
         return f"PNCC-RC14.39-{source_sha[:12].upper()}"
+    if STABLE_PATCH_RX.fullmatch(version):
+        return f"PNCC-V{version}-{source_sha[:12].upper()}"
     raise ManifestError(f"unsupported governed candidate version: {version}")
 
 
