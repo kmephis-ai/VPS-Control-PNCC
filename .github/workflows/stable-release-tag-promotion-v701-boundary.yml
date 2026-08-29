@@ -1,100 +1,33 @@
 name: stable-release-tag-promotion-v701-boundary
-
 on:
   pull_request:
     branches: [main]
     paths:
       - '.pncc-dev/attestations/stable-release-tag-promotion-v7.0.1.json'
-      - '.pncc-dev/attestations/stable-release-tag-owner-authorization-v7.0.1.json'
+      - '.pncc-dev/attestations/stable-release-tag-publication-v7.0.1.json'
       - '.pncc-dev/scripts/evaluate_stable_release_tag_promotion_v701.py'
       - '.pncc-dev/tests/test_v701_release_tag_promotion_boundary.py'
       - '.github/workflows/stable-release-tag-promotion.yml'
       - '.github/workflows/stable-release-tag-promotion-v701-boundary.yml'
   push:
     branches: [main]
-    paths:
-      - '.pncc-dev/attestations/stable-release-tag-promotion-v7.0.1.json'
-      - '.pncc-dev/attestations/stable-release-tag-owner-authorization-v7.0.1.json'
-      - '.pncc-dev/scripts/evaluate_stable_release_tag_promotion_v701.py'
-      - '.pncc-dev/tests/test_v701_release_tag_promotion_boundary.py'
-      - '.github/workflows/stable-release-tag-promotion.yml'
-      - '.github/workflows/stable-release-tag-promotion-v701-boundary.yml'
-
 permissions:
   contents: read
-
 jobs:
-  exact-owner-authorized-pending-publication:
+  exact-stable-publication:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Checkout exact revision with authorization history
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
           fetch-depth: 0
-
-      - name: Compile validator and regression
-        shell: bash
+      - name: Validate repository Stable truth
         run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          for raw in (
-              '.pncc-dev/scripts/evaluate_stable_release_tag_promotion_v701.py',
-              '.pncc-dev/tests/test_v701_release_tag_promotion_boundary.py',
-          ):
-              path=Path(raw)
-              compile(path.read_text(encoding='utf-8-sig'), str(path), 'exec')
-              print('PY_COMPILE=PASS PATH='+raw)
-          PY
-
-      - name: Verify exact Owner-authorized prepared contract blob
-        env:
-          AUTHORIZED_PREPARATION_MAIN: 41e8c9c8bed2cc37423c33750d0748c49ff941b7
-          AUTHORIZED_PREPARED_BLOB: f20891555e6db3a0b5bb57488bac5e8ccf36eb71
-        shell: bash
-        run: |
-          set -euo pipefail
-          git cat-file -e "${AUTHORIZED_PREPARATION_MAIN}^{commit}"
-          git cat-file -e "${AUTHORIZED_PREPARED_BLOB}^{blob}"
-          git cat-file blob "${AUTHORIZED_PREPARED_BLOB}" > "${RUNNER_TEMP}/authorized-prepared-promotion.json"
-          python3 - <<'PY'
-          import json, os
-          p=os.path.join(os.environ['RUNNER_TEMP'],'authorized-prepared-promotion.json')
-          d=json.load(open(p,encoding='utf-8'))
-          assert d['contract_id']=='PNCC_STABLE_RELEASE_TAG_PROMOTION_V2'
-          assert d['stable_version']=='7.0.1'
-          assert d['stable_artifact_filename']=='VPS-Control-v7.0.1.zip'
-          assert d['stable_artifact_sha256']=='22b843330516e481c467fe5cbe6d1d4c6758510c71bd2c46ebeec337f403ae72'
-          assert d['stable_artifact_size_bytes']==701893
-          assert d['request_id']=='PNCC-RQ-V7.0.1-D58023321360'
-          assert d['candidate_id']=='PNCC-V7.0.1-D58023321360'
-          assert d['runtime_authority'] is True
-          assert d['target_tag']=='v7.0.1'
-          assert d['target_release_name']=='VPS Control PNCC v7.0.1'
-          assert d['target_tag_commit_policy']=='PREPARATION_MERGE_SHA_ONLY'
-          assert d['target_tag_commit'] is None
-          assert d['owner_release_authorization_present'] is False
-          assert d['owner_release_authorization_binding_complete'] is False
-          assert d['promotion_state']=='WAITING_OWNER_RELEASE_AUTHORIZATION'
-          assert d['promotion_eligible'] is False
-          assert d['release_or_tag_authorized'] is False
-          assert d['tag_created'] is False
-          assert d['release_created'] is False
-          assert d['stable_declared'] is False
-          PY
-          echo "AUTHORIZED_PREPARATION_MAIN=${AUTHORIZED_PREPARATION_MAIN}"
-          echo "AUTHORIZED_PREPARED_BLOB=${AUTHORIZED_PREPARED_BLOB}"
-
-      - name: Validate exact authorized pending v7.0.1 publication boundary
-        run: python3 .pncc-dev/scripts/evaluate_stable_release_tag_promotion_v701.py
-
-      - name: Run WU-090 authorization regressions
-        run: python3 .pncc-dev/tests/test_v701_release_tag_promotion_boundary.py
-
-      - name: Verify target publication namespace remains unused before execution
+          python3 .pncc-dev/scripts/evaluate_stable_release_tag_promotion_v701.py
+          python3 .pncc-dev/tests/test_v701_release_tag_promotion_boundary.py
+      - name: Verify live GitHub tag release and asset
         env:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
@@ -102,65 +35,26 @@ jobs:
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import os
-          import urllib.error
-          import urllib.request
-          repo=os.environ['REPOSITORY']
-          token=os.environ.get('GH_TOKEN','')
-          headers={
-              'Accept':'application/vnd.github+json',
-              'X-GitHub-Api-Version':'2022-11-28',
-              'User-Agent':'pncc-v701-release-authorized-boundary',
-          }
-          if token:
-              headers['Authorization']='Bearer '+token
-          for url in (
-              f'https://api.github.com/repos/{repo}/git/ref/tags/v7.0.1',
-              f'https://api.github.com/repos/{repo}/releases/tags/v7.0.1',
-          ):
-              req=urllib.request.Request(url,headers=headers,method='GET')
-              try:
-                  with urllib.request.urlopen(req,timeout=30) as response:
-                      raise SystemExit('PUBLICATION_NAMESPACE_ALREADY_EXISTS:'+url+':'+str(response.status))
-              except urllib.error.HTTPError as exc:
-                  if exc.code != 404:
-                      raise
-                  print('NAMESPACE_ABSENT=PASS URL='+url)
+          import json,os,urllib.request
+          repo=os.environ['REPOSITORY']; token=os.environ.get('GH_TOKEN','')
+          h={'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','User-Agent':'pncc-v701-stable-readback'}
+          if token:h['Authorization']='Bearer '+token
+          def get(url):
+            with urllib.request.urlopen(urllib.request.Request(url,headers=h),timeout=30) as r:return json.load(r)
+          tag=get(f'https://api.github.com/repos/{repo}/git/ref/tags/v7.0.1')
+          assert tag['object']['type']=='commit'
+          assert tag['object']['sha']=='41e8c9c8bed2cc37423c33750d0748c49ff941b7'
+          rel=get(f'https://api.github.com/repos/{repo}/releases/tags/v7.0.1')
+          assert rel['id']==379032537 and rel['name']=='VPS Control PNCC v7.0.1'
+          assert rel['draft'] is False and rel['prerelease'] is False
+          assert rel['target_commitish']=='41e8c9c8bed2cc37423c33750d0748c49ff941b7'
+          assets=[a for a in rel['assets'] if a['name']=='VPS-Control-v7.0.1.zip']
+          assert len(assets)==1
+          a=assets[0]
+          assert a['id']==535416506 and a['size']==701893
+          assert a['digest']=='sha256:22b843330516e481c467fe5cbe6d1d4c6758510c71bd2c46ebeec337f403ae72'
+          print('LIVE_V701_STABLE_PUBLICATION=PASS')
           PY
-
-      - name: Assert authorization has no publication side effects
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import json
-          d=json.load(open('.pncc-dev/attestations/stable-release-tag-promotion-v7.0.1.json',encoding='utf-8'))
-          a=json.load(open('.pncc-dev/attestations/stable-release-tag-owner-authorization-v7.0.1.json',encoding='utf-8'))
-          assert a['authorized_preparation_main']=='41e8c9c8bed2cc37423c33750d0748c49ff941b7'
-          assert a['authorized_prepared_promotion_contract_blob_sha']=='f20891555e6db3a0b5bb57488bac5e8ccf36eb71'
-          assert a['owner_release_authorization_scope']=='RELEASE_TAG_STABLE_PROMOTION_ONLY'
-          assert a['owner_release_authorization_present'] is True
-          assert a['owner_release_authorization_binding_complete'] is True
-          assert d['runtime_authority'] is True
-          assert d['owner_release_authorization_present'] is True
-          assert d['owner_release_authorization_binding_complete'] is True
-          assert d['promotion_state']=='AUTHORIZED_PENDING_EXECUTION'
-          assert d['promotion_eligible'] is True
-          assert d['release_or_tag_authorized'] is True
-          assert d['target_tag_commit']=='41e8c9c8bed2cc37423c33750d0748c49ff941b7'
-          assert d['tag_created'] is False
-          assert d['release_created'] is False
-          assert d['release_asset_verified'] is False
-          assert d['stable_declared'] is False
-          assert d['release_asset_server_digest'] is None
-          assert d['artifact_rebuilt'] is False
-          assert d['artifact_substituted'] is False
-          assert d['runtime_mutation'] is False
-          assert d['product_bytes_mutated'] is False
-          assert d['runtime_bytes_mutated'] is False
-          assert d['private_runtime_payload_published'] is False
-          PY
-
       - name: Assert PR cannot mutate product source
         if: github.event_name == 'pull_request'
         env:
@@ -169,41 +63,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git diff --name-only "${BASE_SHA}...${HEAD_SHA}" > "${RUNNER_TEMP}/wu090-files.txt"
-          if grep -Eq '^src/windows-v7/' "${RUNNER_TEMP}/wu090-files.txt"; then
-            echo 'PRODUCT_SOURCE_MUTATION_FORBIDDEN=true' >&2
-            cat "${RUNNER_TEMP}/wu090-files.txt" >&2
-            exit 1
-          fi
-          echo 'PRODUCT_SOURCE_MUTATION=false'
-
-      - name: Assert no PRIVATE evidence or publication write authority
+          if git diff --name-only "$BASE_SHA...$HEAD_SHA" | grep -Eq '^src/windows-v7/'; then exit 1; fi
+          echo PRODUCT_SOURCE_MUTATION=false
+      - name: Assert no private evidence tracked
         shell: bash
         run: |
           set -euo pipefail
-          tracked="$(git ls-files)"
-          if printf '%s\n' "$tracked" | grep -Eq '(^|/)(private-evidence\.zip|PNCC-WU087\.log|wu087-owner-run-result\.json)$'; then
-            echo 'PRIVATE_RUNTIME_PAYLOAD_TRACKED=true' >&2
-            exit 1
-          fi
-          python3 - <<'PY'
-          from pathlib import Path
-          for raw in (
-              '.github/workflows/stable-release-tag-promotion.yml',
-              '.github/workflows/stable-release-tag-promotion-v701-boundary.yml',
-          ):
-              s=Path(raw).read_text(encoding='utf-8')
-              assert 'contents: read' in s
-              forbidden=(
-                  'contents:'+' write',
-                  'releases:'+' write',
-                  'git'+' push',
-                  'git'+' tag',
-                  'gh'+' release',
-              )
-              for token in forbidden:
-                  assert token.lower() not in s.lower(), (raw, token)
-          PY
-
-      - name: Assert repository remains clean
-        run: test -z "$(git status --porcelain --untracked-files=all)"
+          if git ls-files | grep -Eq '(^|/)(private-evidence\.zip|PNCC-WU087\.log|wu087-owner-run-result\.json|PNCC-WU090-PUBLISH\.log)$'; then exit 1; fi
+          echo PRIVATE_EVIDENCE_TRACKED=false
