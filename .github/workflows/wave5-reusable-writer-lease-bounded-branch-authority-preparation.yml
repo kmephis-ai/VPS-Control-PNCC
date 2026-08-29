@@ -1,0 +1,65 @@
+name: wave5-reusable-writer-lease-bounded-branch-authority-preparation
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  reusable-lifecycle-authority-preparation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Validate reusable lifecycle preparation
+        run: python3 .pncc-dev/scripts/validate_reusable_writer_lease_bounded_branch_authority_preparation.py
+      - name: Run adversarial preparation tests
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_reusable_writer_lease_bounded_branch_authority_preparation.py' -v
+      - name: Assert exact preparation branch and bounded diff
+        if: github.event_name == 'pull_request' && github.head_ref == 'agent/PIPE-WU-101-reusable-lifecycle-authority-preparation'
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin "${{ github.event.pull_request.base.sha }}"
+          git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}" | sort > /tmp/actual
+          printf '%s\n' \
+            '.github/workflows/wave5-reusable-writer-lease-bounded-branch-authority-preparation.yml' \
+            '.pncc-dev/contracts/reusable-writer-lease-bounded-branch-authority-preparation.json' \
+            '.pncc-dev/scripts/validate_reusable_writer_lease_bounded_branch_authority_preparation.py' \
+            '.pncc-dev/tests/test_reusable_writer_lease_bounded_branch_authority_preparation.py' | sort > /tmp/expected
+          diff -u /tmp/expected /tmp/actual
+          ! grep -E '^(\.pncc-state/|src/windows-v7/|\.adwf-consumer/external-binding\.json$|tools/runtime-agent/)' /tmp/actual
+      - name: Assert preparation workflow remains read only
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          t=Path('.github/workflows/wave5-reusable-writer-lease-bounded-branch-authority-preparation.yml').read_text(encoding='utf-8').lower()
+          forbidden=[
+              'contents:'+' write', 'issues:'+' write', 'pull-requests:'+' write',
+              'persist-credentials:'+' true', 'git'+' push', 'gh'+' pr merge',
+              '--method'+' post', '--method'+' patch', '--method'+' put', '--method'+' delete'
+          ]
+          for token in forbidden:
+              assert token not in t, token
+          PY
+      - name: Assert preparation grants no authority
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('.pncc-dev/contracts/reusable-writer-lease-bounded-branch-authority-preparation.json').read_text(encoding='utf-8'))
+          assert p['owner_authorization_present'] is False
+          assert p['owner_authorization_binding_complete'] is False
+          assert p['reusable_authority_granted'] is False
+          for key, value in p.items():
+              if key.endswith('_authority'):
+                  assert value is False, key
+          PY
+      - name: Assert repository remains clean
+        run: test -z "$(git status --porcelain)"
