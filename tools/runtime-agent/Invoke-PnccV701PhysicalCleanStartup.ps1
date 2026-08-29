@@ -19,7 +19,7 @@ function Convert-CodePointsToString {
     return $builder.ToString()
 }
 
-$script:RunnerVersion = '1.0.3'
+$script:RunnerVersion = '1.0.4'
 $script:ExpectedCandidateSha256 = '22b843330516e481c467fe5cbe6d1d4c6758510c71bd2c46ebeec337f403ae72'
 $script:ExpectedUiVersion = '7.0.1'
 $script:ExpectedDemoText = Convert-CodePointsToString @(0x0414,0x0415,0x041C,0x041E)
@@ -34,6 +34,7 @@ $script:TestOwnedPid = 0
 $script:TestOwnedStartTicksUtc = 0L
 $script:TestOwnedExecutablePath = ''
 $script:TestOwnedLauncherPath = ''
+$script:ProductBaseDir = ''
 $script:Evidence = New-Object Collections.ArrayList
 $script:WindowSamples = New-Object Collections.ArrayList
 $script:CleanupMode = 'NOT_STARTED'
@@ -41,6 +42,7 @@ $script:CleanExit = $false
 $script:UiObserved = $false
 $script:FailureClass = ''
 $script:FailureDetail = ''
+$script:WorkRootPreserved = $false
 
 if (-not $EvidenceDirectory) {
     $parent = Split-Path -Parent ([IO.Path]::GetFullPath($CandidateZipPath))
@@ -54,6 +56,7 @@ $script:ResultPath = Join-Path $EvidenceDirectory 'wu084-physical-clean-startup-
 $script:WindowEvidencePath = Join-Path $EvidenceDirectory 'pid-window-samples.json'
 $script:PortsBeforePath = Join-Path $EvidenceDirectory 'ports-before.json'
 $script:PortsAfterPath = Join-Path $EvidenceDirectory 'ports-after.json'
+$script:ProductLaunchLogEvidencePath = Join-Path $EvidenceDirectory 'product-launch.log'
 
 function Write-RunnerLog {
     param([string]$Text)
@@ -186,12 +189,12 @@ namespace Pncc.Wu084 {
         [DllImport("user32.dll", CharSet=CharSet.Unicode)] private static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int maxCount);
         [DllImport("user32.dll")] private static extern int GetWindowTextLength(IntPtr hWnd);
         [DllImport("user32.dll", CharSet=CharSet.Unicode)] private static extern int GetClassName(IntPtr hWnd, StringBuilder className, int maxCount);
-        public static WindowRecord[] ForProcess(int pid) {
+        public static WindowRecord[] ForProcess(int processId) {
             var rows = new List<WindowRecord>();
             EnumWindows(delegate(IntPtr hWnd, IntPtr lParam) {
                 uint owner;
                 GetWindowThreadProcessId(hWnd, out owner);
-                if (owner != (uint)pid) return true;
+                if (owner != (uint)processId) return true;
                 int len = GetWindowTextLength(hWnd);
                 var title = new StringBuilder(Math.Max(len + 1, 2));
                 GetWindowText(hWnd, title, title.Capacity);
@@ -227,8 +230,8 @@ namespace Pncc.Wu084 {
 }
 
 function Get-PidTopLevelWindows {
-    param([int]$Pid)
-    return @([Pncc.Wu084.NativeWindow]::ForProcess($Pid) | ForEach-Object {
+    param([int]$TargetProcessId)
+    return @([Pncc.Wu084.NativeWindow]::ForProcess($TargetProcessId) | ForEach-Object {
         [pscustomobject]@{
             Handle = [long]$_.Handle
             Title = [string]$_.Title
@@ -239,45 +242,45 @@ function Get-PidTopLevelWindows {
 }
 
 function Add-WindowSample {
-    param([int]$Pid,$Windows,[string]$Reason)
+    param([int]$TargetProcessId,$Windows,[string]$Reason)
     if ($script:WindowSamples.Count -ge 40) { return }
     [void]$script:WindowSamples.Add([pscustomobject]@{
         Timestamp = (Get-Date).ToString('o')
-        Pid = $Pid
+        Pid = $TargetProcessId
         Reason = $Reason
-        ProcessAlive = [bool](Get-Process -Id $Pid -ErrorAction SilentlyContinue)
+        ProcessAlive = [bool](Get-Process -Id $TargetProcessId -ErrorAction SilentlyContinue)
         Windows = @($Windows)
     })
 }
 
 function Wait-ExpectedPidWindow {
-    param([int]$Pid,[int]$TimeoutSeconds)
+    param([int]$TargetProcessId,[int]$TimeoutSeconds)
     $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
     $lastFingerprint = ''
     $lastPeriodic = [datetime]::MinValue
     while ((Get-Date) -lt $deadline) {
-        if (-not (Get-Process -Id $Pid -ErrorAction SilentlyContinue)) {
-            Add-WindowSample -Pid $Pid -Windows @() -Reason 'PROCESS_EXITED_BEFORE_UI'
+        if (-not (Get-Process -Id $TargetProcessId -ErrorAction SilentlyContinue)) {
+            Add-WindowSample -TargetProcessId $TargetProcessId -Windows @() -Reason 'PROCESS_EXITED_BEFORE_UI'
             return $null
         }
-        $windows = @(Get-PidTopLevelWindows -Pid $Pid)
+        $windows = @(Get-PidTopLevelWindows -TargetProcessId $TargetProcessId)
         $fingerprint = $windows | ConvertTo-Json -Depth 4 -Compress
         $now = Get-Date
         if ($fingerprint -ne $lastFingerprint -or ($now - $lastPeriodic).TotalSeconds -ge 5) {
             $reason = if ($fingerprint -ne $lastFingerprint) { 'WINDOW_SET_CHANGE' } else { 'PERIODIC' }
-            Add-WindowSample -Pid $Pid -Windows $windows -Reason $reason
+            Add-WindowSample -TargetProcessId $TargetProcessId -Windows $windows -Reason $reason
             $lastFingerprint = $fingerprint
             $lastPeriodic = $now
         }
         foreach ($window in $windows) {
             if ($window.Visible -and [string]::Equals([string]$window.Title,$script:ExpectedWindowTitle,[StringComparison]::Ordinal)) {
-                Add-WindowSample -Pid $Pid -Windows $windows -Reason 'EXPECTED_VISIBLE_WINDOW'
+                Add-WindowSample -TargetProcessId $TargetProcessId -Windows $windows -Reason 'EXPECTED_VISIBLE_WINDOW'
                 return $window
             }
         }
         Start-Sleep -Milliseconds 350
     }
-    Add-WindowSample -Pid $Pid -Windows @(Get-PidTopLevelWindows -Pid $Pid) -Reason 'WINDOW_TIMEOUT'
+    Add-WindowSample -TargetProcessId $TargetProcessId -Windows @(Get-PidTopLevelWindows -TargetProcessId $TargetProcessId) -Reason 'WINDOW_TIMEOUT'
     return $null
 }
 
@@ -383,22 +386,22 @@ function Invoke-ProductNativeTrayExit {
 }
 
 function Wait-ProcessExit {
-    param([int]$Pid,[int]$TimeoutSeconds)
+    param([int]$TargetProcessId,[int]$TimeoutSeconds)
     $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
     while ((Get-Date) -lt $deadline) {
-        if (-not (Get-Process -Id $Pid -ErrorAction SilentlyContinue)) { return $true }
+        if (-not (Get-Process -Id $TargetProcessId -ErrorAction SilentlyContinue)) { return $true }
         Start-Sleep -Milliseconds 250
     }
-    return (-not (Get-Process -Id $Pid -ErrorAction SilentlyContinue))
+    return (-not (Get-Process -Id $TargetProcessId -ErrorAction SilentlyContinue))
 }
 
 function Assert-ExactTestOwnedProcessIdentity {
-    param([int]$Pid)
-    if ($Pid -le 0 -or $Pid -ne $script:TestOwnedPid) { throw 'TEST_OWNED_PID_GUARD_REJECTED' }
-    $process = Get-Process -Id $Pid -ErrorAction SilentlyContinue
+    param([int]$TargetProcessId)
+    if ($TargetProcessId -le 0 -or $TargetProcessId -ne $script:TestOwnedPid) { throw 'TEST_OWNED_PID_GUARD_REJECTED' }
+    $process = Get-Process -Id $TargetProcessId -ErrorAction SilentlyContinue
     if (-not $process) { return $false }
     if ($process.StartTime.ToUniversalTime().Ticks -ne $script:TestOwnedStartTicksUtc) { throw 'TEST_OWNED_CREATION_TIME_MISMATCH' }
-    $cim = Get-CimInstance Win32_Process -Filter ('ProcessId = ' + $Pid) -ErrorAction Stop
+    $cim = Get-CimInstance Win32_Process -Filter ('ProcessId = ' + $TargetProcessId) -ErrorAction Stop
     if (-not $cim) { throw 'TEST_OWNED_CIM_IDENTITY_MISSING' }
     if (-not [string]::Equals([string]$cim.ExecutablePath,$script:TestOwnedExecutablePath,[StringComparison]::OrdinalIgnoreCase)) { throw 'TEST_OWNED_EXECUTABLE_PATH_MISMATCH' }
     if (-not ([string]$cim.CommandLine).Contains($script:TestOwnedLauncherPath)) { throw 'TEST_OWNED_COMMAND_MARKER_MISSING' }
@@ -407,10 +410,24 @@ function Assert-ExactTestOwnedProcessIdentity {
 }
 
 function Stop-ExactTestOwnedProcessEmergency {
-    param([int]$Pid)
-    if (-not (Assert-ExactTestOwnedProcessIdentity -Pid $Pid)) { return $true }
+    param([int]$TargetProcessId)
+    if (-not (Assert-ExactTestOwnedProcessIdentity -TargetProcessId $TargetProcessId)) { return $true }
     Stop-Process -Id $script:TestOwnedPid -Force -ErrorAction Stop
-    return (Wait-ProcessExit -Pid $Pid -TimeoutSeconds 10)
+    return (Wait-ProcessExit -TargetProcessId $TargetProcessId -TimeoutSeconds 10)
+}
+
+function Copy-ProductLaunchLog {
+    if (-not $script:ProductBaseDir -or -not (Test-Path -LiteralPath $script:ProductBaseDir -PathType Container)) { return }
+    try {
+        $logs = @(Get-ChildItem -LiteralPath $script:ProductBaseDir -Recurse -File -Filter 'launch.log' -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending)
+        if ($logs.Count -gt 0) {
+            Copy-Item -LiteralPath $logs[0].FullName -Destination $script:ProductLaunchLogEvidencePath -Force -ErrorAction Stop
+            Add-EvidenceEvent 'PRODUCT_LAUNCH_LOG_CAPTURED' ('source=' + $logs[0].FullName)
+        }
+    }
+    catch {
+        Add-EvidenceEvent 'PRODUCT_LAUNCH_LOG_CAPTURE_FAIL' $_.Exception.Message
+    }
 }
 
 $start = Get-Date
@@ -443,6 +460,7 @@ try {
     $launchers = @(Get-ChildItem -LiteralPath $extractRoot -Recurse -Filter 'VPS-Control-v7-launch.ps1' -File -ErrorAction Stop)
     if ($launchers.Count -ne 1) { throw ('EXPECTED_ONE_LAUNCHER_GOT_' + $launchers.Count) }
     $baseDir = Split-Path -Parent $launchers[0].FullName
+    $script:ProductBaseDir = $baseDir
     Add-EvidenceEvent 'FRESH_EXTRACT_PASS' ('base=' + $baseDir)
 
     $packageManifestCount = Assert-PackageManifest -BaseDir $baseDir
@@ -466,7 +484,7 @@ try {
     $script:CleanupMode = 'PRODUCT_NATIVE_TRAY_EXIT_PENDING'
     Add-EvidenceEvent 'PRODUCT_STARTED' ('pid=' + $script:TestOwnedPid + '; startTicksUtc=' + $script:TestOwnedStartTicksUtc)
 
-    $window = Wait-ExpectedPidWindow -Pid $script:TestOwnedPid -TimeoutSeconds $WindowTimeoutSeconds
+    $window = Wait-ExpectedPidWindow -TargetProcessId $script:TestOwnedPid -TimeoutSeconds $WindowTimeoutSeconds
     if (-not $window) {
         $script:FailureClass = 'OWNER_RUNNER_ACCEPTANCE_DEFECT / UI_WINDOW_NOT_OBSERVED'
         throw 'EXPECTED_PID_OWNED_VISIBLE_WINDOW_NOT_OBSERVED'
@@ -475,7 +493,7 @@ try {
     Add-EvidenceEvent 'EXPECTED_UI_OBSERVED' ('pid=' + $script:TestOwnedPid + '; hwnd=' + $window.Handle)
 
     Invoke-ProductNativeTrayExit
-    if (-not (Wait-ProcessExit -Pid $script:TestOwnedPid -TimeoutSeconds $CleanExitTimeoutSeconds)) {
+    if (-not (Wait-ProcessExit -TargetProcessId $script:TestOwnedPid -TimeoutSeconds $CleanExitTimeoutSeconds)) {
         $script:FailureClass = 'OWNER_RUNNER_ACCEPTANCE_DEFECT / CLEAN_EXIT_TIMEOUT'
         throw 'PRODUCT_NATIVE_TRAY_EXIT_DID_NOT_TERMINATE_PROCESS'
     }
@@ -507,7 +525,7 @@ finally {
     if ($script:TestOwnedPid -gt 0) { $stillRunning = [bool](Get-Process -Id $script:TestOwnedPid -ErrorAction SilentlyContinue) }
     if ($stillRunning) {
         try {
-            [void](Stop-ExactTestOwnedProcessEmergency -Pid $script:TestOwnedPid)
+            [void](Stop-ExactTestOwnedProcessEmergency -TargetProcessId $script:TestOwnedPid)
             $script:CleanupMode = 'FORCED_EXACT_IDENTITY_TEST_OWNED_PROCESS_ONLY'
             $script:CleanExit = $false
             $success = $false
@@ -522,6 +540,8 @@ finally {
             Add-EvidenceEvent 'EMERGENCY_CLEANUP_FAIL' $_.Exception.Message
         }
     }
+
+    Copy-ProductLaunchLog
 
     try {
         if ($portsAfter.Count -eq 0) {
@@ -539,8 +559,15 @@ finally {
     }
     if (-not $script:CleanExit) { $success = $false }
 
+    $processAliveAfterCleanup = $false
+    if ($script:TestOwnedPid -gt 0) { $processAliveAfterCleanup = [bool](Get-Process -Id $script:TestOwnedPid -ErrorAction SilentlyContinue) }
+    if ($processAliveAfterCleanup) {
+        $script:WorkRootPreserved = $true
+        Add-EvidenceEvent 'WORKROOT_PRESERVED' ('process still alive; path=' + $workRoot)
+    }
+
     $result = [ordered]@{
-        schema_version = 2
+        schema_version = 3
         contract = 'PNCC_V7_0_1_PHYSICAL_CLEAN_STARTUP_V2'
         runner_version = $script:RunnerVersion
         started_at = $start.ToString('o')
@@ -556,6 +583,7 @@ finally {
         ui_observed = [bool]$script:UiObserved
         clean_exit = [bool]$script:CleanExit
         cleanup_mode = $script:CleanupMode
+        work_root_preserved = [bool]$script:WorkRootPreserved
         reserve_1080_unchanged = [bool]$portsUnchanged
         primary_1081_unchanged = [bool]$portsUnchanged
         ports_1080_1081_unchanged = [bool]$portsUnchanged
@@ -569,7 +597,10 @@ finally {
         evidence = @($script:Evidence)
     }
     try { Write-JsonUtf8Bom -Path $script:ResultPath -Value $result -Depth 10 } catch { }
-    try { if (Test-Path -LiteralPath $workRoot) { Remove-Item -LiteralPath $workRoot -Recurse -Force -ErrorAction SilentlyContinue } } catch { }
+
+    if (-not $script:WorkRootPreserved) {
+        try { if (Test-Path -LiteralPath $workRoot) { Remove-Item -LiteralPath $workRoot -Recurse -Force -ErrorAction SilentlyContinue } } catch { }
+    }
 }
 
 if ($success) {
