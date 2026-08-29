@@ -36,10 +36,29 @@ def valid_candidate(c:Any,label:str):
         if not isinstance(c[k],int) or isinstance(c[k],bool) or c[k]<=0: raise ContractError(f'{label}: {k}')
     if not isinstance(c['artifact_filename'],str) or '/' in c['artifact_filename'] or '\\' in c['artifact_filename']: raise ContractError(f'{label}: artifact_filename')
 
+def governed_candidates(policy:dict[str,Any])->list[dict[str,Any]]:
+    values=policy.get('governed_candidates')
+    if values is None:
+        values=[policy.get('current_candidate')]
+    if not isinstance(values,list) or not values: raise ContractError('policy governed_candidates')
+    out=[]; ids=set()
+    for i,c in enumerate(values):
+        valid_candidate(c,f'policy.governed_candidates[{i}]')
+        cid=c['candidate_id']
+        if cid in ids: raise ContractError('duplicate governed candidate id')
+        ids.add(cid); out.append(c)
+    current=policy.get('current_candidate')
+    valid_candidate(current,'policy.current_candidate')
+    active_id=policy.get('active_candidate_id',current['candidate_id'])
+    if active_id!=current['candidate_id']: raise ContractError('policy active/current candidate mismatch')
+    if not any(c==current for c in out): raise ContractError('current candidate must be governed')
+    return out
+
 def validate_request(req:dict[str,Any], policy:dict[str,Any])->None:
     exact(req,REQ_KEYS,'request'); valid_candidate(req['candidate'],'request.candidate')
     if req['schema_version']!=1 or req['contract_id']!=policy['request_contract_id']: raise ContractError('request contract identity')
-    if req['candidate']!=policy['current_candidate']: raise ContractError('request candidate does not equal current governed candidate')
+    governed=governed_candidates(policy)
+    if sum(1 for c in governed if c==req['candidate'])!=1: raise ContractError('request candidate is not an exact governed candidate')
     scopes=req['required_scopes']; expected=policy['required_scopes']
     if not isinstance(scopes,list) or len(scopes)!=len(set(scopes)) or scopes!=expected: raise ContractError('request required_scopes must equal ordered policy scopes')
     exact(req['expected_invariants'],INV_KEYS,'request.expected_invariants')
@@ -47,6 +66,7 @@ def validate_request(req:dict[str,Any], policy:dict[str,Any])->None:
     if req['state']!='RUNTIME_PENDING' or req['runtime_authority'] is not False or req['promotion_eligible'] is not False: raise ContractError('request authority/state invalid')
 
 def validate_result(req:dict[str,Any], result:dict[str,Any], policy:dict[str,Any])->str:
+    validate_request(req,policy)
     exact(result,RES_KEYS,'result'); valid_candidate(result['candidate'],'result.candidate')
     if result['schema_version']!=1 or result['contract_id']!=policy['result_contract_id']: raise ContractError('result contract identity')
     if result['request_id']!=req['request_id'] or result['candidate']!=req['candidate']: raise ContractError('result request/candidate substitution')
