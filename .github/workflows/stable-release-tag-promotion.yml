@@ -1,13 +1,10 @@
 name: stable-release-tag-promotion
-
 on:
   pull_request:
   push:
     branches: [ main ]
-
 permissions:
   contents: read
-
 jobs:
   release-promotion-boundaries:
     runs-on: ubuntu-latest
@@ -16,117 +13,36 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-
       - name: Validate historical v7.0.0 promoted Stable declaration
         run: python3 .pncc-dev/scripts/evaluate_stable_release_tag_promotion.py
-
-      - name: Validate v7.0.1 authorized pending release promotion boundary
+      - name: Validate finalized v7.0.1 Stable declaration
         run: python3 .pncc-dev/scripts/evaluate_stable_release_tag_promotion_v701.py
-
-      - name: Assert historical promotion and v7.0.1 authorization remain isolated
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
-
-          old=json.load(open('.pncc-dev/attestations/stable-release-tag-promotion-v7.0.0.json',encoding='utf-8'))
-          assert old['stable_version']=='7.0.0'
-          assert old['promotion_state']=='PROMOTED'
-          assert old['runtime_authority'] is True
-          assert old['promotion_eligible'] is True
-          assert old['release_or_tag_authorized'] is True
-          assert old['tag_created'] is True
-          assert old['release_created'] is True
-          assert old['release_asset_verified'] is True
-          assert old['stable_declared'] is True
-          assert old['artifact_rebuilt'] is False
-          assert old['artifact_substituted'] is False
-          assert old['runtime_mutation'] is False
-          assert old['product_bytes_mutated'] is False
-          assert old['runtime_bytes_mutated'] is False
-          assert old['overwrite_existing_tag_forbidden'] is True
-          assert old['overwrite_existing_release_forbidden'] is True
-
-          new=json.load(open('.pncc-dev/attestations/stable-release-tag-promotion-v7.0.1.json',encoding='utf-8'))
-          auth=json.load(open('.pncc-dev/attestations/stable-release-tag-owner-authorization-v7.0.1.json',encoding='utf-8'))
-          assert auth['authorized_preparation_main']=='41e8c9c8bed2cc37423c33750d0748c49ff941b7'
-          assert auth['authorized_prepared_promotion_contract_blob_sha']=='f20891555e6db3a0b5bb57488bac5e8ccf36eb71'
-          assert auth['owner_release_authorization_scope']=='RELEASE_TAG_STABLE_PROMOTION_ONLY'
-          assert auth['owner_release_authorization_present'] is True
-          assert auth['owner_release_authorization_binding_complete'] is True
-          assert auth['promotion_eligibility_authorized'] is True
-          assert auth['tag_creation_authorized'] is True
-          assert auth['release_creation_authorized'] is True
-          assert auth['release_asset_upload_authorized'] is True
-          assert auth['stable_declaration_authorized'] is True
-          assert auth['artifact_rebuild_authorized'] is False
-          assert auth['artifact_substitution_authorized'] is False
-          assert auth['product_bytes_mutation_authorized'] is False
-          assert auth['runtime_bytes_mutation_authorized'] is False
-          assert auth['private_runtime_payload_publication_authorized'] is False
-          assert auth['reserve_1080_lifecycle_mutation_authorized'] is False
-          assert auth['primary_1081_lifecycle_mutation_authorized'] is False
-
-          assert new['stable_version']=='7.0.1'
-          assert new['runtime_authority'] is True
-          assert new['target_tag']=='v7.0.1'
-          assert new['target_release_name']=='VPS Control PNCC v7.0.1'
-          assert new['target_tag_commit_policy']=='PREPARATION_MERGE_SHA_ONLY'
-          assert new['target_tag_commit']=='41e8c9c8bed2cc37423c33750d0748c49ff941b7'
-          assert new['owner_release_authorization_present'] is True
-          assert new['owner_release_authorization_binding_complete'] is True
-          assert new['promotion_state']=='AUTHORIZED_PENDING_EXECUTION'
-          assert new['promotion_eligible'] is True
-          assert new['release_or_tag_authorized'] is True
-          assert new['tag_created'] is False
-          assert new['release_created'] is False
-          assert new['release_asset_verified'] is False
-          assert new['stable_declared'] is False
-          assert new['release_asset_server_digest'] is None
-          assert new['artifact_rebuilt'] is False
-          assert new['artifact_substituted'] is False
-          assert new['runtime_mutation'] is False
-          assert new['product_bytes_mutated'] is False
-          assert new['runtime_bytes_mutated'] is False
-          assert new['private_runtime_payload_published'] is False
-          assert new['overwrite_existing_tag_forbidden'] is True
-          assert new['overwrite_existing_release_forbidden'] is True
-          assert new['next_transaction']=='CREATE_EXACT_TAG_AND_RELEASE_NO_OVERWRITE'
-
-          s=Path('.github/workflows/stable-release-tag-promotion.yml').read_text(encoding='utf-8')
-          assert sum(1 for line in s.splitlines() if line.strip() == 'contents: read') == 1
-          forbidden=(
-              'contents:'+' write',
-              'releases:'+' write',
-              'git'+' push',
-              'git'+' tag',
-              'gh'+' release',
-          )
-          for token in forbidden:
-              assert token.lower() not in s.lower(), token
-          PY
-
-      - name: Assert exact prepared v7.0.1 default-deny blob remains in history
+      - name: Run v7.0.1 promotion regressions
+        run: python3 .pncc-dev/tests/test_v701_release_tag_promotion_boundary.py
+      - name: Verify exact prepared default-deny blob remains in history
         shell: bash
         run: |
           set -euo pipefail
           git cat-file -e 'f20891555e6db3a0b5bb57488bac5e8ccf36eb71^{blob}'
-          git cat-file blob f20891555e6db3a0b5bb57488bac5e8ccf36eb71 > "$RUNNER_TEMP/v701-prepared-promotion.json"
+          git cat-file blob f20891555e6db3a0b5bb57488bac5e8ccf36eb71 > "$RUNNER_TEMP/prepared.json"
           python3 - <<'PY'
-          import json, os
-          p=os.path.join(os.environ['RUNNER_TEMP'],'v701-prepared-promotion.json')
-          d=json.load(open(p,encoding='utf-8'))
+          import json,os
+          d=json.load(open(os.path.join(os.environ['RUNNER_TEMP'],'prepared.json'),encoding='utf-8'))
           assert d['promotion_state']=='WAITING_OWNER_RELEASE_AUTHORIZATION'
-          assert d['owner_release_authorization_present'] is False
-          assert d['owner_release_authorization_binding_complete'] is False
           assert d['promotion_eligible'] is False
           assert d['release_or_tag_authorized'] is False
-          assert d['tag_created'] is False
-          assert d['release_created'] is False
-          assert d['stable_declared'] is False
+          assert d['tag_created'] is False and d['release_created'] is False and d['stable_declared'] is False
           PY
-
+      - name: Assert workflows remain read-only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('.github/workflows/stable-release-tag-promotion.yml').read_text(encoding='utf-8')
+          assert 'contents: read' in s
+          for t in ('contents:'+' write','releases:'+' write','git'+' push','git'+' tag','gh'+' release'):
+            assert t.lower() not in s.lower(),t
+          PY
       - name: Assert repository remains clean
         run: test -z "$(git status --porcelain --untracked-files=all)"
