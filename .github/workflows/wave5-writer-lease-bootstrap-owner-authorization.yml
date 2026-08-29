@@ -1,0 +1,38 @@
+name: wave5-writer-lease-bootstrap-owner-authorization
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  owner-authorization:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Validate exact authorization receipt
+        run: python3 .pncc-dev/scripts/validate_writer_lease_bootstrap_owner_authorization.py
+      - name: Assert prepared contract remains exact default-deny history
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('.pncc-dev/contracts/writer-lease-bootstrap-authority-preparation.json').read_text(encoding='utf-8'))
+          assert p['preparation_state']=='WAITING_EXPLICIT_OWNER_AUTHORIZATION'
+          assert p['owner_authorization_present'] is False
+          assert p['bootstrap_authority'] is False
+          assert p['registry_write_authority'] is False
+          assert p['lease_acquisition_authority'] is False
+          PY
+      - name: Assert authorization transaction is repository-only
+        run: |
+          test ! -e .pncc-state/writer-lease-registry.json
+          test "$(git branch --list pncc-provider-state)" = ""
