@@ -9,13 +9,13 @@ permissions:
   contents: read
 
 jobs:
-  waiting-boundary:
+  authorized-boundary:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - name: Evaluate default-deny release/tag promotion boundary
+      - name: Evaluate authorized pending release/tag promotion boundary
         run: python3 .pncc-dev/scripts/evaluate_stable_release_tag_promotion.py
-      - name: Assert no release/tag side effects
+      - name: Assert authorization without release/tag side effects
         shell: bash
         run: |
           set -euo pipefail
@@ -23,17 +23,20 @@ jobs:
           import json
           from pathlib import Path
           d=json.load(open('.pncc-dev/attestations/stable-release-tag-promotion-v7.0.0.json',encoding='utf-8'))
-          assert d['promotion_state']=='WAITING_OWNER_AUTHORIZATION'
+          assert d['promotion_state']=='AUTHORIZED_PENDING_EXECUTION'
           assert d['runtime_authority'] is True
-          assert d['owner_release_authorization_present'] is False
-          assert d['promotion_eligible'] is False
-          assert d['release_or_tag_authorized'] is False
+          assert d['owner_release_authorization_present'] is True
+          assert d['owner_release_authorization_binding_complete'] is True
+          assert d['promotion_eligible'] is True
+          assert d['release_or_tag_authorized'] is True
           assert d['tag_created'] is False
           assert d['release_created'] is False
           assert d['stable_declared'] is False
           assert d['artifact_rebuilt'] is False
           assert d['artifact_substituted'] is False
           assert d['runtime_mutation'] is False
+          assert d['overwrite_existing_tag_forbidden'] is True
+          assert d['overwrite_existing_release_forbidden'] is True
           s=Path('.github/workflows/stable-release-tag-promotion.yml').read_text(encoding='utf-8')
           assert sum(1 for line in s.splitlines() if line.strip() == 'contents: read') == 1
           forbidden=['git'+' push','git'+' tag','gh'+' release','contents:'+' write','releases:'+' write']
