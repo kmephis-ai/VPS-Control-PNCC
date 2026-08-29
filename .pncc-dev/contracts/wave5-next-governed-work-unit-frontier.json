@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "role": "WAVE5_NEXT_GOVERNED_WORK_UNIT_FRONTIER",
+  "state": "ACTIVE",
+  "frontier_id": "REUSABLE_CANONICAL_WORK_UNIT_MATERIALIZATION_AUTHORITY_PREPARATION",
+  "title_template": "{work_unit_id} — Reusable canonical Work Unit materialization authority preparation",
+  "goal": "Prepare a default-deny reusable authority boundary that may create exactly one deterministic canonical PNCC Work Unit intake Issue from an exact PLAN_ONLY materialization proposal.",
+  "conflict_domain": "wave5-reusable-canonical-work-unit-materialization-authority-preparation",
+  "runtime_required": false,
+  "scope": [
+    "prepare an exact reusable Issue-intake materialization authority contract bound to the canonical planner and policy",
+    "define fresh Provider Truth, NO_WORK, deterministic proposal, duplicate-prevention and exact-current-main preconditions",
+    "define one-Issue-only target constraints and fail-closed provider readback requirements",
+    "keep the preparation transaction default-deny until separate explicit Owner Authorization"
+  ],
+  "forbidden_scope": [
+    "grant reusable Issue-write authority in the preparation transaction",
+    "create more than one canonical Work Unit Issue",
+    "mutate an existing Issue, PR or unrelated branch",
+    "mutate provider-state or Writer Lease under the materialization authority",
+    "perform runtime or product/runtime source mutation",
+    "mutate ADWF binding, release/tag/promotion, rulesets, PRIVATE evidence or 1080/1081 lifecycle"
+  ],
+  "required_checks": [
+    "wave5-governed-work-unit-materialization",
+    "public-safety",
+    "quality-fast",
+    "quality-deep"
+  ],
+  "exit_criteria": [
+    "preparation contract remains default-deny",
+    "future authority target is exactly one planner-derived canonical intake Issue",
+    "all planner/policy/provider/main/proposal anchors are explicit and fail closed",
+    "no Issue creation is performed by the preparation Work Unit"
+  ],
+  "next_natural_boundary": "EXPLICIT_OWNER_AUTHORIZATION_REUSABLE_CANONICAL_WORK_UNIT_MATERIALIZATION_ONLY"
+}

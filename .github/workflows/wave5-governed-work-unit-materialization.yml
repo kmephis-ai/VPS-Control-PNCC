@@ -1,0 +1,85 @@
+name: wave5-governed-work-unit-materialization
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  governed-work-unit-materialization:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Run WU-102 materialization planner tests
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_governed_work_unit_materialization_wu102.py' -v
+
+      - name: Compile PLAN_ONLY planner
+        run: python3 -m py_compile .pncc-dev/scripts/plan_governed_work_unit_materialization.py
+
+      - name: Assert immutable planner anchors remain exact
+        run: |
+          set -euo pipefail
+          test "$(git hash-object docs/roadmap/PNCC_PIPELINE_ROADMAP.md)" = "e5731248ac4b178e7b1aabbe2d9cd784cbc79b08"
+          test "$(git hash-object docs/architecture/PNCC_TARGET_DEVELOPMENT_PIPELINE.md)" = "bf5fcbee18d053d1d1d1e02d3f92feefbc0a4593"
+          test "$(git hash-object docs/governance/PROVIDER_TRUTH_WORK_UNIT_SELECTION.md)" = "c6b5c9e394415febd586273d3e64ef01c8628cf8"
+          test "$(git hash-object docs/governance/DURABLE_DEVELOPMENT_STATE.md)" = "2d8a8e7891051bf1b9b352a1e38b48f656eca51c"
+          test "$(git hash-object .pncc-dev/scripts/select_provider_work_unit.py)" = "8045a97d5344f058064690cb265b30f88973e2b8"
+          test "$(git hash-object .pncc-dev/schemas/work-unit.schema.json)" = "a6b23c5695262192175216e6293d832f8e835851"
+
+      - name: Assert exact WU-102 branch boundary
+        if: github.event_name == 'pull_request' && github.head_ref == 'agent/PIPE-WU-102-governed-work-unit-materialization-planner'
+        run: |
+          set -euo pipefail
+          test "${{ github.event.pull_request.base.sha }}" = "0a562bdd2964629c4624be476f2569004a1e79e4"
+          git fetch --no-tags --depth=1 origin "${{ github.event.pull_request.base.sha }}"
+          git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}" | sort > /tmp/actual
+          printf '%s\n' \
+            '.github/workflows/wave5-governed-work-unit-materialization.yml' \
+            '.pncc-dev/contracts/governed-work-unit-materialization-policy.json' \
+            '.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json' \
+            '.pncc-dev/scripts/plan_governed_work_unit_materialization.py' \
+            '.pncc-dev/tests/test_governed_work_unit_materialization_wu102.py' | sort > /tmp/expected
+          diff -u /tmp/expected /tmp/actual
+          ! grep -E '^(\.pncc-state/|src/windows-v7/|\.adwf-consumer/|tools/runtime-agent/)' /tmp/actual
+
+      - name: Assert planner and workflow remain read only
+        run: |
+          python3 - <<'PY'
+          import ast
+          from pathlib import Path
+          planner = Path('.pncc-dev/scripts/plan_governed_work_unit_materialization.py')
+          tree = ast.parse(planner.read_text(encoding='utf-8'))
+          forbidden_imports = {'subprocess', 'requests', 'httpx'}
+          for node in ast.walk(tree):
+              if isinstance(node, ast.Import):
+                  assert not ({n.name.split('.')[0] for n in node.names} & forbidden_imports)
+              elif isinstance(node, ast.ImportFrom):
+                  assert (node.module or '').split('.')[0] not in forbidden_imports
+          text = Path('.github/workflows/wave5-governed-work-unit-materialization.yml').read_text(encoding='utf-8').lower()
+          forbidden = [
+              'contents:' + ' write',
+              'issues:' + ' write',
+              'pull-requests:' + ' write',
+              'git' + ' push',
+              'gh' + ' api',
+              '--method' + ' post',
+              '--method' + ' patch',
+              '--method' + ' put',
+              '--method' + ' delete',
+              'force:' + ' true',
+          ]
+          for token in forbidden:
+              assert token not in text, token
+          PY
+
+      - name: Assert repository remains clean
+        run: test -z "$(git status --porcelain)"
