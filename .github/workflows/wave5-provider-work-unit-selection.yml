@@ -92,7 +92,7 @@ jobs:
               'contents:'+' write','issues:'+' write','pull-requests:'+' write','actions:'+' write',
               'git'+' push','git'+' tag','gh'+' release','gh'+' pr merge','gh'+' issue close',
               '--method'+' POST','--method'+' PATCH','--method'+' PUT','--method'+' DELETE',
-              'curl -X POST','curl -X PATCH','curl -X PUT','curl -X DELETE'
+              'curl -X '+'POST','curl -X '+'PATCH','curl -X '+'PUT','curl -X '+'DELETE'
           ]
           for token in forbidden:
               assert token.lower() not in s.lower(), token
