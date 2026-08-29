@@ -1,0 +1,47 @@
+name: runtime-v701-nine-scope-owner-qualification
+
+on:
+  pull_request:
+    paths:
+      - 'tools/runtime-agent/Invoke-PnccV701NineScopeOwnerQualification.ps1'
+      - '.pncc-dev/pester/Wu087NineScopeOwnerQualification.Tests.ps1'
+      - '.pncc-dev/tests/runtime-v701-nine-scope-plan.fixture.json'
+      - '.github/workflows/runtime-v701-nine-scope-owner-qualification.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  plan-only-windows-ps51:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Parse runner with Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $path = Join-Path $env:GITHUB_WORKSPACE 'tools\runtime-agent\Invoke-PnccV701NineScopeOwnerQualification.ps1'
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile($path,[ref]$tokens,[ref]$errors)
+          if (@($errors).Count -ne 0) { $errors | Format-List | Out-String | Write-Error; exit 1 }
+          $bytes = [IO.File]::ReadAllBytes($path)
+          if ($bytes.Length -lt 3 -or $bytes[0] -ne 0xEF -or $bytes[1] -ne 0xBB -or $bytes[2] -ne 0xBF) { throw 'runner must retain UTF-8 BOM for Windows PowerShell 5.1' }
+          Write-Host 'WU087_PS51_AST=PASS'
+
+      - name: Execute Plan-only contract
+        shell: powershell
+        run: |
+          $out = Join-Path $env:RUNNER_TEMP 'pncc-wu087-plan'
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          $runner = Join-Path $env:GITHUB_WORKSPACE 'tools\runtime-agent\Invoke-PnccV701NineScopeOwnerQualification.ps1'
+          $fixture = Join-Path $env:GITHUB_WORKSPACE '.pncc-dev\tests\runtime-v701-nine-scope-plan.fixture.json'
+          & "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -NoProfile -ExecutionPolicy Bypass -File $runner -Mode Plan -OutputRoot $out -FixturePath $fixture
+          if ($LASTEXITCODE -ne 0) { throw "WU087 Plan failed with exit code $LASTEXITCODE" }
+          $result = Get-Content -LiteralPath (Join-Path $out 'PNCC-WU087-plan-result.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ([string]$result.state -cne 'PLAN_PASS') { throw 'WU087 plan state mismatch' }
+          if ([bool]$result.runtime_execution_allowed) { throw 'hosted CI cannot enable runtime execution' }
+          if ([bool]$result.runtime_mutation -or [bool]$result.reserve_1080_mutation -or [bool]$result.primary_1081_tunnel_mutation) { throw 'hosted CI mutation boundary violated' }
+          if ([bool]$result.repository_authority_mutation -or [bool]$result.runtime_authority -or [bool]$result.promotion_eligible -or [bool]$result.release_or_tag_authorized) { throw 'hosted CI authority boundary violated' }
+          Write-Host 'WU087_PLAN_CONTRACT=PASS RUNTIME_MUTATION=false RUNTIME_AUTHORITY=false PROMOTION_ELIGIBLE=false'
