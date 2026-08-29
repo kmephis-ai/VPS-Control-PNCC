@@ -27,7 +27,6 @@ jobs:
           set -euo pipefail
           test "$(git hash-object .pncc-dev/scripts/plan_governed_work_unit_materialization.py)" = "c561b34dbf3fb7cfefd1a2a9780aba6e857ec78c"
           test "$(git hash-object .pncc-dev/contracts/governed-work-unit-materialization-policy.json)" = "8b6b6d9116b96a8f4746c22906a522589a9ae6e0"
-          test "$(git hash-object .pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json)" = "3897e6db3bb9d853de7b4b04cebc82c6f0d55563"
           test "$(git hash-object .pncc-dev/scripts/select_provider_work_unit.py)" = "8045a97d5344f058064690cb265b30f88973e2b8"
           test "$(git hash-object docs/governance/PROVIDER_TRUTH_WORK_UNIT_SELECTION.md)" = "c6b5c9e394415febd586273d3e64ef01c8628cf8"
           test "$(git hash-object .pncc-dev/schemas/work-unit.schema.json)" = "a6b23c5695262192175216e6293d832f8e835851"
@@ -58,6 +57,11 @@ jobs:
           assert c['owner_authorization_present'] is False
           assert c['reusable_authority_granted'] is False
           assert c['reusable_issue_creation_authority'] is False
+          assert c['frontier_blob_sha_at_preparation']=='3897e6db3bb9d853de7b4b04cebc82c6f0d55563'
+          assert c['frontier_semantics']=='DYNAMIC_GOVERNED_INPUT_REVALIDATED_EVERY_TRANSACTION'
+          assert c['frontier_blob_is_lifetime_authority_anchor'] is False
+          assert c['frontier_must_be_canonical_on_fresh_current_main'] is True
+          assert c['frontier_blob_sha_must_be_recorded_per_transaction'] is True
           t=Path('.github/workflows/wave5-reusable-canonical-work-unit-materialization-authority-preparation.yml').read_text(encoding='utf-8').lower()
           forbidden=[
               'contents:'+' write', 'issues:'+' write', 'pull-requests:'+' write',
