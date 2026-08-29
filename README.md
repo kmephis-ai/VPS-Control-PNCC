@@ -4,9 +4,9 @@ Public engineering repository for **Personal Network Control Center (PNCC)**, ev
 
 ## Repository status
 
-**Stable v7.0.0 released / post-Stable development active.**
+**Stable v7.0.0 released / immutable / known startup UI defect; patch remediation active.**
 
-The first governed Stable release completed the full source → deterministic artifact → physical Runtime Qualification → Runtime Authority → Owner-authorized promotion lifecycle.
+The first governed Stable release completed the full source → deterministic artifact → physical Runtime Qualification → Runtime Authority → Owner-authorized promotion lifecycle. A later exact-release startup probe found a startup-blocking false positive in the product's `FUNCTIONAL_CONSISTENCY` self-gate. The published v7.0.0 ZIP/tag remain immutable historical evidence and are not being overwritten.
 
 Stable release identity:
 
@@ -16,10 +16,11 @@ Stable release identity:
 - SHA-256: `1407f82b15ea2b70ba56b7406bb8dd0d9097c459b630d016d6a7b5f10a49e599`;
 - size: `700897` bytes;
 - fresh Stable nine-scope Runtime Qualification: `PASS`;
-- Runtime Authority: `true`;
-- release asset independently re-downloaded and SHA/size verified.
+- Runtime Authority: `true` for the qualified runtime evidence boundary;
+- release asset independently re-downloaded and SHA/size verified;
+- functional UI startup acceptance: `KNOWN_DEFECT / FAIL` for the released v7.0.0 artifact.
 
-Machine-readable completion authority is recorded in `.pncc-dev/attestations/stable-v7.0.0-completion.json`.
+Machine-readable completion history remains in `.pncc-dev/attestations/stable-v7.0.0-completion.json`. The later startup-defect truth is recorded separately in `.pncc-dev/attestations/stable-v7.0.0-startup-defect.json`; it does not rewrite historical Runtime Qualification, but it prevents the released v7.0.0 UI from being treated as currently accepted for normal startup.
 
 Stable rollback baseline remains:
 
@@ -33,7 +34,7 @@ Stable rollback baseline remains:
 - **Local PNCC Data** — private Instance Configuration Truth.
 - **Real Windows / Keenetic / VPS nodes** — Runtime Truth.
 
-GitHub-hosted CI verifies engineering properties. It does **not** manufacture physical Runtime Truth. Runtime claims require trusted physical evidence and exact candidate/artifact identity.
+GitHub-hosted CI verifies engineering properties. It does **not** manufacture physical Runtime Truth or physical WinForms startup acceptance. Runtime/startup claims require trusted physical evidence and exact candidate/artifact identity.
 
 ## Fixed tunnel contract
 
@@ -45,11 +46,11 @@ GitHub-hosted CI verifies engineering properties. It does **not** manufacture ph
 
 Current governed flow:
 
-`Issue / ADWF Work Unit → exact base/branch → implementation → tests → PR → exact-head GitHub-hosted CI → deterministic artifact identity → trusted local Runtime Qualification → sanitized evidence → authority/promotion boundary`
+`Issue / ADWF Work Unit → exact base/branch → implementation → tests → PR → exact-head GitHub-hosted CI → deterministic artifact identity → trusted local Runtime Qualification / startup acceptance → sanitized evidence → authority/promotion boundary`
 
 No public self-hosted Actions runner is attached to the home network.
 
-The first Stable lifecycle established **L4 — Artifact + Runtime Truth**. The next development frontier is Wave 5: bounded **ADWF Autonomous Execution**, while security/runtime/promotion boundaries continue to fail closed and require explicit authority where defined.
+The first Stable lifecycle established **L4 — Artifact + Runtime Truth**. Wave 5 bounded **ADWF Autonomous Execution** remains the strategic frontier, but writer-authority expansion is temporarily paused for the governed v7.0.0 startup-defect remediation. The corrected patch line must pass the mandatory physical startup contract: exact governed artifact → fresh extract → Windows PowerShell 5.1 preflight → package manifest PASS → Demo startup → `FUNCTIONAL_CONSISTENCY` PASS → WinForms UI observed → clean exit. The expected patch lineage is v7.0.1; no new promotion occurs before that exact-artifact evidence exists.
 
 See:
 
