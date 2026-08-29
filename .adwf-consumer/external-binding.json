@@ -4,7 +4,7 @@
   "role": "EXTERNAL_CONSUMER_BINDING",
   "framework": {
     "repository": "kmephis-ai/AI-Development-Framework",
-    "source_sha": "730cab912f779bec1f3208c66eda1889f69d6f4c"
+    "source_sha": "c7e0c059a901869d6369864e98d06238484778ec"
   },
   "consumer": {
     "repository": "kmephis-ai/VPS-Control-PNCC",
@@ -55,5 +55,5 @@
     "secrets": "FORBIDDEN"
   },
   "mutation_authority": "NONE_BINDING_IS_PROOF_ONLY",
-  "binding_sha256": "911f787ca3c065e91cc2ee11918658b7243e14f317f97dadb10b1c3d9df9655e"
+  "binding_sha256": "1e2939e25526df1832dbd650a8c78024a729063d485aa983b503985dae7a9b1d"
 }
