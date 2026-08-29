@@ -1,0 +1,108 @@
+name: runtime-v701-receipt-authority-candidate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.pncc-dev/attestations/runtime-qualification-v7.0.1.json'
+      - '.pncc-dev/attestations/stable-runtime-authority-decision-v7.0.1.json'
+      - '.pncc-dev/scripts/validate_runtime_qualification_v701_receipt.py'
+      - '.pncc-dev/scripts/evaluate_stable_runtime_authority_decision_v701.py'
+      - '.pncc-dev/tests/test_v701_runtime_truth_receipt.py'
+      - '.github/workflows/runtime-receipt-admission.yml'
+      - '.github/workflows/stable-runtime-authority-decision.yml'
+      - '.github/workflows/runtime-v701-receipt-authority-candidate.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.pncc-dev/attestations/runtime-qualification-v7.0.1.json'
+      - '.pncc-dev/attestations/stable-runtime-authority-decision-v7.0.1.json'
+      - '.pncc-dev/scripts/validate_runtime_qualification_v701_receipt.py'
+      - '.pncc-dev/scripts/evaluate_stable_runtime_authority_decision_v701.py'
+      - '.pncc-dev/tests/test_v701_runtime_truth_receipt.py'
+      - '.github/workflows/runtime-receipt-admission.yml'
+      - '.github/workflows/stable-runtime-authority-decision.yml'
+      - '.github/workflows/runtime-v701-receipt-authority-candidate.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-v701-runtime-truth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Compile WU-088 validators and tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile \
+            .pncc-dev/scripts/validate_runtime_qualification_v701_receipt.py \
+            .pncc-dev/scripts/evaluate_stable_runtime_authority_decision_v701.py \
+            .pncc-dev/tests/test_v701_runtime_truth_receipt.py
+
+      - name: Validate v7.0.1 sanitized receipt
+        run: python3 .pncc-dev/scripts/validate_runtime_qualification_v701_receipt.py
+
+      - name: Validate v7.0.1 authority-candidate decision
+        run: python3 .pncc-dev/scripts/evaluate_stable_runtime_authority_decision_v701.py
+
+      - name: Run WU-088 regressions
+        run: python3 .pncc-dev/tests/test_v701_runtime_truth_receipt.py
+
+      - name: Assert no PRIVATE runtime payload is tracked
+        shell: bash
+        run: |
+          set -euo pipefail
+          tracked="$(git ls-files)"
+          if printf '%s\n' "$tracked" | grep -Eq '(^|/)(private-evidence\.zip|PNCC-WU087\.log|wu087-owner-run-result\.json)$'; then
+            echo 'PRIVATE_RUNTIME_PAYLOAD_TRACKED=true' >&2
+            exit 1
+          fi
+          echo 'PRIVATE_RUNTIME_PAYLOAD_TRACKED=false'
+
+      - name: Assert PR product-source boundary
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --name-only "${BASE_SHA}...${HEAD_SHA}" > "${RUNNER_TEMP}/wu088-files.txt"
+          if grep -Eq '^src/windows-v7/' "${RUNNER_TEMP}/wu088-files.txt"; then
+            echo 'PRODUCT_SOURCE_MUTATION_FORBIDDEN=true' >&2
+            cat "${RUNNER_TEMP}/wu088-files.txt" >&2
+            exit 1
+          fi
+          echo 'PRODUCT_SOURCE_MUTATION=false'
+
+      - name: Assert workflow cannot grant write, release or tag authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('.github/workflows/runtime-v701-receipt-authority-candidate.yml')
+          s=p.read_text(encoding='utf-8')
+          assert sum(1 for line in s.splitlines() if line.strip() == 'contents: read') == 1
+          forbidden=[
+              'contents:'+' write',
+              'releases:'+' write',
+              'git'+' push',
+              'git'+' tag',
+              'gh'+' release',
+          ]
+          for token in forbidden:
+              assert token.lower() not in s.lower(), token
+          PY
+
+      - name: Assert repository remains clean
+        run: test -z "$(git status --porcelain --untracked-files=all)"
