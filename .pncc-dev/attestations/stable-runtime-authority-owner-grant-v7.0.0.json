@@ -2,7 +2,7 @@
   "schema_version": 1,
   "contract_id": "PNCC_STABLE_RUNTIME_AUTHORITY_OWNER_GRANT_V1",
   "stable_version": "7.0.0",
-  "authoritative_main": "b3d75cc353e10b608d58edf1c46104b8a2c39128",
+  "authoritative_main": "546ca7b44a93546a6b5c16694bfaa1710b58db44",
   "stable_artifact_filename": "VPS-Control-v7.0.0.zip",
   "stable_artifact_sha256": "1407f82b15ea2b70ba56b7406bb8dd0d9097c459b630d016d6a7b5f10a49e599",
   "stable_artifact_size_bytes": 700897,
@@ -11,10 +11,10 @@
   "wu073_state": "STABLE_NINE_SCOPE_RECONCILE_PASS",
   "wu074_decision_state": "ELIGIBLE_FOR_OWNER_PROMOTION_DECISION",
   "runtime_authority_candidate": true,
-  "owner_authorization_present": false,
-  "owner_authorization_binding_complete": false,
-  "grant_state": "WAITING_OWNER_AUTHORIZATION",
-  "runtime_authority": false,
+  "owner_authorization_present": true,
+  "owner_authorization_binding_complete": true,
+  "grant_state": "RUNTIME_AUTHORITY_GRANTED",
+  "runtime_authority": true,
   "promotion_eligible": false,
   "release_or_tag_authorized": false,
   "tag_created": false,
@@ -23,5 +23,7 @@
   "artifact_rebuilt": false,
   "artifact_substituted": false,
   "runtime_mutation": false,
-  "next_transaction": "EXPLICIT_OWNER_AUTHORIZATION_REQUIRED"
+  "product_bytes_mutated": false,
+  "runtime_bytes_mutated": false,
+  "next_transaction": "SEPARATE_EXPLICIT_OWNER_AUTHORIZED_RELEASE_PROMOTION"
 }
