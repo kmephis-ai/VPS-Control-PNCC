@@ -22,7 +22,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
 
-      - name: Parse closed runtime qualification contracts
+      - name: Parse runtime qualification contracts
         shell: bash
         run: |
           set -euo pipefail
@@ -34,6 +34,7 @@ jobs:
             '.pncc-dev/schemas/runtime-qualification-request.schema.json',
             '.pncc-dev/schemas/runtime-qualification-result.schema.json',
             '.pncc-dev/requests/runtime-qualification-rc14.39.json',
+            '.pncc-dev/requests/runtime-qualification-v7.0.1.json',
           )
           for raw in paths:
               p=Path(raw); json.loads(p.read_text(encoding='utf-8-sig')); print('JSON_PARSE=PASS PATH='+raw)
@@ -48,22 +49,34 @@ jobs:
           set -euo pipefail
           python -m unittest discover -s .pncc-dev/tests -p 'test_runtime_qualification.py' -v
 
-      - name: Prove exact current candidate waits for trusted runtime evidence
+      - name: Prove historical RC14.39 remains exactly governed
         shell: bash
         run: |
           set -euo pipefail
           out="$(python .pncc-dev/scripts/evaluate_runtime_qualification.py --repository-root . --request .pncc-dev/requests/runtime-qualification-rc14.39.json)"
           echo "$out"
           grep -F 'RUNTIME_QUALIFICATION_STATE=WAITING_RUNTIME_EVIDENCE' <<<"$out"
+          grep -F 'CANDIDATE_ID=PNCC-RC14.39-90C9E8698C64' <<<"$out"
           grep -F 'ARTIFACT_SHA256=8caad796469886b90d9928fba385fc4a4f0f3d60bcb6ee6b7cb98c4c2e4390b3' <<<"$out"
           grep -F 'RUNTIME_AUTHORITY=false PROMOTION_ELIGIBLE=false' <<<"$out"
 
-      - name: Prove hosted CI cannot satisfy runtime verification requirement
+      - name: Prove active v7.0.1 waits for trusted runtime evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$(python .pncc-dev/scripts/evaluate_runtime_qualification.py --repository-root . --request .pncc-dev/requests/runtime-qualification-v7.0.1.json)"
+          echo "$out"
+          grep -F 'RUNTIME_QUALIFICATION_STATE=WAITING_RUNTIME_EVIDENCE' <<<"$out"
+          grep -F 'CANDIDATE_ID=PNCC-V7.0.1-D58023321360' <<<"$out"
+          grep -F 'ARTIFACT_SHA256=22b843330516e481c467fe5cbe6d1d4c6758510c71bd2c46ebeec337f403ae72' <<<"$out"
+          grep -F 'RUNTIME_AUTHORITY=false PROMOTION_ELIGIBLE=false' <<<"$out"
+
+      - name: Prove hosted CI cannot satisfy active runtime verification requirement
         shell: bash
         run: |
           set -euo pipefail
           set +e
-          python .pncc-dev/scripts/evaluate_runtime_qualification.py --repository-root . --request .pncc-dev/requests/runtime-qualification-rc14.39.json --require-runtime-verified > require.out 2> require.err
+          python .pncc-dev/scripts/evaluate_runtime_qualification.py --repository-root . --request .pncc-dev/requests/runtime-qualification-v7.0.1.json --require-runtime-verified > require.out 2> require.err
           rc=$?
           set -e
           test "$rc" -eq 3

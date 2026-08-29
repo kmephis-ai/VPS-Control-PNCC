@@ -13,7 +13,7 @@ Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
 
 $AgentId = 'PNCC_WINDOWS_RUNTIME_AGENT'
-$AgentVersion = '0.2.0'
+$AgentVersion = '0.3.0'
 $ExpectedRequestContract = 'PNCC_RUNTIME_QUALIFICATION_REQUEST_V1'
 $ExpectedScopes = @(
     'WINDOWS_BASELINE',
@@ -39,8 +39,14 @@ function Test-LowerHex([string]$Value, [int]$Length) {
 }
 
 function Test-CandidateIdentity([string]$CandidateId, [string]$SourceSha) {
-    if ($CandidateId -cnotmatch '^PNCC-(?:RC14\.39|V7\.0\.0)-([0-9A-F]{12})$') { return $false }
-    $suffix = $Matches[1]
+    $suffix = ''
+    if ($CandidateId -cmatch '^PNCC-RC14\.39-([0-9A-F]{12})$') {
+        $suffix = $Matches[1]
+    } elseif ($CandidateId -cmatch '^PNCC-V7\.0\.[0-9]+-([0-9A-F]{12})$') {
+        $suffix = $Matches[1]
+    } else {
+        return $false
+    }
     return ($suffix -ceq $SourceSha.Substring(0,12).ToUpperInvariant())
 }
 
@@ -48,8 +54,8 @@ function Test-RequestIdentity([string]$RequestId, [string]$CandidateId) {
     if ($CandidateId -cmatch '^PNCC-RC14\.39-([0-9A-F]{12})$') {
         return ($RequestId -ceq ('PNCC-RQ-RC14.39-' + $Matches[1]))
     }
-    if ($CandidateId -cmatch '^PNCC-V7\.0\.0-([0-9A-F]{12})$') {
-        return ($RequestId -ceq ('PNCC-RQ-V7.0.0-' + $Matches[1]))
+    if ($CandidateId -cmatch '^PNCC-V(7\.0\.[0-9]+)-([0-9A-F]{12})$') {
+        return ($RequestId -ceq ('PNCC-RQ-V' + $Matches[1] + '-' + $Matches[2]))
     }
     return $false
 }
