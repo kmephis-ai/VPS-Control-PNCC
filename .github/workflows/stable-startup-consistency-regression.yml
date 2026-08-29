@@ -46,30 +46,24 @@ jobs:
           & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File '.pncc-dev\tests\Test-V7ConsistencyStartupRegression.ps1'
           if($LASTEXITCODE -ne 0){ throw "startup consistency regression failed rc=$LASTEXITCODE" }
 
-      - name: Verify corrected module SHA256 is sealed in package manifest
-        shell: powershell
-        run: |
-          $ErrorActionPreference='Stop'
-          $module='src\windows-v7\modules\V7-Consistency.ps1'
-          $manifestPath='src\windows-v7\VPS-Control-v7-SHA256.txt'
-          $hash=([string](Get-FileHash -LiteralPath $module -Algorithm SHA256).Hash).ToLowerInvariant()
-          $manifest=Get-Content -LiteralPath $manifestPath -Raw
-          $expectedLine="$hash  modules\V7-Consistency.ps1"
-          if(-not $manifest.Contains($expectedLine)){throw "manifest does not seal corrected module SHA256=$hash"}
-          Write-Host "WU080_WORKTREE_MODULE_SHA256=$hash"
-          Write-Host 'PACKAGE_MANIFEST_CORRECTED_MODULE=PASS'
-
-      - name: Emit canonical Git-blob identities
+      - name: Verify corrected module Git-blob SHA256 is sealed in package manifest
         shell: python
         run: |
           import hashlib, subprocess
-          for label, path in (
-              ('MODULE','src/windows-v7/modules/V7-Consistency.ps1'),
-              ('MANIFEST','src/windows-v7/VPS-Control-v7-SHA256.txt'),
-          ):
-              blob=subprocess.check_output(['git','show',f'HEAD:{path}'])
-              print(f'WU080_GIT_BLOB_{label}_SHA256={hashlib.sha256(blob).hexdigest()}')
-              print(f'WU080_GIT_BLOB_{label}_BYTES={len(blob)}')
+          module='src/windows-v7/modules/V7-Consistency.ps1'
+          manifest_path='src/windows-v7/VPS-Control-v7-SHA256.txt'
+          module_blob=subprocess.check_output(['git','show',f'HEAD:{module}'])
+          manifest_blob=subprocess.check_output(['git','show',f'HEAD:{manifest_path}'])
+          module_sha=hashlib.sha256(module_blob).hexdigest()
+          manifest=manifest_blob.decode('utf-8-sig')
+          expected=f'{module_sha}  modules\\V7-Consistency.ps1'
+          if expected not in manifest:
+              raise SystemExit(f'manifest does not seal canonical module SHA256={module_sha}')
+          print(f'WU080_GIT_BLOB_MODULE_SHA256={module_sha}')
+          print(f'WU080_GIT_BLOB_MODULE_BYTES={len(module_blob)}')
+          print(f'WU080_GIT_BLOB_MANIFEST_SHA256={hashlib.sha256(manifest_blob).hexdigest()}')
+          print(f'WU080_GIT_BLOB_MANIFEST_BYTES={len(manifest_blob)}')
+          print('PACKAGE_MANIFEST_CORRECTED_MODULE=PASS')
 
       - name: Assert physical startup remains private evidence only
         shell: powershell
