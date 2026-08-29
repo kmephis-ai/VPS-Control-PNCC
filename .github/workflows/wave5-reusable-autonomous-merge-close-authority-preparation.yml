@@ -1,0 +1,71 @@
+name: wave5-reusable-autonomous-merge-close-authority-preparation
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  reusable-merge-close-authority-preparation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Validate exact preparation contract and eligibility policy blob
+        run: python3 .pncc-dev/scripts/validate_reusable_autonomous_merge_close_authority_preparation.py
+      - name: Run WU-100 adversarial preparation tests
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_reusable_autonomous_merge_close_authority_preparation_wu100.py' -v
+      - name: Assert exact WU-100 branch and bounded diff
+        if: github.event_name == 'pull_request'
+        run: |
+          set -euo pipefail
+          test "${{ github.head_ref }}" = "agent/PIPE-WU-100-reusable-merge-close-authority-preparation"
+          git fetch --no-tags --depth=1 origin "${{ github.event.pull_request.base.sha }}"
+          git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}" | sort > /tmp/actual
+          printf '%s\n' \
+            '.github/workflows/wave5-autonomous-merge-issue-close-eligibility.yml' \
+            '.github/workflows/wave5-reusable-autonomous-merge-close-authority-preparation.yml' \
+            '.pncc-dev/contracts/reusable-autonomous-merge-close-authority-preparation.json' \
+            '.pncc-dev/scripts/validate_reusable_autonomous_merge_close_authority_preparation.py' \
+            '.pncc-dev/tests/test_reusable_autonomous_merge_close_authority_preparation_wu100.py' | sort > /tmp/expected
+          diff -u /tmp/expected /tmp/actual
+      - name: Assert workflow itself is read only
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          t=Path('.github/workflows/wave5-reusable-autonomous-merge-close-authority-preparation.yml').read_text(encoding='utf-8').lower()
+          forbidden=[
+              'contents:'+' write','issues:'+' write','pull-requests:'+' write',
+              'git'+' push','gh'+' pr merge','gh'+' issue close',
+              '--method'+' post','--method'+' patch','--method'+' put','--method'+' delete'
+          ]
+          for token in forbidden:
+              assert token not in t, token
+          PY
+      - name: Assert preparation grants no authority
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('.pncc-dev/contracts/reusable-autonomous-merge-close-authority-preparation.json').read_text(encoding='utf-8'))
+          fields=[
+              'reusable_authority_granted','reusable_autonomous_merge_authority','reusable_autonomous_issue_close_authority',
+              'direct_main_write_authority','provider_state_write_authority','lease_acquisition_authority',
+              'heartbeat_authority','release_authority','runtime_action_authority','product_runtime_mutation_authority',
+              'adwf_binding_mutation_authority','promotion_release_tag_authority','ruleset_policy_mutation_authority',
+              'private_evidence_publication_authority','reserve_1080_lifecycle_mutation_authority',
+              'primary_1081_lifecycle_mutation_authority','force_ref_update_authority','silent_lease_steal_authority'
+          ]
+          assert p['owner_authorization_present'] is False
+          assert p['owner_authorization_binding_complete'] is False
+          assert all(p[k] is False for k in fields), fields
+          PY
+      - name: Assert repository remains clean
+        run: test -z "$(git status --porcelain)"
