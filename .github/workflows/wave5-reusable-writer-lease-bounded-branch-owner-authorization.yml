@@ -1,0 +1,65 @@
+name: wave5-reusable-writer-lease-bounded-branch-owner-authorization
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  reusable-writer-lease-bounded-branch-owner-authorization:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Run exact WU-101 reusable lifecycle Owner Authorization tests
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_reusable_writer_lease_bounded_branch_owner_authorization_wu101.py' -v
+      - name: Assert exact reusable lifecycle authorization anchors
+        run: |
+          set -euo pipefail
+          test "$(git hash-object .pncc-dev/contracts/reusable-writer-lease-bounded-branch-authority-preparation.json)" = "b4205fcda942178af66e216f94b75ece1df72247"
+          test "$(git hash-object .pncc-dev/attestations/reusable-writer-lease-bounded-branch-owner-authorization-wu101.json)" = "0193ba44ea71ada173edf6a3f7afdb2c0a46bedf"
+          test "$(git hash-object .pncc-dev/contracts/reusable-writer-lease-bounded-branch-authorized.json)" = "717e1f9081915f40fad2e0620c64245a650ca235"
+          test "$(git hash-object .pncc-dev/contracts/writer-lease-lifecycle-autonomous-execution-policy.json)" = "942492b4ffe2c2a8c4369b15b617ad9f7f795643"
+          test "$(git hash-object .pncc-dev/contracts/writer-lease-claim-admission-policy.json)" = "bf83539899df5c5a4e660734e861653f1d4cc1ee"
+          test "$(git hash-object .pncc-dev/contracts/writer-lease-registry-topology.json)" = "2b9dec3f2b28aadb80ac8edbb09bdc9d453115a1"
+          test "$(git hash-object .pncc-dev/scripts/select_provider_work_unit.py)" = "8045a97d5344f058064690cb265b30f88973e2b8"
+          test "$(git hash-object .pncc-dev/scripts/evaluate_writer_lease_claim_admission.py)" = "f93eae649008c9b1e19cd12e06b43c108881146a"
+          test "$(git hash-object .pncc-dev/scripts/evaluate_writer_lease_lifecycle.py)" = "d50eae850b64fa5f3f3f657a10bdb476ad769ce8"
+          test "$(git hash-object .pncc-dev/scripts/validate_state.py)" = "e9a2dc4c3e4dcca903c052066cac6ee448c581e7"
+          test "$(git hash-object .pncc-dev/contracts/writer-lease-lifecycle-branch-execution-authorized.json)" = "95e9f1ff1548221fca31ebba9c6e8d3432e9345d"
+      - name: Assert exact authorization branch and bounded diff
+        if: github.event_name == 'pull_request' && github.head_ref == 'agent/PIPE-WU-101-reusable-lifecycle-owner-authorization'
+        run: |
+          set -euo pipefail
+          test "${{ github.event.pull_request.base.sha }}" = "f82e1f6975d2dcabf4687340809af2b33da38493"
+          git fetch --no-tags --depth=1 origin "${{ github.event.pull_request.base.sha }}"
+          git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}" | sort > /tmp/actual
+          printf '%s\n' \
+            '.github/workflows/wave5-reusable-writer-lease-bounded-branch-owner-authorization.yml' \
+            '.pncc-dev/attestations/reusable-writer-lease-bounded-branch-owner-authorization-wu101.json' \
+            '.pncc-dev/contracts/reusable-writer-lease-bounded-branch-authorized.json' \
+            '.pncc-dev/tests/test_reusable_writer_lease_bounded_branch_owner_authorization_wu101.py' | sort > /tmp/expected
+          diff -u /tmp/expected /tmp/actual
+      - name: Assert workflow itself is read only
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          t=Path('.github/workflows/wave5-reusable-writer-lease-bounded-branch-owner-authorization.yml').read_text(encoding='utf-8').lower()
+          forbidden=[
+              'contents:'+' write','issues:'+' write','pull-requests:'+' write',
+              'git'+' push','gh'+' pr merge','gh'+' issue close',
+              '--method'+' post','--method'+' patch','--method'+' put','--method'+' delete',
+              'update-ref'+' -f','force:'+' true'
+          ]
+          for token in forbidden:
+              assert token not in t, token
+          PY
+      - name: Assert repository remains clean
+        run: test -z "$(git status --porcelain)"
