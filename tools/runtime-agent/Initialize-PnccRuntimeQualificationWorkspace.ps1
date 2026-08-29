@@ -116,9 +116,8 @@ if ([string]::IsNullOrWhiteSpace($innerName) -or [IO.Path]::GetFileName($innerNa
 
 $candidateSuffix = ''
 if ($candidateId -cmatch '^PNCC-V(7\.0\.[0-9]+)-([0-9A-F]{12})$') {
-    $stableVersion = $Matches[1]
     $candidateSuffix = $Matches[2]
-    $expectedCandidateProviderName = ('PNCC-V' + $stableVersion + '-' + $sourceSha)
+    $expectedCandidateProviderName = 'PNCC-CANDIDATE-' + $sourceSha
 } elseif ($candidateId -cmatch '^PNCC-RC14\.39-([0-9A-F]{12})$') {
     $candidateSuffix = $Matches[1]
     $expectedCandidateProviderName = 'PNCC-RC14.39-' + $sourceSha
