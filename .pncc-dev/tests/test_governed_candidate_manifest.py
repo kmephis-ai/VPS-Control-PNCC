@@ -9,6 +9,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 STRICT_PATH = REPO_ROOT / ".pncc-dev" / "scripts" / "validate_governed_candidate_manifest.py"
+GENERATOR_PATH = REPO_ROOT / ".pncc-dev" / "scripts" / "generate_candidate_manifest.py"
 EXAMPLE_PATH = REPO_ROOT / ".pncc-dev" / "examples" / "candidate-manifest.synthetic.json"
 
 SPEC = importlib.util.spec_from_file_location("pncc_governed_candidate_manifest", STRICT_PATH)
@@ -17,6 +18,13 @@ if SPEC is None or SPEC.loader is None:
 VALIDATOR = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = VALIDATOR
 SPEC.loader.exec_module(VALIDATOR)
+
+GEN_SPEC = importlib.util.spec_from_file_location("pncc_candidate_manifest_generator", GENERATOR_PATH)
+if GEN_SPEC is None or GEN_SPEC.loader is None:
+    raise RuntimeError("Unable to load candidate manifest generator")
+GENERATOR = importlib.util.module_from_spec(GEN_SPEC)
+sys.modules[GEN_SPEC.name] = GENERATOR
+GEN_SPEC.loader.exec_module(GENERATOR)
 
 SHA = "c7f9dd033f108a5cf73cb869ee184159c89803f8"
 REQUIRED = (
@@ -28,8 +36,11 @@ REQUIRED = (
 
 def governed_fixture(version="7.0.0"):
     value = json.loads(EXAMPLE_PATH.read_text(encoding="utf-8"))
-    stable = version == "7.0.0"
-    value["candidate_id"] = ("PNCC-V7.0.0-" if stable else "PNCC-RC14.39-") + "C7F9DD033F10"
+    if version == "7.0.0-rc14.39":
+        prefix = "PNCC-RC14.39-"
+    else:
+        prefix = f"PNCC-V{version}-"
+    value["candidate_id"] = prefix + "C7F9DD033F10"
     value["artifact_role"] = "RUNTIME_CANDIDATE"
     value["source"] = {
         "repository": "kmephis-ai/VPS-Control-PNCC", "commit_sha": SHA,
@@ -58,6 +69,10 @@ class GovernedCandidateManifestTests(unittest.TestCase):
     def test_valid_stable_candidate_passes(self):
         self.assertEqual([], VALIDATOR.validate_governed_manifest(governed_fixture("7.0.0")))
 
+    def test_valid_stable_patch_candidate_passes(self):
+        self.assertEqual([], VALIDATOR.validate_governed_manifest(governed_fixture("7.0.1")))
+        self.assertEqual("PNCC-V7.0.1-C7F9DD033F10", GENERATOR.candidate_id_for("7.0.1", SHA))
+
     def test_existing_rc_candidate_remains_accepted(self):
         self.assertEqual([], VALIDATOR.validate_governed_manifest(governed_fixture("7.0.0-rc14.39")))
 
@@ -74,16 +89,18 @@ class GovernedCandidateManifestTests(unittest.TestCase):
         self.assert_error(value, "CANONICAL_WINDOWS_V7_SOURCE_REQUIRED")
 
     def test_requires_version_bound_filename(self):
-        value = governed_fixture(); value["artifact"]["filename"] = "other.zip"
+        value = governed_fixture("7.0.1"); value["artifact"]["filename"] = "VPS-Control-v7.0.0.zip"
         self.assert_error(value, "ARTIFACT_FILENAME_VERSION_IDENTITY_REQUIRED")
 
     def test_requires_version_bound_candidate_id(self):
-        value = governed_fixture(); value["candidate_id"] = "PNCC-RC14.39-C7F9DD033F10"
+        value = governed_fixture("7.0.1"); value["candidate_id"] = "PNCC-V7.0.0-C7F9DD033F10"
         self.assert_error(value, "CANDIDATE_ID_VERSION_IDENTITY_REQUIRED")
 
     def test_unsupported_version_fails_closed(self):
-        value = governed_fixture(); value["tool_versions"]["candidate_version"] = "7.0.1"
+        value = governed_fixture("7.1.0")
         self.assert_error(value, "CANDIDATE_VERSION_UNSUPPORTED")
+        with self.assertRaisesRegex(GENERATOR.ManifestError, "unsupported governed candidate version"):
+            GENERATOR.candidate_id_for("7.1.0", SHA)
 
     def test_requires_candidate_builder_workflow(self):
         value = governed_fixture(); value["build"]["workflow"] = "other"
