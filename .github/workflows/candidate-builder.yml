@@ -72,6 +72,21 @@ jobs:
             --second-dir "${RUNNER_TEMP}/pncc-build-b" \
             --output "${RUNNER_TEMP}/pncc-repro/build-evidence.json"
 
+      - name: Assert build evidence carries version-bound artifact identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          evidence=json.loads((Path(os.environ['RUNNER_TEMP'])/'pncc-repro'/'build-evidence.json').read_text(encoding='utf-8'))
+          version=evidence['candidate_version']
+          filename=evidence['artifact']['filename']
+          assert filename == f'VPS-Control-v{version}.zip'
+          assert evidence['reproducibility']['byte_identical'] is True
+          print(f'CANDIDATE_IDENTITY_PLAN=PASS VERSION={version} ARTIFACT={filename}')
+          PY
+
       - name: Run governed candidate manifest regressions
         shell: bash
         run: |
@@ -136,7 +151,25 @@ jobs:
             --first-dir "${RUNNER_TEMP}/pncc-main-a" \
             --second-dir "${RUNNER_TEMP}/pncc-main-b" \
             --output "${RUNNER_TEMP}/pncc-main-final/build-evidence.json"
-          cp "${RUNNER_TEMP}/pncc-main-a/VPS-Control-v7.0.0.zip" "${RUNNER_TEMP}/pncc-main-final/"
+          python - <<'PY'
+          import json, os, shutil
+          from pathlib import Path
+          root=Path(os.environ['RUNNER_TEMP'])
+          evidence=json.loads((root/'pncc-main-final'/'build-evidence.json').read_text(encoding='utf-8'))
+          version=evidence['candidate_version']
+          filename=evidence['artifact']['filename']
+          expected=f'VPS-Control-v{version}.zip'
+          if filename != expected:
+              raise SystemExit(f'artifact identity mismatch: {filename} != {expected}')
+          source=root/'pncc-main-a'/filename
+          if not source.is_file():
+              raise SystemExit(f'built artifact missing: {source}')
+          shutil.copy2(source, root/'pncc-main-final'/filename)
+          with open(os.environ['GITHUB_ENV'],'a',encoding='utf-8') as fh:
+              fh.write(f'PNCC_CANDIDATE_VERSION={version}\n')
+              fh.write(f'PNCC_ARTIFACT_FILENAME={filename}\n')
+          print(f'PROTECTED_MAIN_ARTIFACT_IDENTITY=PASS VERSION={version} ARTIFACT={filename}')
+          PY
 
       - name: Collect exact-SHA engineering checks
         env:
@@ -156,7 +189,7 @@ jobs:
         run: |
           set -euo pipefail
           python .pncc-dev/scripts/generate_candidate_manifest.py \
-            --artifact "${RUNNER_TEMP}/pncc-main-final/VPS-Control-v7.0.0.zip" \
+            --artifact "${RUNNER_TEMP}/pncc-main-final/${PNCC_ARTIFACT_FILENAME}" \
             --build-evidence "${RUNNER_TEMP}/pncc-main-final/build-evidence.json" \
             --engineering-checks "${RUNNER_TEMP}/pncc-main-final/engineering-checks.json" \
             --output "${RUNNER_TEMP}/pncc-main-final/candidate-manifest.json" \
@@ -169,7 +202,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "${RUNNER_TEMP}/pncc-bundle"
-          cp "${RUNNER_TEMP}/pncc-main-final/VPS-Control-v7.0.0.zip" "${RUNNER_TEMP}/pncc-bundle/"
+          cp "${RUNNER_TEMP}/pncc-main-final/${PNCC_ARTIFACT_FILENAME}" "${RUNNER_TEMP}/pncc-bundle/"
           cp "${RUNNER_TEMP}/pncc-main-final/candidate-manifest.json" "${RUNNER_TEMP}/pncc-bundle/"
           cp "${RUNNER_TEMP}/pncc-main-final/build-evidence.json" "${RUNNER_TEMP}/pncc-bundle/"
           git show HEAD:.pncc-dev/candidate-source.json > "${RUNNER_TEMP}/pncc-bundle/candidate-source.json"
@@ -184,7 +217,9 @@ jobs:
               rows.append({'name':p.name,'bytes':len(b),'sha256':hashlib.sha256(b).hexdigest()})
           (root/'bundle-index.json').write_text(json.dumps({
               'schema_version':1,
-              'bundle_id':'PNCC_V7_0_0_GOVERNED_CANDIDATE_BUNDLE_V1',
+              'bundle_id':'PNCC_GOVERNED_CANDIDATE_BUNDLE_V1',
+              'candidate_version':os.environ['PNCC_CANDIDATE_VERSION'],
+              'artifact_filename':os.environ['PNCC_ARTIFACT_FILENAME'],
               'source_sha':os.environ['GITHUB_SHA'],
               'files':rows,
               'runtime_qualification':'NOT_VERIFIED',
@@ -193,11 +228,11 @@ jobs:
           print('GOVERNED_CANDIDATE_BUNDLE=READY FILES='+str(len(rows)+1))
           PY
 
-      - name: Upload governed v7.0.0 candidate bundle
+      - name: Upload governed candidate bundle
         id: upload
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: PNCC-V7.0.0-${{ github.sha }}
+          name: PNCC-CANDIDATE-${{ github.sha }}
           path: ${{ runner.temp }}/pncc-bundle/
           if-no-files-found: error
           retention-days: 90
@@ -215,15 +250,15 @@ jobs:
             --provider-artifact-id "${{ steps.upload.outputs.artifact-id }}" \
             --provider-artifact-digest "${{ steps.upload.outputs.artifact-digest }}" \
             --provider-build-run-id "${GITHUB_RUN_ID}" \
-            --origin-work-unit-id "PIPE-WU-045" \
-            --output "${RUNNER_TEMP}/pncc-runtime-request/runtime-qualification-v7.0.0.json"
+            --origin-work-unit-id "PIPE-WU-082" \
+            --output "${RUNNER_TEMP}/pncc-runtime-request/runtime-qualification-request.json"
 
       - name: Upload Stable runtime qualification request
         id: upload-runtime-request
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: PNCC-V7.0.0-RUNTIME-REQUEST-${{ github.sha }}
-          path: ${{ runner.temp }}/pncc-runtime-request/runtime-qualification-v7.0.0.json
+          name: PNCC-RUNTIME-REQUEST-${{ github.sha }}
+          path: ${{ runner.temp }}/pncc-runtime-request/runtime-qualification-request.json
           if-no-files-found: error
           retention-days: 90
           compression-level: 0
@@ -235,6 +270,8 @@ jobs:
         run: |
           set -euo pipefail
           echo "GOVERNED_PROVIDER_ARTIFACT=PASS"
+          echo "CANDIDATE_VERSION=${PNCC_CANDIDATE_VERSION}"
+          echo "ARTIFACT_FILENAME=${PNCC_ARTIFACT_FILENAME}"
           echo "ARTIFACT_ID=${{ steps.upload.outputs.artifact-id }}"
           echo "ARTIFACT_DIGEST=${{ steps.upload.outputs.artifact-digest }}"
           echo "SOURCE_SHA=${GITHUB_SHA}"

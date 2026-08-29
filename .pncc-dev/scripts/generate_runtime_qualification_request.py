@@ -16,7 +16,7 @@ class RequestError(RuntimeError):
 
 SHA40_RX = re.compile(r"^[0-9a-f]{40}$")
 SHA256_RX = re.compile(r"^[0-9a-f]{64}$")
-STABLE_CANDIDATE_RX = re.compile(r"^PNCC-V7\.0\.0-([0-9A-F]{12})$")
+STABLE_CANDIDATE_RX = re.compile(r"^PNCC-V(?P<version>7\.0\.[0-9]+)-(?P<suffix>[0-9A-F]{12})$")
 
 REQUIRED_SCOPES = [
     "WINDOWS_BASELINE",
@@ -67,7 +67,7 @@ def build_request(
     candidate_id = manifest.get("candidate_id")
     match = STABLE_CANDIDATE_RX.fullmatch(candidate_id or "")
     if not match:
-        raise RequestError(f"Stable v7.0.0 candidate required: {candidate_id}")
+        raise RequestError(f"Stable 7.0.x candidate required: {candidate_id}")
 
     source = manifest.get("source")
     artifact = manifest.get("artifact")
@@ -79,16 +79,18 @@ def build_request(
     source_sha = source.get("commit_sha")
     if not isinstance(source_sha, str) or not SHA40_RX.fullmatch(source_sha):
         raise RequestError("invalid source commit SHA")
-    if match.group(1) != source_sha[:12].upper():
+    if match.group("suffix") != source_sha[:12].upper():
         raise RequestError("candidate id/source SHA mismatch")
     if source.get("repository") != "kmephis-ai/VPS-Control-PNCC" or source.get("ref") != "refs/heads/main":
         raise RequestError("request requires protected-main candidate provenance")
 
+    version = match.group("version")
     filename = artifact.get("filename")
     artifact_sha256 = artifact.get("sha256")
     artifact_size = artifact.get("size_bytes")
-    if filename != "VPS-Control-v7.0.0.zip":
-        raise RequestError(f"unexpected Stable artifact filename: {filename}")
+    expected_filename = f"VPS-Control-v{version}.zip"
+    if filename != expected_filename:
+        raise RequestError(f"unexpected Stable artifact filename: {filename}; expected {expected_filename}")
     if not isinstance(artifact_sha256, str) or not SHA256_RX.fullmatch(artifact_sha256):
         raise RequestError("invalid artifact SHA-256")
     if not isinstance(artifact_size, int) or isinstance(artifact_size, bool) or artifact_size <= 0:
@@ -108,11 +110,11 @@ def build_request(
     if not re.fullmatch(r"^PIPE-WU-[0-9]+$", origin_work_unit_id):
         raise RequestError("invalid origin work unit id")
 
-    suffix = match.group(1)
+    suffix = match.group("suffix")
     return {
         "schema_version": 1,
         "contract_id": "PNCC_RUNTIME_QUALIFICATION_REQUEST_V1",
-        "request_id": f"PNCC-RQ-V7.0.0-{suffix}",
+        "request_id": f"PNCC-RQ-V{version}-{suffix}",
         "origin_work_unit_id": origin_work_unit_id,
         "candidate": {
             "candidate_id": candidate_id,

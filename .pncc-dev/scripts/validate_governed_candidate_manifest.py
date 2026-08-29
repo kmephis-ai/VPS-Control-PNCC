@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -22,16 +23,8 @@ REQUIRED_GOVERNED_CHECKS = {
     "quality-fast", "quality-deep", "candidate-artifact-truth",
     "candidate-build-input-readiness", "canonical-source-admission",
 }
-SUPPORTED_GOVERNED_IDENTITIES = {
-    "7.0.0-rc14.39": {
-        "artifact": "VPS-Control-v7.0.0-rc14.39.zip",
-        "candidate_prefix": "PNCC-RC14.39-",
-    },
-    "7.0.0": {
-        "artifact": "VPS-Control-v7.0.0.zip",
-        "candidate_prefix": "PNCC-V7.0.0-",
-    },
-}
+STABLE_PATCH_RX = re.compile(r"^7\.0\.[0-9]+$")
+RC1439_VERSION = "7.0.0-rc14.39"
 
 
 def _candidate_version(manifest: dict[str, Any]) -> str | None:
@@ -41,10 +34,20 @@ def _candidate_version(manifest: dict[str, Any]) -> str | None:
     artifact = manifest.get("artifact")
     if isinstance(artifact, dict):
         filename = artifact.get("filename")
+        if isinstance(filename, str):
+            match = re.fullmatch(r"VPS-Control-v(7\.0\.[0-9]+)\.zip", filename)
+            if match:
+                return match.group(1)
         if filename == "VPS-Control-v7.0.0-rc14.39.zip":
-            return "7.0.0-rc14.39"
-        if filename == "VPS-Control-v7.0.0.zip":
-            return "7.0.0"
+            return RC1439_VERSION
+    return None
+
+
+def _governed_identity(version: str | None) -> tuple[str, str] | None:
+    if version == RC1439_VERSION:
+        return ("VPS-Control-v7.0.0-rc14.39.zip", "PNCC-RC14.39-")
+    if isinstance(version, str) and STABLE_PATCH_RX.fullmatch(version):
+        return (f"VPS-Control-v{version}.zip", f"PNCC-V{version}-")
     return None
 
 
@@ -56,15 +59,16 @@ def validate_governed_manifest(manifest: Any) -> list[str]:
         errors.append("GOVERNED:ARTIFACT_ROLE_RUNTIME_CANDIDATE_REQUIRED")
 
     version = _candidate_version(manifest)
-    identity = SUPPORTED_GOVERNED_IDENTITIES.get(version or "")
+    identity = _governed_identity(version)
     if identity is None:
         errors.append("GOVERNED:CANDIDATE_VERSION_UNSUPPORTED")
     else:
+        expected_artifact, candidate_prefix = identity
         candidate_id = manifest.get("candidate_id")
-        if not isinstance(candidate_id, str) or not candidate_id.startswith(identity["candidate_prefix"]):
+        if not isinstance(candidate_id, str) or not candidate_id.startswith(candidate_prefix):
             errors.append("GOVERNED:CANDIDATE_ID_VERSION_IDENTITY_REQUIRED")
         artifact = manifest.get("artifact")
-        if isinstance(artifact, dict) and artifact.get("filename") != identity["artifact"]:
+        if isinstance(artifact, dict) and artifact.get("filename") != expected_artifact:
             errors.append("GOVERNED:ARTIFACT_FILENAME_VERSION_IDENTITY_REQUIRED")
 
     source = manifest.get("source")
