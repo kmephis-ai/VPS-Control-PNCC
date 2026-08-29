@@ -1,4 +1,4 @@
-BeforeAll {
+﻿BeforeAll {
     $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
     $runnerPath = Join-Path $repoRoot 'tools\runtime-agent\Invoke-PnccV701PhysicalCleanStartup.ps1'
     $runnerText = [IO.File]::ReadAllText($runnerPath)
