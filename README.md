@@ -4,23 +4,25 @@ Public engineering repository for **Personal Network Control Center (PNCC)**, ev
 
 ## Repository status
 
-**Stable v7.0.0 released / immutable / known startup UI defect; patch remediation active.**
+**Stable v7.0.1 released / physically qualified / current Stable.**
 
-The first governed Stable release completed the full source → deterministic artifact → physical Runtime Qualification → Runtime Authority → Owner-authorized promotion lifecycle. A later exact-release startup probe found a startup-blocking false positive in the product's `FUNCTIONAL_CONSISTENCY` self-gate. The published v7.0.0 ZIP/tag remain immutable historical evidence and are not being overwritten.
+The v7.0.1 patch line completed the governed source → deterministic artifact → physical startup acceptance → fresh Runtime Qualification → Runtime Authority → explicit Owner-authorized Release/Tag/Stable promotion lifecycle. The previously published v7.0.0 release remains immutable historical evidence with a separately recorded startup defect; it was not overwritten or retargeted.
 
-Stable release identity:
+Current Stable release identity:
 
-- tag: `v7.0.0`;
-- release: `VPS Control PNCC v7.0.0`;
-- artifact: `VPS-Control-v7.0.0.zip`;
-- SHA-256: `1407f82b15ea2b70ba56b7406bb8dd0d9097c459b630d016d6a7b5f10a49e599`;
-- size: `700897` bytes;
-- fresh Stable nine-scope Runtime Qualification: `PASS`;
-- Runtime Authority: `true` for the qualified runtime evidence boundary;
-- release asset independently re-downloaded and SHA/size verified;
-- functional UI startup acceptance: `KNOWN_DEFECT / FAIL` for the released v7.0.0 artifact.
+- tag: `v7.0.1`;
+- release: `VPS Control PNCC v7.0.1`;
+- artifact: `VPS-Control-v7.0.1.zip`;
+- SHA-256: `22b843330516e481c467fe5cbe6d1d4c6758510c71bd2c46ebeec337f403ae72`;
+- size: `701893` bytes;
+- physical startup acceptance: `PASS`;
+- fresh nine-scope Runtime Qualification: `PASS`;
+- Runtime Authority: `true`;
+- release asset server digest verified: `true`;
+- independent release re-download SHA/size verified: `true`;
+- Stable declaration: `true`.
 
-Machine-readable completion history remains in `.pncc-dev/attestations/stable-v7.0.0-completion.json`. The later startup-defect truth is recorded separately in `.pncc-dev/attestations/stable-v7.0.0-startup-defect.json`; it does not rewrite historical Runtime Qualification, but it prevents the released v7.0.0 UI from being treated as currently accepted for normal startup.
+Machine-readable current completion truth is `.pncc-dev/attestations/stable-v7.0.1-completion.json`. Publication proof is `.pncc-dev/attestations/stable-release-tag-publication-v7.0.1.json`. Historical v7.0.0 completion and startup-defect attestations remain preserved separately and are not current Stable authority.
 
 Stable rollback baseline remains:
 
@@ -50,7 +52,7 @@ Current governed flow:
 
 No public self-hosted Actions runner is attached to the home network.
 
-The first Stable lifecycle established **L4 — Artifact + Runtime Truth**. Wave 5 bounded **ADWF Autonomous Execution** remains the strategic frontier, but writer-authority expansion is temporarily paused for the governed v7.0.0 startup-defect remediation. The corrected patch line must pass the mandatory physical startup contract: exact governed artifact → fresh extract → Windows PowerShell 5.1 preflight → package manifest PASS → Demo startup → `FUNCTIONAL_CONSISTENCY` PASS → WinForms UI observed → clean exit. The expected patch lineage is v7.0.1; no new promotion occurs before that exact-artifact evidence exists.
+The project has achieved **L4 — Artifact + Runtime Truth**. With v7.0.1 now current Stable, **Wave 5 — ADWF Autonomous Execution is the current development frontier**. The next focus is durable autonomous Work Unit selection/execution, writer-lease enforcement, exact-head CI recovery, WAITING_RUNTIME semantics, and session handoff/resume—while retaining explicit Owner authority at runtime, security and release/promotion boundaries.
 
 See:
 
