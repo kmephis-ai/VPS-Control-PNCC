@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - '.pncc-dev/attestations/stable-runtime-authority-owner-grant-v7.0.1.json'
+      - '.pncc-dev/attestations/stable-runtime-authority-owner-authorization-v7.0.1.json'
       - '.pncc-dev/scripts/evaluate_stable_runtime_authority_owner_grant_v701.py'
       - '.pncc-dev/tests/test_v701_owner_runtime_authority_boundary.py'
       - '.github/workflows/stable-runtime-authority-owner-grant.yml'
@@ -13,6 +14,7 @@ on:
     branches: [main]
     paths:
       - '.pncc-dev/attestations/stable-runtime-authority-owner-grant-v7.0.1.json'
+      - '.pncc-dev/attestations/stable-runtime-authority-owner-authorization-v7.0.1.json'
       - '.pncc-dev/scripts/evaluate_stable_runtime_authority_owner_grant_v701.py'
       - '.pncc-dev/tests/test_v701_owner_runtime_authority_boundary.py'
       - '.github/workflows/stable-runtime-authority-owner-grant.yml'
@@ -22,18 +24,18 @@ permissions:
   contents: read
 
 jobs:
-  waiting-owner-authorization:
+  exact-owner-runtime-authority-grant:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Checkout exact revision
+      - name: Checkout exact revision with authorization history
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
           fetch-depth: 0
 
-      - name: Compile validator and regression without repository side effects
+      - name: Compile grant validator and regressions
         shell: bash
         run: |
           set -euo pipefail
@@ -48,27 +50,67 @@ jobs:
               print('PY_COMPILE=PASS PATH='+raw)
           PY
 
-      - name: Validate default-deny Owner authorization boundary
-        run: python3 .pncc-dev/scripts/evaluate_stable_runtime_authority_owner_grant_v701.py
-
-      - name: Run WU-089 regressions
-        run: python3 .pncc-dev/tests/test_v701_owner_runtime_authority_boundary.py
-
-      - name: Assert generic continuation cannot materialize grant state
+      - name: Verify exact authorized prepared contract blob
+        env:
+          AUTHORIZED_PREPARATION_MAIN: c0b6c2dcbf74c7978ec5e668c06762c677b5d078
+          AUTHORIZED_PREPARED_BLOB: 087bb42e2e21bfa68c25abe921f19944072d3dc4
         shell: bash
         run: |
           set -euo pipefail
+          git cat-file -e "${AUTHORIZED_PREPARATION_MAIN}^{commit}"
+          git cat-file -e "${AUTHORIZED_PREPARED_BLOB}^{blob}"
+          git cat-file blob "${AUTHORIZED_PREPARED_BLOB}" > "${RUNNER_TEMP}/authorized-prepared-grant.json"
           python3 - <<'PY'
-          import json
-          p='.pncc-dev/attestations/stable-runtime-authority-owner-grant-v7.0.1.json'
+          import json, os
+          p=os.path.join(os.environ['RUNNER_TEMP'],'authorized-prepared-grant.json')
           d=json.load(open(p,encoding='utf-8'))
+          assert d['contract_id']=='PNCC_STABLE_RUNTIME_AUTHORITY_OWNER_GRANT_V2'
+          assert d['stable_version']=='7.0.1'
+          assert d['stable_artifact_sha256']=='22b843330516e481c467fe5cbe6d1d4c6758510c71bd2c46ebeec337f403ae72'
+          assert d['stable_artifact_size_bytes']==701893
+          assert d['request_id']=='PNCC-RQ-V7.0.1-D58023321360'
+          assert d['candidate_id']=='PNCC-V7.0.1-D58023321360'
+          assert d['owner_authorization_scope']=='RUNTIME_AUTHORITY_GRANT_ONLY'
           assert d['grant_state']=='WAITING_OWNER_AUTHORIZATION'
           assert d['owner_authorization_present'] is False
           assert d['owner_authorization_binding_complete'] is False
           assert d['runtime_authority'] is False
           assert d['promotion_eligible'] is False
           assert d['release_or_tag_authorized'] is False
-          assert d['next_transaction']=='EXPLICIT_OWNER_AUTHORIZATION_BOUND_TO_PREPARATION_MERGE_REQUIRED'
+          assert d['runtime_mutation'] is False
+          PY
+          echo "AUTHORIZED_PREPARATION_MAIN=${AUTHORIZED_PREPARATION_MAIN}"
+          echo "AUTHORIZED_PREPARED_BLOB=${AUTHORIZED_PREPARED_BLOB}"
+
+      - name: Validate exact Owner-authorized Runtime Authority grant
+        run: python3 .pncc-dev/scripts/evaluate_stable_runtime_authority_owner_grant_v701.py
+
+      - name: Run WU-089 grant regressions
+        run: python3 .pncc-dev/tests/test_v701_owner_runtime_authority_boundary.py
+
+      - name: Assert authority-only state transition
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          grant=json.load(open('.pncc-dev/attestations/stable-runtime-authority-owner-grant-v7.0.1.json',encoding='utf-8'))
+          auth=json.load(open('.pncc-dev/attestations/stable-runtime-authority-owner-authorization-v7.0.1.json',encoding='utf-8'))
+          assert auth['authorized_preparation_main']=='c0b6c2dcbf74c7978ec5e668c06762c677b5d078'
+          assert auth['authorized_prepared_grant_contract_blob_sha']=='087bb42e2e21bfa68c25abe921f19944072d3dc4'
+          assert auth['owner_authorization_scope']=='RUNTIME_AUTHORITY_GRANT_ONLY'
+          assert auth['runtime_authority_grant_authorized'] is True
+          assert grant['grant_state']=='RUNTIME_AUTHORITY_GRANTED'
+          assert grant['owner_authorization_present'] is True
+          assert grant['owner_authorization_binding_complete'] is True
+          assert grant['runtime_authority'] is True
+          for key in (
+              'promotion_eligible','release_or_tag_authorized','tag_created','release_created',
+              'stable_declared','artifact_rebuilt','artifact_substituted','runtime_mutation',
+              'product_bytes_mutated','runtime_bytes_mutated','private_runtime_payload_published'
+          ):
+              assert grant[key] is False, key
+          assert grant['next_transaction']=='SEPARATE_EXPLICIT_OWNER_AUTHORIZED_RELEASE_PROMOTION'
           PY
 
       - name: Assert PR cannot mutate product source
@@ -79,15 +121,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git diff --name-only "${BASE_SHA}...${HEAD_SHA}" > "${RUNNER_TEMP}/wu089-files.txt"
-          if grep -Eq '^src/windows-v7/' "${RUNNER_TEMP}/wu089-files.txt"; then
+          git diff --name-only "${BASE_SHA}...${HEAD_SHA}" > "${RUNNER_TEMP}/wu089-grant-files.txt"
+          if grep -Eq '^src/windows-v7/' "${RUNNER_TEMP}/wu089-grant-files.txt"; then
             echo 'PRODUCT_SOURCE_MUTATION_FORBIDDEN=true' >&2
-            cat "${RUNNER_TEMP}/wu089-files.txt" >&2
+            cat "${RUNNER_TEMP}/wu089-grant-files.txt" >&2
             exit 1
           fi
           echo 'PRODUCT_SOURCE_MUTATION=false'
 
-      - name: Assert no PRIVATE evidence or write authority
+      - name: Assert no PRIVATE evidence or write release authority
         shell: bash
         run: |
           set -euo pipefail
