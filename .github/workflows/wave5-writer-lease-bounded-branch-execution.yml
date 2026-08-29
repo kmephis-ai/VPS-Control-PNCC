@@ -20,11 +20,10 @@ jobs:
           persist-credentials: false
       - name: Run exact bounded execution tests
         run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_writer_lease_bounded_branch_execution_wu098.py' -v
-      - name: Assert exact PR head and bounded diff
-        if: github.event_name == 'pull_request'
+      - name: Assert exact historical WU-098 PR head and bounded diff
+        if: github.event_name == 'pull_request' && github.head_ref == 'agent/PIPE-WU-098-bounded-execution'
         run: |
           set -euo pipefail
-          test "${{ github.head_ref }}" = "agent/PIPE-WU-098-bounded-execution"
           git fetch --no-tags --depth=1 origin "${{ github.event.pull_request.base.sha }}"
           git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}" | sort > /tmp/actual
           printf '%s\n' \

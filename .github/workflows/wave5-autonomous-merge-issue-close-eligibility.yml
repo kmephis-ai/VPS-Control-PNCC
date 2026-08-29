@@ -1,0 +1,70 @@
+name: wave5-autonomous-merge-issue-close-eligibility
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  autonomous-merge-close-eligibility:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Run WU-099 adversarial eligibility tests
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_autonomous_merge_issue_close_eligibility_wu099.py' -v
+      - name: Assert exact WU-099 branch and bounded diff
+        if: github.event_name == 'pull_request'
+        run: |
+          set -euo pipefail
+          test "${{ github.head_ref }}" = "agent/PIPE-WU-099-autonomous-merge-close-eligibility"
+          git fetch --no-tags --depth=1 origin "${{ github.event.pull_request.base.sha }}"
+          git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}" | sort > /tmp/actual
+          printf '%s\n' \
+            '.github/workflows/wave5-autonomous-merge-issue-close-eligibility.yml' \
+            '.github/workflows/wave5-writer-lease-bounded-branch-execution.yml' \
+            '.pncc-dev/contracts/autonomous-merge-issue-close-eligibility-policy.json' \
+            '.pncc-dev/scripts/evaluate_autonomous_merge_issue_close_eligibility.py' \
+            '.pncc-dev/tests/test_autonomous_merge_issue_close_eligibility_wu099.py' | sort > /tmp/expected
+          diff -u /tmp/expected /tmp/actual
+      - name: Assert design workflow remains read only
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          t=Path('.github/workflows/wave5-autonomous-merge-issue-close-eligibility.yml').read_text(encoding='utf-8').lower()
+          forbidden=[
+              'contents:'+' write', 'issues:'+' write', 'pull-requests:'+' write',
+              'git'+' push', 'gh'+' pr merge', 'gh'+' issue close',
+              '--method'+' post', '--method'+' patch', '--method'+' put', '--method'+' delete'
+          ]
+          for token in forbidden:
+              assert token not in t, token
+          PY
+      - name: Assert policy grants no mutation authority
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('.pncc-dev/contracts/autonomous-merge-issue-close-eligibility-policy.json').read_text(encoding='utf-8'))
+          fields=[
+              'autonomous_merge_authority','autonomous_issue_close_authority',
+              'direct_main_write_authority','provider_state_write_authority',
+              'lease_acquisition_authority','heartbeat_authority','release_authority',
+              'runtime_action_authority','product_runtime_mutation_authority',
+              'adwf_binding_mutation_authority','promotion_release_tag_authority',
+              'ruleset_policy_mutation_authority','private_evidence_publication_authority',
+              'reserve_1080_lifecycle_mutation_authority','primary_1081_lifecycle_mutation_authority'
+          ]
+          assert p['merge_requires_explicit_authority'] is True
+          assert p['close_requires_explicit_authority'] is True
+          assert all(p[k] is False for k in fields), fields
+          PY
+      - name: Assert repository remains clean
+        run: test -z "$(git status --porcelain)"
