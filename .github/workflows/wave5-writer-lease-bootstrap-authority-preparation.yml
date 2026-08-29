@@ -1,0 +1,73 @@
+name: wave5-writer-lease-bootstrap-authority-preparation
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bootstrap-authority-preparation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact PNCC revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Validate default-deny bootstrap authority preparation
+        run: python3 .pncc-dev/scripts/validate_writer_lease_bootstrap_authority_preparation.py
+
+      - name: Run adversarial preparation tests
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_writer_lease_bootstrap_authority_preparation.py' -v
+
+      - name: Preserve prior Writer Lease gates
+        run: |
+          set -euo pipefail
+          python3 .pncc-dev/scripts/validate_writer_lease_registry_topology.py
+          python3 .pncc-dev/scripts/validate_state.py --validate-examples
+
+      - name: Assert no live bootstrap or provider mutation implementation exists
+        run: |
+          set -euo pipefail
+          test ! -e .pncc-state/writer-lease-registry.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('.pncc-dev/contracts/writer-lease-bootstrap-authority-preparation.json').read_text(encoding='utf-8'))
+          assert p['preparation_state'] == 'WAITING_EXPLICIT_OWNER_AUTHORIZATION'
+          assert p['generic_continuation_counts_as_authorization'] is False
+          authority=[k for k in p if k.endswith('_authority')]
+          assert len(authority) >= 10
+          assert all(p[k] is False for k in authority)
+          text='\n'.join([
+            Path('.pncc-dev/scripts/validate_writer_lease_bootstrap_authority_preparation.py').read_text(encoding='utf-8'),
+            Path('.github/workflows/wave5-writer-lease-bootstrap-authority-preparation.yml').read_text(encoding='utf-8'),
+          ]).lower()
+          forbidden=[
+            'contents:'+' write', 'issues:'+' write', 'pull-requests:'+' write',
+            'git'+' push', 'git'+' tag', 'gh'+' pr merge', 'gh'+' issue close',
+            '--method'+' post', '--method'+' patch', '--method'+' put', '--method'+' delete',
+            'force:'+' true'
+          ]
+          for token in forbidden:
+              assert token not in text, token
+          PY
+
+      - name: Assert protected surfaces unchanged in this PR
+        if: github.event_name == 'pull_request'
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin "${{ github.event.pull_request.base.sha }}"
+          changed="$(git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}")"
+          printf '%s\n' "$changed"
+          ! printf '%s\n' "$changed" | grep -E '^(src/windows-v7/|\.adwf-consumer/external-binding\.json$|\.pncc-dev/schemas/writer-lease\.schema\.json$|\.pncc-dev/examples/writer-lease\.valid\.json$|tools/runtime-agent/|\.pncc-state/)'
+
+      - name: Assert repository remains clean
+        run: test -z "$(git status --porcelain)"
