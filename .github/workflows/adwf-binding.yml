@@ -27,7 +27,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: kmephis-ai/AI-Development-Framework
-          ref: 730cab912f779bec1f3208c66eda1889f69d6f4c
+          ref: c7e0c059a901869d6369864e98d06238484778ec
           path: adwf-core
           persist-credentials: false
 
@@ -39,7 +39,7 @@ jobs:
           actual_consumer="$(git -C pncc rev-parse HEAD)"
           actual_framework="$(git -C adwf-core rev-parse HEAD)"
           test "$actual_consumer" = "$expected_consumer"
-          test "$actual_framework" = "730cab912f779bec1f3208c66eda1889f69d6f4c"
+          test "$actual_framework" = "c7e0c059a901869d6369864e98d06238484778ec"
           test ! -e pncc/.adwf
           echo "PNCC_SHA=$actual_consumer"
           echo "ADWF_SHA=$actual_framework"
