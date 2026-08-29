@@ -1,24 +1,31 @@
 # VPS Control Center / PNCC
 
-Public engineering repository for the migration of VPS Control Center into **Personal Network Control Center (PNCC)**.
+Public engineering repository for **Personal Network Control Center (PNCC)**, evolved from VPS Control Center.
 
 ## Repository status
 
-**Public bootstrap / migration in progress.**
+**Stable v7.0.0 released / post-Stable development active.**
 
-This repository is intentionally not yet a copy of the owner's local VPS-Control working directory. Product source will be imported only after the Public Migration Safety Gate proves that the staged tree contains no private instance state, secrets, sensitive runtime evidence, or unreviewed third-party material.
+The first governed Stable release completed the full source → deterministic artifact → physical Runtime Qualification → Runtime Authority → Owner-authorized promotion lifecycle.
 
-Current migration candidate tracked outside GitHub source import:
+Stable release identity:
 
-- `v7.0.0-rc14.38`
-- SHA-256 `6d81137519a363ebf3d8503f33a344d8fdc75848d517cf732cb6d6d02394d727`
-- **not Stable/DONE** without fresh Windows runtime evidence.
+- tag: `v7.0.0`;
+- release: `VPS Control PNCC v7.0.0`;
+- artifact: `VPS-Control-v7.0.0.zip`;
+- SHA-256: `1407f82b15ea2b70ba56b7406bb8dd0d9097c459b630d016d6a7b5f10a49e599`;
+- size: `700897` bytes;
+- fresh Stable nine-scope Runtime Qualification: `PASS`;
+- Runtime Authority: `true`;
+- release asset independently re-downloaded and SHA/size verified.
 
-Stable rollback baseline:
+Machine-readable completion authority is recorded in `.pncc-dev/attestations/stable-v7.0.0-completion.json`.
 
-- V6.3.1
-- SHA-256 `385e5178f10e79b0b234376e6a6671b64ce523a3971b2b4341ec94ce1efee11e`
-- immutable during the migration.
+Stable rollback baseline remains:
+
+- V6.3.1;
+- SHA-256 `385e5178f10e79b0b234376e6a6671b64ce523a3971b2b4341ec94ce1efee11e`;
+- immutable unless a separately governed decision explicitly replaces that rollback contract.
 
 ## Three truths
 
@@ -26,29 +33,33 @@ Stable rollback baseline:
 - **Local PNCC Data** — private Instance Configuration Truth.
 - **Real Windows / Keenetic / VPS nodes** — Runtime Truth.
 
-CI verifies engineering properties. It does **not** prove physical network behavior.
+GitHub-hosted CI verifies engineering properties. It does **not** manufacture physical Runtime Truth. Runtime claims require trusted physical evidence and exact candidate/artifact identity.
 
 ## Fixed tunnel contract
 
 - `127.0.0.1:1081` — `PRIMARY_AUTO`.
 - `127.0.0.1:1080` — `RESERVE_MANUAL / MANUAL_ONLY`.
-- PNCC automation never start/stops/restarts/recovers 1080.
+- PNCC automation must never start, stop, restart, recover or otherwise mutate the lifecycle of 1080.
 
 ## Development model
 
-Target flow:
+Current governed flow:
 
-`Issue / ADWF Work Unit → branch → implementation → tests → PR → GitHub-hosted CI → exact SHA/artifact → trusted local runtime qualification → sanitized evidence → classification/promotion`
+`Issue / ADWF Work Unit → exact base/branch → implementation → tests → PR → exact-head GitHub-hosted CI → deterministic artifact identity → trusted local Runtime Qualification → sanitized evidence → authority/promotion boundary`
 
 No public self-hosted Actions runner is attached to the home network.
+
+The first Stable lifecycle established **L4 — Artifact + Runtime Truth**. The next development frontier is Wave 5: bounded **ADWF Autonomous Execution**, while security/runtime/promotion boundaries continue to fail closed and require explicit authority where defined.
 
 See:
 
 - [`AGENTS.md`](AGENTS.md)
 - [`SECURITY.md`](SECURITY.md)
+- [`docs/roadmap/PNCC_PIPELINE_ROADMAP.md`](docs/roadmap/PNCC_PIPELINE_ROADMAP.md)
+- [`docs/architecture/PNCC_TARGET_DEVELOPMENT_PIPELINE.md`](docs/architecture/PNCC_TARGET_DEVELOPMENT_PIPELINE.md)
 - [`docs/adr/0001-public-github-runtime-boundary.md`](docs/adr/0001-public-github-runtime-boundary.md)
 - [`docs/migration/PUBLIC_MIGRATION_SAFETY_GATE.md`](docs/migration/PUBLIC_MIGRATION_SAFETY_GATE.md)
 
 ## License
 
-License selection is intentionally deferred until legacy-code provenance and bundled third-party components are reviewed. Public visibility does not, by itself, grant a license to reuse the code.
+A project-wide open-source license is intentionally **not selected yet**. Legacy-code provenance and third-party dependency/license boundaries remain under review in `LICENSE_DECISION_REQUIRED.md`. Public visibility does not, by itself, grant a license to reuse the code.

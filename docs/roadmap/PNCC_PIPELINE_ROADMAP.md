@@ -3,60 +3,70 @@
 - Status: Active rolling-wave roadmap
 - Tracking: #6 (`PIPE-001 — PNCC Autonomous Development Pipeline`)
 - Target architecture: `docs/architecture/PNCC_TARGET_DEVELOPMENT_PIPELINE.md`
+- Provider-truth reconciliation: 2026-08-29 after Stable v7.0.0 promotion
 
 ## Operating rule
 
-This roadmap defines direction and exit criteria. It is not runtime evidence and must not be treated as proof of completion.
+This roadmap defines direction and exit criteria. It is not Runtime Truth by itself.
 
-Only the nearest executable AI-sized Work Unit should be materialized in detail. Actual GitHub/CI/runtime truth overrides stale roadmap state.
+Actual GitHub provider state, machine-readable attestations and trusted physical runtime evidence override stale roadmap text. Only the nearest executable AI-sized Work Unit should be materialized in detail.
+
+## Current verified maturity
+
+**L4 — Artifact + Runtime Truth achieved.**
+
+Stable v7.0.0 completed the first full governed lifecycle:
+
+`canonical source → deterministic artifact → exact artifact identity → physical nine-scope qualification → Runtime Authority → explicit Owner promotion authorization → tag/release → verified release asset`
+
+Authoritative Stable identity:
+
+- state: `STABLE_COMPLETE`;
+- tag: `v7.0.0`;
+- tag target: `d889b52879fd21612f639cb2441fbd1ff8bc3f02`;
+- release: `VPS Control PNCC v7.0.0`;
+- artifact: `VPS-Control-v7.0.0.zip`;
+- SHA-256: `1407f82b15ea2b70ba56b7406bb8dd0d9097c459b630d016d6a7b5f10a49e599`;
+- size: `700897` bytes;
+- fresh Stable nine-scope reconcile: `PASS`;
+- Runtime Authority: `true`;
+- release asset verified: `true`.
+
+Machine-readable authority: `.pncc-dev/attestations/stable-v7.0.0-completion.json`.
+
+Residual public-migration provenance/licensing work and provider-admin ruleset work remain separate and must not be hidden by L4 maturity.
+
+---
 
 ## Wave 0 — Public migration and governance baseline
 
 ### Goal
-
-Establish a secret-safe public engineering repository with explicit public/private/runtime boundaries, mandatory invariants and required hosted CI checks.
-
-### Existing evidence/state
-
-The repository contains the public bootstrap, migration safety contract, sanitized RC14.38 migration snapshot, hosted `public-safety` CI and active main ruleset.
-
-Residual provider-admin and migration/provenance/licensing items remain tracked separately and must not be hidden by later pipeline maturity claims.
+Establish a secret-safe public engineering repository with explicit public/private/runtime boundaries and hosted CI governance.
 
 ### State
-
 `BASELINE_ESTABLISHED / RESIDUAL_ITEMS_TRACKED`
+
+Completed: public repository bootstrap, sanitation boundary, hosted CI, protected-branch governance, canonical source admission and public/private/runtime truth separation.
+
+Residuals remain separately tracked, especially provenance/license review and provider-admin-only ruleset improvements.
 
 ---
 
 ## Wave 1 — Durable Development State
 
 ### Goal
-
-Make PNCC development independently resumable across ChatGPT/Codex/agent sessions without reconstructing state from conversation history.
+Make PNCC development resumable across ChatGPT/Codex/agent sessions without reconstructing state from conversation history.
 
 ### Delivered
-
-- Current Work Unit schema;
-- Session Checkpoint schema;
-- Runtime Ledger schema;
-- Evidence Index schema;
+- Work Unit and Session Checkpoint schemas;
+- Runtime Ledger and Evidence Index;
 - Writer Lease contract;
-- Provider Truth Snapshot contract;
-- stale-state/provider-truth reconciliation rules;
-- provider-visible Work Unit marker parsing;
-- natural-boundary checkpoint/resume protocol;
-- executable `BLOCK` / `WAITING_PROVIDER_CHECKS` / `WAITING_RUNTIME` / `RESUME_ALLOWED` decision model.
-
-### Evidence
-
-- #8 `PIPE-WU-001 — Durable Development State Foundation`;
-- #17 `PIPE-WU-002 — Writer Lease + Resume Decision`;
-- exact post-merge L2 baseline: `2014d84a621d19b9ea5fc82b4e254e238c735c2b`;
-- required durable-state hosted checks all SUCCESS on that exact boundary;
-- durable-state v2 tests: 23/23 PASS on the candidate that produced the L2 baseline.
+- Provider Truth Snapshot;
+- stale-state/provider-truth reconciliation;
+- natural-boundary checkpoint/resume semantics;
+- executable blocked/waiting/resume decision model.
 
 ### State
-
 `COMPLETE / L2_DURABLE_STATE`
 
 ---
@@ -64,57 +74,18 @@ Make PNCC development independently resumable across ChatGPT/Codex/agent session
 ## Wave 2 — Quality and Test Pyramid
 
 ### Goal
-
-Move from mostly static/public-safety validation to executable behavioral quality gates.
+Move from static checks to executable behavioral quality gates.
 
 ### Delivered
-
-- Pester foundation and test conventions;
-- executable fail-closed failure classifier;
-- PowerShell 5.1 StrictMode and 0/1/N collection regressions;
-- tunnel and credential safety fixture regressions;
-- deterministic FAST CI;
-- isolated deterministic DEEP CI;
-- exact sanitized-fixture provenance with Git-object/EOL reconciliation semantics;
-- safe DEEP concurrency semantics;
-- process identity/PID-reuse/dirty-baseline evidence and cleanup-authority model.
-
-### Completed Work Units
-
-- #19 — `PIPE-WU-003`: Pester foundation + fail-closed failure classification; protected merge `43bad8547631651d9fb0581f6f57d1d88da3feae`.
-- #21 — `PIPE-WU-004`: PS5.1 StrictMode/collection normalization regressions; protected merge `b52be81e44ad8690c78ddb66cb58201442a3be0d`.
-- #23 — `PIPE-WU-005`: tunnel/credential safety regressions; protected merge `8af94a0d6432331e693f188925264ef605885fb7`.
-- #25 — `PIPE-WU-006`: DEEP CI + sanitized fixture provenance; protected merge `327b46730b77a9742f1179b4c02e03238619e38f`.
-- #27 — `PIPE-WU-007`: process identity + dirty baseline evidence; protected merge `90a95b812eecdd72a4f1bbd9b638414e90baf6df`.
-
-### Exit evidence
-
-Exact Wave 2 exit main `90a95b812eecdd72a4f1bbd9b638414e90baf6df`:
-
-- `repo-integrity` SUCCESS;
-- `powershell-static` SUCCESS;
-- `truth-contract` SUCCESS;
-- `adwf-binding` SUCCESS;
-- `pipeline-state` SUCCESS;
-- `quality-fast` SUCCESS;
-- `quality-deep` SUCCESS;
-- PSScriptAnalyzer Error/Warning findings: 0 across `.pncc-dev/quality`;
-- FAST Pester: 54/54 PASS;
-- DEEP sanitized fixture provenance: exact tree `2a6c0027a195e91640ec2a6e38220a9fac372368`, 32/32/32 verified, exactly 3 explicit EOL reconciliations;
-- DEEP Pester: 12/12 PASS;
-- process identity rule: PID alone is never ownership proof;
-- dirty baselines containing foreign/ambiguous managed processes retain cleanup authority `NONE`.
-
-### Physical-runtime deferral
-
-Watchdog stop/restart correctness, lingering Proxifier descendants and real process/resource leak behavior require observing physical Windows process state. Hosted synthetic tests cannot prove those effects without conflating simulation with runtime truth.
-
-Those domains are therefore deliberately deferred to Wave 4 trusted Runtime Qualification, where the existing failure-classification and process-identity contracts can be consumed against real evidence.
-
-This deferral is not a PASS claim for physical lifecycle behavior.
+- Pester foundation;
+- fail-closed failure classifier;
+- PS5.1 StrictMode and collection regressions;
+- tunnel/credential safety tests;
+- FAST and DEEP hosted CI;
+- provenance/EOL reconciliation;
+- process identity/PID-reuse/dirty-baseline contracts.
 
 ### State
-
 `COMPLETE / L3_TESTED_ENGINEERING_PIPELINE`
 
 ---
@@ -122,188 +93,103 @@ This deferral is not a PASS claim for physical lifecycle behavior.
 ## Wave 3 — Candidate Artifact Truth
 
 ### Goal
+Bind every runtime-qualified candidate to exact governed source and deterministic artifact identity before physical qualification.
 
-Bind every future runtime-qualified candidate to an exact source revision and deterministic artifact identity before trusted runtime qualification begins.
+### Delivered
+- canonical non-legacy Windows source under `src/windows-v7/`;
+- governed candidate-source declaration and deterministic build recipe;
+- Candidate Build Input readiness policy;
+- deterministic candidate builder;
+- Candidate Artifact Truth contract;
+- exact source SHA / artifact SHA-256 / size / build identity binding;
+- fail-closed prevention of sanitized legacy fixtures becoming runtime authority;
+- stable artifact preservation through qualification and promotion.
 
-### Completed Work Units
+### Exit evidence
+Stable v7.0.0 artifact remained byte-fixed through final qualification and promotion:
 
-- #29 — `PIPE-WU-008`: Candidate Artifact Truth Contract Foundation; protected squash merge/main `a39369f005086c5ef209c392032a435096265542`, fresh post-merge verification on all eight then-current hosted contexts, manifest regressions `21/21 PASS`, synthetic fixture remains `RUNTIME=NOT_VERIFIED` and non-promotable.
-
-### Active Work Unit
-
-#31 — `PIPE-WU-009 — Candidate Build Input Readiness Boundary`.
-
-Exact base: `a39369f005086c5ef209c392032a435096265542`.
-
-Source-truth discovery after WU-008 proved that the repository has no governed non-legacy product source declaration and no admitted candidate build recipe. Product-like historical source remains only under `legacy/v7-rc14.38-sanitized/`, which is migration/regression material and cannot be used as `RUNTIME_CANDIDATE` authority.
-
-WU-009 therefore creates a machine-readable fail-closed readiness boundary before any future builder may execute. It does not build RC14.39, does not create a deployable artifact, does not mutate product/legacy source and does not claim runtime qualification.
-
-### Contract foundation
-
-The v1 Candidate Artifact Truth contract binds:
-
-- exact source commit SHA;
-- artifact filename, SHA-256 and byte size;
-- build workflow/run/attempt/job/timestamp identity;
-- tool/runtime versions relevant to reproducibility;
-- required engineering checks, each terminal SUCCESS on the exact same source SHA;
-- provenance/source identity semantics;
-- runtime qualification state.
-
-Hosted contract output must remain:
-
-```text
-runtime.qualification_state = NOT_VERIFIED
-runtime.evidence_ref = null
-runtime.promotion_eligible = false
-provenance.runtime_authority = false
-```
-
-The synthetic example is explicitly `SYNTHETIC_TEST_FIXTURE`. A future `RUNTIME_CANDIDATE` must use exact source/build-output semantics; sanitized RC14.38 source identity/path is rejected.
-
-### Build-input readiness semantics
-
-WU-009 adds:
-
-- `.pncc-dev/contracts/candidate-build-input-policy.json`;
-- `.pncc-dev/scripts/evaluate_candidate_build_input.py`;
-- `.pncc-dev/tests/test_candidate_build_input.py`;
-- `.github/workflows/candidate-build-input-readiness.yml`.
-
-Current repository truth must be represented explicitly as:
-
-```text
-CANDIDATE_BUILD_INPUT_STATE=BLOCKED_MISSING_SOURCE_DECLARATION
-CAN_BUILD=false
-RUNTIME_AUTHORITY=false
-PROMOTION_AUTHORITY=false
-```
-
-A future `READY` result requires all declared product source/build inputs to be safe relative paths, Git-tracked, clean against exact HEAD, outside forbidden `legacy/`/docs/CI planes and under governed `src/` + `build/` prefixes. The separate `--require-ready` guard exits nonzero for every blocked state.
-
-A green readiness workflow proves only that classification and fail-closed guarding are correct. It does not mean a candidate is build-ready.
-
-### Current WU-009 executable evidence
-
-On exact head `7a80e9bb5dbe1e427c7c7278c7953b1d52adae7e` after correcting the PR checkout to the exact head SHA:
-
-- all nine hosted contexts reached SUCCESS;
-- readiness regressions: `18/18 PASS`;
-- exact checkout/evaluator subject SHA: `7a80e9bb5dbe1e427c7c7278c7953b1d52adae7e`;
-- current state: `BLOCKED_MISSING_SOURCE_DECLARATION`;
-- `CAN_BUILD=false`;
-- `RUNTIME_AUTHORITY=false`;
-- `PROMOTION_AUTHORITY=false`;
-- `--require-ready` returned the expected blocked exit path and the workflow treated that as proof of fail-closed behavior, not build readiness.
-
-Documentation/roadmap reconciliation changes the final candidate HEAD, so full final-head and post-merge verification remain required before WU-009 can be `DONE`.
-
-### Deliverables across Wave 3
-
-- candidate-manifest contract and semantic validator;
-- explicit candidate build-input readiness boundary;
-- candidate builder only after exact governed non-sanitized build inputs reach `READY`;
-- deterministic artifact SHA-256 and size capture;
-- exact source commit identity;
-- engineering test summary bound to source SHA;
-- provenance metadata;
-- retained GitHub Actions artifact where appropriate;
-- artifact attestation/provenance where supported and reviewed.
-
-### Exit criteria
-
-- no runtime qualification can start without exact candidate SHA-256;
-- candidate references exact source SHA and CI/build identity;
-- rebuilt/replaced artifacts cannot silently inherit prior runtime evidence;
-- public sanitized fixture cannot be elevated into runtime candidate authority;
-- candidate builder cannot run while build-input readiness is blocked;
-- promotion decisions are traceable to exact candidate identity;
-- hosted candidate creation cannot claim runtime verification.
+`VPS-Control-v7.0.0.zip` / `1407f82b15ea2b70ba56b7406bb8dd0d9097c459b630d016d6a7b5f10a49e599` / `700897` bytes.
 
 ### State
-
-`ACTIVE / BUILD_INPUT_READINESS`
+`COMPLETE / ARTIFACT_TRUTH_PROVEN`
 
 ---
 
 ## Wave 4 — Runtime Qualification Automation
 
 ### Goal
-
 Turn trusted Windows/network qualification into a deterministic, machine-verifiable lifecycle separate from public PR execution.
 
-### Deliverables
+### Delivered for Stable v7.0.0
+- typed runtime qualification contracts and private evidence flow;
+- physical Windows baseline;
+- process ownership baseline;
+- Watchdog lifecycle qualification;
+- Proxifier descendant cleanup qualification;
+- PRIMARY_AUTO 1081 qualification;
+- RESERVE_MANUAL 1080 non-mutation qualification;
+- credential/host-key fail-closed qualification;
+- fresh network qualification;
+- immutable V6.3.1 rollback identity qualification;
+- final fresh nine-scope Stable reconcile;
+- separate Runtime Authority grant boundary;
+- separate explicit Owner release/tag promotion boundary;
+- verified published release asset.
 
-- typed Runtime Qualification request/result contract;
-- trusted Windows Runtime Test Agent integration;
-- environment/baseline preflight;
-- physical process ownership/dirty-baseline verification;
-- watchdog lifecycle verification;
-- Proxifier descendant/cleanup/resource-leak verification;
-- Windows qualification;
-- network qualification;
-- rollback qualification where required;
-- private evidence bundle with hash/index;
-- sanitized-public evidence export path when needed.
+### Stable scope result
+All nine Stable scopes: `PASS`.
 
-### Exit criteria
+### State
+`COMPLETE / L4_ARTIFACT_RUNTIME_TRUTH`
 
-- `ENGINEERING_VERIFIED` cannot be confused with `RUNTIME_VERIFIED`;
-- qualification always identifies exact candidate/source/runtime versions;
-- dirty baseline and environment blockers are classified without mutating product;
-- real lifecycle cleanup is authorized only for positively owned processes;
-- runtime result is machine-readable and resumable after interruption.
+This proves the architecture can reach trusted Stable Runtime Truth without conflating hosted CI with physical evidence. Future releases must repeat the applicable qualification lifecycle against their own exact identities; v7.0.0 evidence cannot be inherited by rebuilt/replaced artifacts.
 
 ---
 
 ## Wave 5 — ADWF Autonomous Execution
 
 ### Goal
+Allow ADWF to manage bounded PNCC engineering Work Units end-to-end using exact provider truth and a version-pinned Consumer Project Pack.
 
-Allow ADWF to manage bounded PNCC engineering Work Units end-to-end using a version-pinned Consumer Project Pack.
+### Current position
+`ACTIVE / NEXT_FRONTIER`
 
-### Deliverables
+L4 prerequisites now exist: durable state, behavioral tests, deterministic artifact identity, trusted physical Runtime Qualification, explicit authority boundaries and Stable promotion history.
 
-- PNCC Consumer Project Pack;
+### Near-term deliverables
+- reconcile/update the PNCC Consumer Project Pack against post-Stable provider truth;
 - Work Unit planner/selector integration;
-- durable writer lease enforcement;
-- CI inspection/classification/recovery loop;
-- WAITING/blocked semantics for unavailable runtime nodes;
-- automatic session handoff/resume;
-- bounded parallel read-only discovery and later non-overlapping writers.
+- durable writer-lease enforcement across autonomous sessions;
+- automatic exact-head CI inspection/classification/recovery loops;
+- durable `WAITING_RUNTIME` semantics when the physical node is unavailable;
+- automatic session handoff/resume from provider truth;
+- bounded parallel read-only discovery and later non-overlapping writers;
+- explicit owner escalation only at policy/security/runtime/promotion boundaries.
 
 ### Exit criteria
-
-- ADWF can select and execute the nearest valid Work Unit;
-- routine CI defects can be inspected/repaired/re-run without owner micro-management;
-- runtime-node unavailability produces durable waiting state rather than lost progress;
-- a new agent/session can resume from provider truth without manual reconstruction.
+- ADWF can select the nearest valid PNCC Work Unit from fresh provider truth;
+- routine hosted engineering work proceeds without owner micro-management;
+- CI/harness defects are classified and repaired without product mutation;
+- unavailable runtime nodes yield durable waiting state rather than lost progress;
+- a new session can resume without reconstructing project state from chat history.
 
 ---
 
 ## Wave 6 — Human-by-Exception
 
 ### Goal
-
-Minimize owner involvement in routine engineering while retaining explicit authority at security/runtime/policy risk boundaries.
+Minimize owner involvement in routine engineering while retaining explicit authority at high-risk boundaries.
 
 ### Candidate capabilities
-
-- low-risk auto-merge after all required gates;
-- update-branch/merge-queue strategy if parallel writers justify it;
+- low-risk auto-merge only after all required exact-head gates;
 - automatic next-Work-Unit continuation;
 - periodic pipeline health/drift checks;
 - bounded unattended development windows;
-- owner escalation only for governed exceptions.
+- owner escalation only for governed exceptions;
+- release/runtime authority remains explicit and fail-closed where required.
 
-### Preconditions
-
-Do not enable unattended merge/promotion merely to increase autonomy. Preconditions include mature durable state, behavioral tests, candidate artifact truth, runtime qualification and trustworthy risk classification.
-
-### Exit criteria
-
-Routine engineering can progress from intent to verified evidence and next Work Unit without owner intervention, while high-risk boundaries fail closed and require explicit authority.
+### State
+`PLANNED / TARGET_L6`
 
 ---
 
@@ -314,25 +200,28 @@ L0 Chat-driven
  ↓
 L1 Governed GitHub
  ↓
-L2 Durable State
+L2 Durable State                 COMPLETE
  ↓
-L3 Tested Engineering Pipeline ← current verified maturity / Wave 2 complete
+L3 Tested Engineering Pipeline   COMPLETE
  ↓
-L4 Artifact + Runtime Truth    ← Waves 3–4
+L4 Artifact + Runtime Truth       COMPLETE ← current verified maturity
  ↓
-L5 Autonomous Work Units       ← Wave 5
+L5 Autonomous Work Units          NEXT FRONTIER / Wave 5
  ↓
-L6 Human-by-Exception          ← Wave 6 target
+L6 Human-by-Exception             TARGET
 ```
 
-## Roadmap guardrails
+## Persistent guardrails
 
-- Finish the current Work Unit before expanding scope.
-- Do not create a new product RC for validator/harness/environment failures.
-- Do not manufacture runtime evidence from hosted simulation.
-- Do not build a runtime candidate from the sanitized RC14.38 fixture.
-- Do not conflate candidate identity with runtime qualification.
-- Do not let a green readiness workflow imply build readiness when `CAN_BUILD=false`.
-- Do not weaken fixed tunnel, credential, host-key or V6.3.1 contracts.
-- Prefer generic capabilities upstream in ADWF and PNCC-specific policy/tests in this repository.
-- Reassess the roadmap at natural boundaries using fresh provider/runtime truth.
+- `127.0.0.1:1081 = PRIMARY_AUTO`.
+- `127.0.0.1:1080 = RESERVE_MANUAL / MANUAL_ONLY`; PNCC never owns its automated lifecycle.
+- V6.3.1 rollback SHA-256 `385e5178f10e79b0b234376e6a6671b64ce523a3971b2b4341ec94ce1efee11e` remains immutable under the current contract.
+- DPAPI at rest; PuTTY credential transport uses `-pwfile`; plaintext `-pw` is forbidden.
+- Host-key verification remains fail-closed.
+- `CI VERIFIED != RUNTIME VERIFIED`.
+- Do not create a new product version for validator/harness/environment defects.
+- Rebuilt/substituted artifacts never inherit prior Runtime Authority.
+- Do not manufacture Runtime Truth from hosted simulation.
+- Public repository content must remain secret/private-instance safe.
+- Project-wide license selection remains deferred until provenance/dependency review is complete.
+- Reassess this roadmap at each natural boundary using fresh provider/runtime truth.
