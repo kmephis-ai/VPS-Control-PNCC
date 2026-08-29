@@ -1,0 +1,59 @@
+name: wave5-writer-lease-registry-topology
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  registry-topology:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact PNCC revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Validate topology policy
+        run: python3 .pncc-dev/scripts/validate_writer_lease_registry_topology.py
+
+      - name: Run adversarial registry topology tests
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_writer_lease_registry_topology.py' -v
+
+      - name: Preserve durable Writer Lease v1 validation
+        run: python3 .pncc-dev/scripts/validate_state.py --validate-examples
+
+      - name: Assert no live provider-state bootstrap or mutation exists
+        run: |
+          set -euo pipefail
+          test ! -e .pncc-state/writer-lease-registry.json
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('.pncc-dev/contracts/writer-lease-registry-topology.json').read_text(encoding='utf-8').lower()
+          assert '"bootstrap_authority": false' in p
+          assert '"registry_write_authority": false' in p
+          assert '"lease_acquisition_authority": false' in p
+          s=Path('.github/workflows/wave5-writer-lease-registry-topology.yml').read_text(encoding='utf-8').lower()
+          forbidden=['contents:'+' write','issues:'+' write','pull-requests:'+' write','git'+' push','git'+' tag','--method'+' post','--method'+' patch','--method'+' put','--method'+' delete','force:'+' true']
+          for token in forbidden:
+              assert token not in s, token
+          PY
+
+      - name: Assert protected surfaces unchanged in this PR
+        if: github.event_name == 'pull_request'
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin "${{ github.event.pull_request.base.sha }}"
+          changed="$(git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}")"
+          printf '%s\n' "$changed"
+          ! printf '%s\n' "$changed" | grep -E '^(src/windows-v7/|\.adwf-consumer/external-binding\.json$|\.pncc-dev/schemas/writer-lease\.schema\.json$|\.pncc-dev/examples/writer-lease\.valid\.json$|tools/runtime-agent/|\.pncc-state/)'
+
+      - name: Assert repository remains clean
+        run: test -z "$(git status --porcelain)"
