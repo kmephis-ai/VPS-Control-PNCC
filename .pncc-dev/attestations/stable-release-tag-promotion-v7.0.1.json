@@ -18,15 +18,15 @@
   "target_tag": "v7.0.1",
   "target_release_name": "VPS Control PNCC v7.0.1",
   "target_tag_commit_policy": "PREPARATION_MERGE_SHA_ONLY",
-  "target_tag_commit": null,
+  "target_tag_commit": "41e8c9c8bed2cc37423c33750d0748c49ff941b7",
   "target_tag_observed_absent_at_preparation": true,
   "target_release_observed_absent_at_preparation": true,
-  "owner_release_authorization_present": false,
-  "owner_release_authorization_binding_complete": false,
+  "owner_release_authorization_present": true,
+  "owner_release_authorization_binding_complete": true,
   "owner_release_authorization_scope": "RELEASE_TAG_STABLE_PROMOTION_ONLY",
-  "promotion_state": "WAITING_OWNER_RELEASE_AUTHORIZATION",
-  "promotion_eligible": false,
-  "release_or_tag_authorized": false,
+  "promotion_state": "AUTHORIZED_PENDING_EXECUTION",
+  "promotion_eligible": true,
+  "release_or_tag_authorized": true,
   "tag_created": false,
   "release_created": false,
   "release_asset_verified": false,
@@ -40,5 +40,5 @@
   "private_runtime_payload_published": false,
   "overwrite_existing_tag_forbidden": true,
   "overwrite_existing_release_forbidden": true,
-  "next_transaction": "EXPLICIT_OWNER_RELEASE_AUTHORIZATION_BOUND_TO_PREPARATION_MERGE_REQUIRED"
+  "next_transaction": "CREATE_EXACT_TAG_AND_RELEASE_NO_OVERWRITE"
 }
