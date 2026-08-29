@@ -8,7 +8,7 @@ Describe 'WU-090 v7.0.1 owner release publication executor' {
         $runnerRaw = Get-Content -LiteralPath $runnerPath -Raw
         $tokens = $null
         $errors = $null
-        $ast = [System.Management.Automation.Language.Parser]::ParseFile($runnerPath, [ref]$tokens, [ref]$errors)
+        [void][System.Management.Automation.Language.Parser]::ParseFile($runnerPath, [ref]$tokens, [ref]$errors)
         $script:Wu090RunnerPath = $runnerPath
         $script:Wu090RunnerRaw = $runnerRaw
         $script:Wu090AstErrors = @($errors)
@@ -38,11 +38,11 @@ Describe 'WU-090 v7.0.1 owner release publication executor' {
         $script:Wu090RunnerRaw | Should -Match 'd5802332136087339482c9b3171c1c5c9c18411e'
     }
 
-    It 'targets only v7.0.1 at the preparation merge commit' {
+    It 'targets only v7.0.1 at the exact preparation merge commit' {
         $script:Wu090RunnerRaw | Should -Match [regex]::Escape("`$TargetTag = 'v7.0.1'")
         $script:Wu090RunnerRaw | Should -Match [regex]::Escape("`$ReleaseName = 'VPS Control PNCC v7.0.1'")
         $script:Wu090RunnerRaw | Should -Match "'--target',`$PreparationMain"
-        $script:Wu090RunnerRaw | Should -Match 'PREPARATION_MERGE_SHA_ONLY'
+        $script:Wu090RunnerRaw | Should -Match [regex]::Escape("`$PreparedPromotionBlob = 'f20891555e6db3a0b5bb57488bac5e8ccf36eb71'")
     }
 
     It 'requires explicit Execute mode and defaults non-mutating' {
