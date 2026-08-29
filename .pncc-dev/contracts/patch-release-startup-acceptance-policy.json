@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "contract_id": "PNCC_PATCH_RELEASE_STARTUP_ACCEPTANCE_V1",
+  "applies_to": "POST_V7.0.0_PATCH_RELEASES",
+  "defect_classification": "PRODUCT_DEFECT_STARTUP_BLOCKING_FALSE_POSITIVE_CONSISTENCY_GATE",
+  "github_ci_can_satisfy_physical_acceptance": false,
+  "required_sequence": [
+    "EXACT_GOVERNED_ARTIFACT_IDENTITY",
+    "FRESH_EXTRACT",
+    "WINDOWS_POWERSHELL_5_1_AST_PREFLIGHT",
+    "PACKAGE_MANIFEST_PASS",
+    "DEMO_STARTUP",
+    "FUNCTIONAL_CONSISTENCY_PASS",
+    "WINFORMS_UI_OBSERVED",
+    "CLEAN_EXIT"
+  ],
+  "required_environment": {
+    "os_family": "WINDOWS_10_OR_GOVERNED_SUCCESSOR",
+    "powershell_major": 5,
+    "private_physical_evidence_required": true
+  },
+  "runtime_mutation_allowed": false,
+  "reserve_1080_mutation_allowed": false,
+  "primary_1081_mutation_allowed": false,
+  "published_v7_0_0_asset_mutation_allowed": false,
+  "published_v7_0_0_tag_retarget_allowed": false,
+  "promotion_requires_acceptance_pass": true,
+  "startup_acceptance_transferable_between_artifacts": false,
+  "next_expected_patch_line": "7.0.1"
+}
