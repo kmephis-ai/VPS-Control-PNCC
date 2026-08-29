@@ -3,13 +3,13 @@
   "role": "PNCC_WAVE5_ADWF_PROOF_READINESS",
   "state": "WAVE5_ADWF_PROOF_BASELINE_READY",
   "stable_baseline": {
-    "version": "7.0.0",
-    "completion_attestation": ".pncc-dev/attestations/stable-v7.0.0-completion.json",
+    "version": "7.0.1",
+    "completion_attestation": ".pncc-dev/attestations/stable-v7.0.1-completion.json",
     "completion_state": "STABLE_COMPLETE",
     "runtime_authority": true,
-    "artifact_filename": "VPS-Control-v7.0.0.zip",
-    "artifact_sha256": "1407f82b15ea2b70ba56b7406bb8dd0d9097c459b630d016d6a7b5f10a49e599",
-    "artifact_size_bytes": 700897
+    "artifact_filename": "VPS-Control-v7.0.1.zip",
+    "artifact_sha256": "22b843330516e481c467fe5cbe6d1d4c6758510c71bd2c46ebeec337f403ae72",
+    "artifact_size_bytes": 701893
   },
   "framework": {
     "repository": "kmephis-ai/AI-Development-Framework",

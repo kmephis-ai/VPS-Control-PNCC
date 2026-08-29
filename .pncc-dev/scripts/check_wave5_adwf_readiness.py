@@ -6,14 +6,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 BINDING = ROOT / '.adwf-consumer' / 'external-binding.json'
 READINESS = ROOT / '.adwf-consumer' / 'wave5-readiness.json'
-STABLE = ROOT / '.pncc-dev' / 'attestations' / 'stable-v7.0.0-completion.json'
+STABLE = ROOT / '.pncc-dev' / 'attestations' / 'stable-v7.0.1-completion.json'
 ADWF_WORKFLOW = ROOT / '.github' / 'workflows' / 'adwf-binding.yml'
 PACK_MARKER = ROOT / '.adwf-powershell.json'
 
 EXPECTED_ADWF = 'c7e0c059a901869d6369864e98d06238484778ec'
 EXPECTED_PACK = 'fbe69c4e93ff8b07e7d0dc6f0cbd1f9ceb80617f472f1fbe5a1ce181279a0c8c'
-EXPECTED_STABLE = '1407f82b15ea2b70ba56b7406bb8dd0d9097c459b630d016d6a7b5f10a49e599'
+EXPECTED_STABLE = '22b843330516e481c467fe5cbe6d1d4c6758510c71bd2c46ebeec337f403ae72'
 EXPECTED_BINDING_SHA = '1e2939e25526df1832dbd650a8c78024a729063d485aa983b503985dae7a9b1d'
+EXPECTED_BINDING_BLOB = 'f64c7d294e99c4ea44e68eae5c9f9b68733088a1'
 EXPECTED_GATES = ['repo-integrity', 'powershell-static', 'truth-contract']
 
 
@@ -49,12 +50,19 @@ stable = load(STABLE)
 marker = load(PACK_MARKER)
 workflow = ADWF_WORKFLOW.read_text(encoding='utf-8-sig')
 
-if stable.get('state') != 'STABLE_COMPLETE' or stable.get('runtime_authority') is not True:
+if stable.get('stable_version') != '7.0.1' or stable.get('state') != 'STABLE_COMPLETE' or stable.get('runtime_authority') is not True:
     fail('stable_completion_missing')
-if stable.get('artifact_sha256') != EXPECTED_STABLE or stable.get('artifact_size_bytes') != 700897:
+if stable.get('artifact_filename') != 'VPS-Control-v7.0.1.zip' or stable.get('artifact_sha256') != EXPECTED_STABLE or stable.get('artifact_size_bytes') != 701893:
     fail('stable_artifact_identity')
-if stable.get('fresh_nine_scope_reconcile') != 'PASS' or stable.get('release_asset_verified') is not True:
-    fail('stable_runtime_or_release_evidence')
+if stable.get('physical_startup_acceptance') != 'PASS' or stable.get('fresh_nine_scope_reconcile') != 'PASS':
+    fail('stable_physical_evidence')
+if stable.get('release_asset_verified') is not True or stable.get('promotion_state') != 'PROMOTED' or stable.get('stable_declared') is not True:
+    fail('stable_release_authority')
+if stable.get('next_frontier') != 'WAVE5_ADWF_AUTONOMOUS_EXECUTION':
+    fail('stable_next_frontier')
+for key in ('artifact_rebuilt','artifact_substituted','runtime_mutation','product_bytes_mutated','runtime_bytes_mutated','private_runtime_payload_published','reserve_1080_lifecycle_mutation','primary_1081_lifecycle_mutation'):
+    if stable.get(key) is not False:
+        fail('stable_forbidden_' + key)
 
 if binding.get('role') != 'EXTERNAL_CONSUMER_BINDING' or binding.get('schema_version') != 1:
     fail('binding_contract')
@@ -89,6 +97,17 @@ if marker != {'schema_version': 1, 'role': 'ADWF_PROJECT_PACK_MARKER', 'project_
 
 if readiness.get('role') != 'PNCC_WAVE5_ADWF_PROOF_READINESS' or readiness.get('state') != 'WAVE5_ADWF_PROOF_BASELINE_READY':
     fail('readiness_state')
+expected_baseline = {
+    'version': '7.0.1',
+    'completion_attestation': '.pncc-dev/attestations/stable-v7.0.1-completion.json',
+    'completion_state': 'STABLE_COMPLETE',
+    'runtime_authority': True,
+    'artifact_filename': 'VPS-Control-v7.0.1.zip',
+    'artifact_sha256': EXPECTED_STABLE,
+    'artifact_size_bytes': 701893,
+}
+if readiness.get('stable_baseline') != expected_baseline:
+    fail('readiness_stable_baseline')
 if readiness.get('framework', {}).get('source_sha') != EXPECTED_ADWF:
     fail('readiness_framework_pin')
 if readiness.get('consumer', {}).get('project_pack_digest') != EXPECTED_PACK:
@@ -134,8 +153,13 @@ for token in ('contents: write', 'git push', 'git tag', 'gh release'):
 
 print('WAVE5_ADWF_READINESS=PASS')
 print('STATE=WAVE5_ADWF_PROOF_BASELINE_READY')
+print('STABLE_VERSION=7.0.1')
+print('STABLE_ARTIFACT_SHA256=' + EXPECTED_STABLE)
+print('PHYSICAL_STARTUP_ACCEPTANCE=PASS')
+print('FRESH_NINE_SCOPE_RECONCILE=PASS')
 print('ADWF_SOURCE_SHA=' + EXPECTED_ADWF)
 print('PROJECT_PACK=powershell')
+print('EXTERNAL_BINDING_EXPECTED_BLOB=' + EXPECTED_BINDING_BLOB)
 print('MUTATION_AUTHORITY=NONE_BINDING_IS_PROOF_ONLY')
 print('AUTONOMY_ENABLED=false')
 print('PROVIDER_OPS_CONSUMER_AUTHORITY=false')
