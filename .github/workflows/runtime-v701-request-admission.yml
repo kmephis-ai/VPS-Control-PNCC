@@ -5,35 +5,34 @@ on:
     paths:
       - '.pncc-dev/requests/runtime-qualification-v7.0.1.json'
       - '.pncc-dev/scripts/validate_v701_runtime_request.py'
+      - '.pncc-dev/scripts/evaluate_runtime_qualification.py'
+      - '.pncc-dev/contracts/runtime-qualification-policy.json'
+      - '.pncc-dev/tests/test_runtime_qualification.py'
+      - 'tools/runtime-agent/Invoke-PnccRuntimeQualificationAgent.ps1'
+      - 'tools/runtime-agent/Initialize-PnccRuntimeQualificationWorkspace.ps1'
       - '.github/workflows/runtime-v701-request-admission.yml'
 
 permissions:
   contents: read
 
 jobs:
-  validate:
+  validate-contract:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-      - name: Validate exact v7.0.1 runtime request
+      - name: Validate exact provider-generated v7.0.1 request
         run: python3 .pncc-dev/scripts/validate_v701_runtime_request.py
-      - name: Assert request cannot grant authority
+      - name: Prove generic evaluator admits exact active request without authority
         shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          import json
-          p='.pncc-dev/requests/runtime-qualification-v7.0.1.json'
-          d=json.load(open(p,encoding='utf-8-sig'))
-          assert d['state']=='RUNTIME_PENDING'
-          assert d['runtime_authority'] is False
-          assert d['promotion_eligible'] is False
-          assert d['authority_source'] is None
-          assert d['runtime_receipt_path'] is None
-          assert len(d['required_scopes']) == 9
-          PY
+          out="$(python3 .pncc-dev/scripts/evaluate_runtime_qualification.py --repository-root . --request .pncc-dev/requests/runtime-qualification-v7.0.1.json)"
+          echo "$out"
+          grep -F 'RUNTIME_QUALIFICATION_STATE=WAITING_RUNTIME_EVIDENCE' <<<"$out"
+          grep -F 'CANDIDATE_ID=PNCC-V7.0.1-D58023321360' <<<"$out"
+          grep -F 'RUNTIME_AUTHORITY=false PROMOTION_ELIGIBLE=false' <<<"$out"
       - name: Assert no RC14.39 authority inheritance
         shell: bash
         run: |
@@ -42,3 +41,27 @@ jobs:
           ! grep -q 'PNCC-RQ-RC14.39-90C9E8698C64' .pncc-dev/requests/runtime-qualification-v7.0.1.json
       - name: Assert repository remains clean
         run: test -z "$(git status --porcelain)"
+
+  windows-agent-dry-run:
+    needs: validate-contract
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Assert Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          if ($PSVersionTable.PSVersion.Major -ne 5 -or $PSVersionTable.PSVersion.Minor -ne 1) { throw "Windows PowerShell 5.1 required; got $($PSVersionTable.PSVersion)" }
+      - name: Run exact v7.0.1 runtime-agent dry-run
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $out=Join-Path $env:RUNNER_TEMP 'pncc-v701-agent-dry-run'
+          & .\tools\runtime-agent\Invoke-PnccRuntimeQualificationAgent.ps1 -RequestPath .\.pncc-dev\requests\runtime-qualification-v7.0.1.json -OutputDirectory $out -ExpectedRequestId 'PNCC-RQ-V7.0.1-D58023321360' -ExpectedCandidateId 'PNCC-V7.0.1-D58023321360' -ExpectedSourceSha 'd5802332136087339482c9b3171c1c5c9c18411e' -ExpectedArtifactSha256 '22b843330516e481c467fe5cbe6d1d4c6758510c71bd2c46ebeec337f403ae72' -DryRun
+          if ($LASTEXITCODE -ne 0) { throw "runtime agent dry-run failed: $LASTEXITCODE" }
+          $plan=Get-Content -LiteralPath (Join-Path $out 'execution-plan.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+          if (@($plan.steps).Count -ne 9) { throw 'expected exactly 9 planned scopes' }
+          if (-not [bool]$plan.dry_run -or [bool]$plan.runtime_mutation_permitted -or [bool]$plan.public_ci_runtime_authority) { throw 'dry-run authority boundary violated' }
+          if ([long]$plan.provider_build_run_id -ne 33242642394) { throw 'provider build run mismatch' }
+          Write-Host 'V701_AGENT_DRY_RUN=PASS SCOPES=9 RUNTIME_MUTATION=false RUNTIME_AUTHORITY=false PROMOTION_ELIGIBLE=false'
