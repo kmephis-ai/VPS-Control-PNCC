@@ -1,10 +1,12 @@
 ﻿#requires -Version 5.1
 Set-StrictMode -Version 2.0
 
-$RepoRoot=Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$RunnerPath=Join-Path $RepoRoot 'tools\runtime-agent\Invoke-PnccV701NineScopeOwnerQualification.ps1'
-$FixturePath=Join-Path $RepoRoot '.pncc-dev\tests\runtime-v701-nine-scope-plan.fixture.json'
-$RunnerRaw=[IO.File]::ReadAllText($RunnerPath)
+BeforeAll {
+    $RepoRoot=(Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
+    $RunnerPath=Join-Path $RepoRoot 'tools\runtime-agent\Invoke-PnccV701NineScopeOwnerQualification.ps1'
+    $FixturePath=Join-Path $RepoRoot '.pncc-dev\tests\runtime-v701-nine-scope-plan.fixture.json'
+    $RunnerRaw=[IO.File]::ReadAllText($RunnerPath)
+}
 
 Describe 'PIPE-WU-087 v7.0.1 nine-scope owner qualification runner' {
     It 'exists with UTF-8 BOM and parses under Windows PowerShell 5.1 grammar' {
