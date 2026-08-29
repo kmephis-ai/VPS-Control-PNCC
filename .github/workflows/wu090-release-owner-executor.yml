@@ -1,0 +1,81 @@
+name: wu090-release-owner-executor
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tools/release/Invoke-PnccV701StableReleasePublication.ps1'
+      - '.pncc-dev/pester/Wu090ReleasePublication.Tests.ps1'
+      - '.github/workflows/wu090-release-owner-executor.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'tools/release/Invoke-PnccV701StableReleasePublication.ps1'
+      - '.pncc-dev/pester/Wu090ReleasePublication.Tests.ps1'
+      - '.github/workflows/wu090-release-owner-executor.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  ps51-static-only:
+    runs-on: windows-2025
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Prove Windows PowerShell 5.1 parser
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          Write-Host ('PS_VERSION=' + $PSVersionTable.PSVersion.ToString())
+          if($PSVersionTable.PSVersion.Major -ne 5){ throw 'Expected Windows PowerShell 5.1' }
+          $path='tools/release/Invoke-PnccV701StableReleasePublication.ps1'
+          $tokens=$null; $errors=$null
+          [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path).Path,[ref]$tokens,[ref]$errors)
+          if(@($errors).Count -ne 0){ @($errors) | ForEach-Object { Write-Error $_.Message }; throw 'PS51_AST_PARSE_FAILED' }
+          Write-Host 'PS51_AST_PARSE=PASS'
+
+      - name: Run WU-090 Pester safety regressions
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          if(-not (Get-Module -ListAvailable Pester | Where-Object { $_.Version -ge [version]'5.0.0' })){
+            Install-Module Pester -MinimumVersion 5.0.0 -Force -Scope CurrentUser -Repository PSGallery
+          }
+          Import-Module Pester -MinimumVersion 5.0.0 -Force
+          $c=New-PesterConfiguration
+          $c.Run.Path='.pncc-dev/pester/Wu090ReleasePublication.Tests.ps1'
+          $c.Run.PassThru=$true
+          $c.Output.Verbosity='Detailed'
+          $r=Invoke-Pester -Configuration $c
+          if($r.FailedCount -ne 0){ throw ('WU090_PESTER_FAILED=' + $r.FailedCount) }
+          Write-Host ('WU090_PESTER=PASS TOTAL=' + $r.TotalCount + ' PASSED=' + $r.PassedCount)
+
+      - name: Assert executor never runs in hosted CI
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $workflow=Get-Content -LiteralPath '.github/workflows/wu090-release-owner-executor.yml' -Raw
+          if($workflow -match '(?i)Invoke-PnccV701StableReleasePublication\.ps1\s+.*-Execute'){ throw 'HOSTED_EXECUTION_FORBIDDEN' }
+          if($workflow -notmatch '(?m)^\s*contents:\s*read\s*$'){ throw 'READ_ONLY_PERMISSION_REQUIRED' }
+          if($workflow -match '(?m)^\s*contents:\s*write\s*$'){ throw 'WRITE_PERMISSION_FORBIDDEN' }
+          Write-Host 'HOSTED_RELEASE_EXECUTION=false'
+
+      - name: Assert product source is outside executor diff
+        if: github.event_name == 'pull_request'
+        shell: powershell
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $files=@(git diff --name-only "$env:BASE_SHA...$env:HEAD_SHA")
+          if($LASTEXITCODE -ne 0){ throw 'git diff failed' }
+          if(@($files | Where-Object { $_ -like 'src/windows-v7/*' }).Count -ne 0){ throw 'PRODUCT_SOURCE_MUTATION_FORBIDDEN' }
+          Write-Host 'PRODUCT_SOURCE_MUTATION=false'
