@@ -10,6 +10,24 @@ spec = importlib.util.spec_from_file_location('wu099_eval', SCRIPT)
 mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mod)
 
+MUTATION_AUTHORITY_FIELDS = [
+    'autonomous_merge_authority',
+    'autonomous_issue_close_authority',
+    'direct_main_write_authority',
+    'provider_state_write_authority',
+    'lease_acquisition_authority',
+    'heartbeat_authority',
+    'release_authority',
+    'runtime_action_authority',
+    'product_runtime_mutation_authority',
+    'adwf_binding_mutation_authority',
+    'promotion_release_tag_authority',
+    'ruleset_policy_mutation_authority',
+    'private_evidence_publication_authority',
+    'reserve_1080_lifecycle_mutation_authority',
+    'primary_1081_lifecycle_mutation_authority',
+]
+
 
 def good_snapshot():
     return {
@@ -47,9 +65,9 @@ class Wu099EligibilityTests(unittest.TestCase):
 
     def test_policy_remains_read_only_and_has_no_mutation_authority(self):
         self.assertEqual(self.policy['mode'], 'READ_ONLY_ADVISORY')
-        authority_fields = [k for k in self.policy if k.endswith('_authority')]
-        self.assertGreater(len(authority_fields), 0)
-        self.assertTrue(all(self.policy[k] is False for k in authority_fields))
+        self.assertTrue(self.policy['merge_requires_explicit_authority'])
+        self.assertTrue(self.policy['close_requires_explicit_authority'])
+        self.assertTrue(all(self.policy[k] is False for k in MUTATION_AUTHORITY_FIELDS))
 
     def test_exact_good_premerge_snapshot_is_merge_eligible(self):
         self.assertEqual(mod.evaluate(good_snapshot(), self.policy)['decision'], 'MERGE_ELIGIBLE')
