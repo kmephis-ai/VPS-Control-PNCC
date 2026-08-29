@@ -13,27 +13,42 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - name: Evaluate Stable Runtime Authority decision boundary
+      - name: Evaluate historical Stable Runtime Authority decision boundary
         run: python3 .pncc-dev/scripts/evaluate_stable_runtime_authority_decision.py
-      - name: Assert hosted boundary has no authority or release side effects
+      - name: Evaluate v7.0.1 Runtime Authority candidate boundary
+        run: python3 .pncc-dev/scripts/evaluate_stable_runtime_authority_decision_v701.py
+      - name: Assert hosted boundaries have no authority or release side effects
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           import json
-          p='.pncc-dev/attestations/stable-runtime-authority-decision-v7.0.0.json'
-          d=json.load(open(p,encoding='utf-8'))
-          assert d['decision_state']=='ELIGIBLE_FOR_OWNER_PROMOTION_DECISION'
-          assert d['runtime_authority_candidate'] is True
-          assert d['runtime_authority'] is False
-          assert d['promotion_eligible'] is False
-          assert d['release_or_tag_authorized'] is False
-          assert d['tag_created'] is False
-          assert d['release_created'] is False
-          assert d['stable_declared'] is False
-          assert d['artifact_rebuilt'] is False
-          assert d['artifact_substituted'] is False
-          assert d['rc_runtime_truth_used'] is False
+          old=json.load(open('.pncc-dev/attestations/stable-runtime-authority-decision-v7.0.0.json',encoding='utf-8'))
+          assert old['decision_state']=='ELIGIBLE_FOR_OWNER_PROMOTION_DECISION'
+          assert old['runtime_authority_candidate'] is True
+          assert old['runtime_authority'] is False
+          assert old['promotion_eligible'] is False
+          assert old['release_or_tag_authorized'] is False
+          assert old['tag_created'] is False
+          assert old['release_created'] is False
+          assert old['stable_declared'] is False
+          assert old['artifact_rebuilt'] is False
+          assert old['artifact_substituted'] is False
+          assert old['rc_runtime_truth_used'] is False
+
+          new=json.load(open('.pncc-dev/attestations/stable-runtime-authority-decision-v7.0.1.json',encoding='utf-8'))
+          assert new['decision_state']=='ELIGIBLE_FOR_OWNER_RUNTIME_AUTHORITY_DECISION'
+          assert new['runtime_authority_candidate'] is True
+          assert new['runtime_authority'] is False
+          assert new['promotion_eligible'] is False
+          assert new['release_or_tag_authorized'] is False
+          assert new['tag_created'] is False
+          assert new['release_created'] is False
+          assert new['stable_declared'] is False
+          assert new['artifact_rebuilt'] is False
+          assert new['artifact_substituted'] is False
+          assert new['rc_runtime_truth_used'] is False
+          assert new['runtime_mutation'] is False
           PY
       - name: Assert workflow cannot mutate repository or releases
         shell: bash

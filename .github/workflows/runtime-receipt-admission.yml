@@ -13,13 +13,39 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - name: Validate sanitized Runtime Truth receipt
+      - name: Validate historical sanitized Runtime Truth receipt
         run: python3 .pncc-dev/scripts/validate_runtime_qualification_receipt.py
-      - name: Assert attestation contains no private-runtime payloads
+      - name: Validate v7.0.1 sanitized Runtime Truth receipt
+        run: python3 .pncc-dev/scripts/validate_runtime_qualification_v701_receipt.py
+      - name: Assert attestations contain no private-runtime payloads
         shell: bash
         run: |
           set -euo pipefail
-          test -f '.pncc-dev/attestations/runtime-qualification-rc14.39.json'
-          ! grep -Eqi 'YandexDisk|Dropbox|LOCALAPPDATA|DESKTOP-|\\Users\\|putty_portable\.exe' .pncc-dev/attestations/runtime-qualification-rc14.39.json
+          for p in \
+            '.pncc-dev/attestations/runtime-qualification-rc14.39.json' \
+            '.pncc-dev/attestations/runtime-qualification-v7.0.1.json'; do
+            test -f "$p"
+            ! grep -Eqi 'YandexDisk|Dropbox|LOCALAPPDATA|DESKTOP-|\\Users\\|putty_portable\.exe|[A-Za-z]:\\' "$p"
+          done
+          test ! -f '.pncc-dev/attestations/private-evidence.zip'
+          test ! -f '.pncc-dev/attestations/PNCC-WU087.log'
+      - name: Assert v7.0.1 receipt remains authority-candidate only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          p='.pncc-dev/attestations/runtime-qualification-v7.0.1.json'
+          d=json.load(open(p,encoding='utf-8'))
+          assert d['qualification_state']=='RUNTIME_VERIFIED'
+          assert d['pass_scope_count']==9
+          assert d['runtime_authority_candidate'] is True
+          assert d['repository_runtime_authority'] is False
+          assert d['promotion_eligible'] is False
+          assert d['release_or_tag_authorized'] is False
+          assert d['runtime_mutation'] is False
+          assert d['reserve_1080_unchanged'] is True
+          assert d['primary_1081_unchanged'] is True
+          PY
       - name: Assert repository remains clean
         run: test -z "$(git status --porcelain)"
