@@ -29,6 +29,7 @@ jobs:
           git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}" | sort > /tmp/actual
           printf '%s\n' \
             '.github/workflows/wave5-autonomous-merge-issue-close-eligibility.yml' \
+            '.github/workflows/wave5-writer-lease-bounded-branch-execution.yml' \
             '.pncc-dev/contracts/autonomous-merge-issue-close-eligibility-policy.json' \
             '.pncc-dev/scripts/evaluate_autonomous_merge_issue_close_eligibility.py' \
             '.pncc-dev/tests/test_autonomous_merge_issue_close_eligibility_wu099.py' | sort > /tmp/expected
