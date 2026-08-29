@@ -51,9 +51,9 @@ Describe 'WU-090 PS5.1 release publication compatibility shim' {
         @($errors).Count | Should -Be 0
     }
 
-    It 'uses literal invariant checks that cannot interpolate ErrorActionPreference' {
+    It 'uses literal invariant checks and emits explicit patch PASS' {
         $script:ShimRaw.Contains('if (-not $patched.Contains("`$ErrorActionPreference = ''Continue''"))') | Should -BeTrue
-        $script:ShimRaw.Contains("[regex]::Matches(`$patched,\"\`$ErrorActionPreference = 'Continue'\"") | Should -BeFalse
+        $script:ShimRaw.Contains('if (-not $patched.Contains(''$ErrorActionPreference = $savedErrorActionPreference''))') | Should -BeTrue
         $script:ShimRaw.Contains('PS51_NATIVE_COMMAND_PATCH=PASS') | Should -BeTrue
     }
 
