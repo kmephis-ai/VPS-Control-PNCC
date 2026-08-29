@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "role": "GOVERNED_FRONTIER_LIFECYCLE_POLICY",
+  "mode": "READ_ONLY_FAIL_CLOSED",
+  "frontier_path": ".pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json",
+  "transition_path_template": ".pncc-dev/contracts/governed-frontier-transition-{work_unit_id_lower}.json",
+  "applicable_branch_pattern": "^agent/PIPE-WU-[0-9]+(?:-|$)",
+  "predecessor_state_required": "ACTIVE",
+  "successor_state_policy": "ACTIVE_OR_NONE",
+  "same_pr_advancement_required": true,
+  "transition_contract_changed_in_same_pr_required": true,
+  "frontier_changed_in_same_pr_required": true,
+  "predecessor_blob_must_match_pr_base": true,
+  "successor_blob_must_match_pr_head": true,
+  "successor_blob_must_differ_from_predecessor": true,
+  "successor_frontier_id_must_differ_if_active": true,
+  "successor_runtime_required_must_be_false_if_active": true,
+  "terminal_none_shape": {
+    "schema_version": 1,
+    "role": "WAVE5_NEXT_GOVERNED_WORK_UNIT_FRONTIER",
+    "state": "NONE"
+  },
+  "completed_frontier_replay_forbidden": true,
+  "historical_transition_reuse_forbidden": true,
+  "work_unit_binding_fields": [
+    "work_unit_id",
+    "issue_number",
+    "conflict_domain",
+    "base_sha",
+    "branch"
+  ],
+  "immutable_materialization_anchor_paths": {
+    "planner": ".pncc-dev/scripts/plan_governed_work_unit_materialization.py",
+    "materialization_policy": ".pncc-dev/contracts/governed-work-unit-materialization-policy.json",
+    "reusable_materialization_grant": ".pncc-dev/contracts/reusable-canonical-work-unit-materialization-authorized.json",
+    "selector": ".pncc-dev/scripts/select_provider_work_unit.py",
+    "work_unit_schema": ".pncc-dev/schemas/work-unit.schema.json"
+  },
+  "immutable_materialization_anchor_blobs": {
+    "planner": "c561b34dbf3fb7cfefd1a2a9780aba6e857ec78c",
+    "materialization_policy": "8b6b6d9116b96a8f4746c22906a522589a9ae6e0",
+    "reusable_materialization_grant": "39db0554b86932b1beb4bb7250d040c06f9371ea",
+    "selector": "8045a97d5344f058064690cb265b30f88973e2b8",
+    "work_unit_schema": "a6b23c5695262192175216e6293d832f8e835851"
+  },
+  "provider_mutation_authority": false,
+  "issue_mutation_authority": false,
+  "branch_mutation_authority": false,
+  "pull_request_mutation_authority": false,
+  "writer_lease_mutation_authority": false,
+  "merge_authority": false,
+  "runtime_action_authority": false,
+  "product_runtime_mutation_authority": false,
+  "adwf_binding_mutation_authority": false,
+  "release_tag_promotion_authority": false,
+  "ruleset_policy_mutation_authority": false,
+  "private_evidence_publication_authority": false,
+  "reserve_1080_lifecycle_mutation_authority": false,
+  "primary_1081_lifecycle_mutation_authority": false,
+  "next_boundary": "PER_WORK_UNIT_TRANSITION_CONTRACT_AND_EXACT_HEAD_CI"
+}

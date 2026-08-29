@@ -33,3 +33,83 @@ jobs:
         run: |
           set -euo pipefail
           python3 -m unittest discover -s .pncc-dev/tests -p 'test_*.py' -v
+
+  governed-frontier-lifecycle:
+    name: wave5-governed-frontier-lifecycle
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Run governed frontier lifecycle regression tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s .pncc-dev/tests -p 'test_governed_frontier_lifecycle_wu104.py' -v
+
+      - name: Assert immutable materialization anchors
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object .pncc-dev/scripts/plan_governed_work_unit_materialization.py)" = "c561b34dbf3fb7cfefd1a2a9780aba6e857ec78c"
+          test "$(git hash-object .pncc-dev/contracts/governed-work-unit-materialization-policy.json)" = "8b6b6d9116b96a8f4746c22906a522589a9ae6e0"
+          test "$(git hash-object .pncc-dev/contracts/reusable-canonical-work-unit-materialization-authorized.json)" = "39db0554b86932b1beb4bb7250d040c06f9371ea"
+          test "$(git hash-object .pncc-dev/scripts/select_provider_work_unit.py)" = "8045a97d5344f058064690cb265b30f88973e2b8"
+          test "$(git hash-object .pncc-dev/schemas/work-unit.schema.json)" = "a6b23c5695262192175216e6293d832f8e835851"
+
+      - name: Evaluate same-PR frontier advancement
+        if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'agent/PIPE-WU-')
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          WORK_BRANCH: ${{ github.head_ref }}
+        run: |
+          set -euo pipefail
+          FRONTIER='.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json'
+          WU_ID="$(printf '%s' "$WORK_BRANCH" | grep -oE 'PIPE-WU-[0-9]+' | head -n1)"
+          test -n "$WU_ID"
+          WU_LOWER="$(printf '%s' "$WU_ID" | tr '[:upper:]' '[:lower:]')"
+          TRANSITION=".pncc-dev/contracts/governed-frontier-transition-${WU_LOWER}.json"
+          test -f "$TRANSITION"
+          git fetch --no-tags --depth=1 origin "$BASE_SHA"
+          git show "$BASE_SHA:$FRONTIER" > /tmp/predecessor-frontier.json
+          cp "$FRONTIER" /tmp/successor-frontier.json
+          git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort > /tmp/frontier-changed
+          grep -Fx "$FRONTIER" /tmp/frontier-changed
+          grep -Fx "$TRANSITION" /tmp/frontier-changed
+          python3 .pncc-dev/scripts/evaluate_governed_frontier_lifecycle.py \
+            --transition "$TRANSITION" \
+            --predecessor /tmp/predecessor-frontier.json \
+            --successor /tmp/successor-frontier.json \
+            --work-unit-id "$WU_ID" \
+            --base-sha "$BASE_SHA" \
+            --branch "$WORK_BRANCH"
+
+      - name: Assert exact PIPE-WU-104 bounded diff
+        if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'agent/PIPE-WU-104-')
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin "$BASE_SHA"
+          git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort > /tmp/actual
+          printf '%s\n' \
+            '.github/workflows/pipeline-state.yml' \
+            '.pncc-dev/contracts/governed-frontier-lifecycle-policy.json' \
+            '.pncc-dev/contracts/governed-frontier-transition-pipe-wu-104.json' \
+            '.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json' \
+            '.pncc-dev/scripts/evaluate_governed_frontier_lifecycle.py' \
+            '.pncc-dev/tests/test_governed_frontier_lifecycle_wu104.py' | sort > /tmp/expected
+          diff -u /tmp/expected /tmp/actual
+          ! grep -E '^(\.pncc-state/|src/windows-v7/|\.adwf-consumer/|tools/runtime-agent/)' /tmp/actual
+
+      - name: Assert repository remains clean
+        shell: bash
+        run: test -z "$(git status --porcelain)"
