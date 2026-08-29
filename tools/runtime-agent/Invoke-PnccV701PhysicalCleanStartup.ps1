@@ -10,15 +10,30 @@ param(
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
 
-$script:RunnerVersion = '1.0.2'
+function Convert-CodePointsToString {
+    param([Parameter(Mandatory=$true)][int[]]$CodePoints)
+    $builder = New-Object Text.StringBuilder
+    foreach ($codePoint in @($CodePoints)) {
+        [void]$builder.Append([char]$codePoint)
+    }
+    return $builder.ToString()
+}
+
+$script:RunnerVersion = '1.0.3'
 $script:ExpectedCandidateSha256 = '22b843330516e481c467fe5cbe6d1d4c6758510c71bd2c46ebeec337f403ae72'
 $script:ExpectedUiVersion = '7.0.1'
-$script:ExpectedWindowTitle = 'VPS Control Center v7.0.1 · ДЕМО'
+$script:ExpectedDemoText = Convert-CodePointsToString @(0x0414,0x0415,0x041C,0x041E)
+$script:ExpectedWindowTitle = 'VPS Control Center v7.0.1 ' + [char]0x00B7 + ' ' + $script:ExpectedDemoText
 $script:ExpectedTrayName = 'VPS Control Center'
-$script:ExpectedExitMenuText = 'Закрыть интерфейс (маршрутизация останется)'
+$script:ExpectedExitMenuText = Convert-CodePointsToString @(0x0417,0x0430,0x043A,0x0440,0x044B,0x0442,0x044C,0x0020,0x0438,0x043D,0x0442,0x0435,0x0440,0x0444,0x0435,0x0439,0x0441,0x0020,0x0028,0x043C,0x0430,0x0440,0x0448,0x0440,0x0443,0x0442,0x0438,0x0437,0x0430,0x0446,0x0438,0x044F,0x0020,0x043E,0x0441,0x0442,0x0430,0x043D,0x0435,0x0442,0x0441,0x044F,0x0029)
+$script:HiddenIconsRu1 = Convert-CodePointsToString @(0x041E,0x0442,0x043E,0x0431,0x0440,0x0430,0x0436,0x0430,0x0442,0x044C,0x0020,0x0441,0x043A,0x0440,0x044B,0x0442,0x044B,0x0435,0x0020,0x0437,0x043D,0x0430,0x0447,0x043A,0x0438)
+$script:HiddenIconsRu2 = Convert-CodePointsToString @(0x041F,0x043E,0x043A,0x0430,0x0437,0x0430,0x0442,0x044C,0x0020,0x0441,0x043A,0x0440,0x044B,0x0442,0x044B,0x0435,0x0020,0x0437,0x043D,0x0430,0x0447,0x043A,0x0438)
 $script:ProtectedPorts = @(1080,1081)
 $script:ModuleNames = @('OpenAI','GitHub','DevPackages','Firefox','Claude','Gemini','Docker','Telegram','YandexBrowser','Edge','CustomExe','CustomSite')
 $script:TestOwnedPid = 0
+$script:TestOwnedStartTicksUtc = 0L
+$script:TestOwnedExecutablePath = ''
+$script:TestOwnedLauncherPath = ''
 $script:Evidence = New-Object Collections.ArrayList
 $script:WindowSamples = New-Object Collections.ArrayList
 $script:CleanupMode = 'NOT_STARTED'
@@ -40,13 +55,15 @@ $script:WindowEvidencePath = Join-Path $EvidenceDirectory 'pid-window-samples.js
 $script:PortsBeforePath = Join-Path $EvidenceDirectory 'ports-before.json'
 $script:PortsAfterPath = Join-Path $EvidenceDirectory 'ports-after.json'
 
-function Write-RunnerLog([string]$Text) {
+function Write-RunnerLog {
+    param([string]$Text)
     $line = ('{0:yyyy-MM-dd HH:mm:ss.fff}  {1}' -f (Get-Date), $Text)
     Write-Host $line
     Add-Content -LiteralPath $script:LogPath -Encoding UTF8 -Value $line
 }
 
-function Add-EvidenceEvent([string]$Type,[string]$Detail) {
+function Add-EvidenceEvent {
+    param([string]$Type,[string]$Detail)
     [void]$script:Evidence.Add([pscustomobject]@{
         Timestamp = (Get-Date).ToString('o')
         Type = $Type
@@ -55,19 +72,26 @@ function Add-EvidenceEvent([string]$Type,[string]$Detail) {
     Write-RunnerLog ($Type + ' :: ' + $Detail)
 }
 
-function Get-Sha256([string]$Path) {
+function Get-Sha256 {
+    param([string]$Path)
     return ([string](Get-FileHash -LiteralPath $Path -Algorithm SHA256 -ErrorAction Stop).Hash).ToLowerInvariant()
+}
+
+function Write-JsonUtf8Bom {
+    param([string]$Path,$Value,[int]$Depth = 8)
+    $json = $Value | ConvertTo-Json -Depth $Depth
+    [IO.File]::WriteAllText($Path,$json,(New-Object Text.UTF8Encoding($true)))
 }
 
 function Get-ProtectedListenerSnapshot {
     $rows = New-Object Collections.ArrayList
     try {
         $connections = @(Get-NetTCPConnection -State Listen -ErrorAction Stop | Where-Object { $script:ProtectedPorts -contains [int]$_.LocalPort })
-        foreach ($c in $connections) {
+        foreach ($connection in $connections) {
             [void]$rows.Add([pscustomobject]@{
-                LocalAddress = [string]$c.LocalAddress
-                LocalPort = [int]$c.LocalPort
-                OwningProcess = [int]$c.OwningProcess
+                LocalAddress = [string]$connection.LocalAddress
+                LocalPort = [int]$connection.LocalPort
+                OwningProcess = [int]$connection.OwningProcess
             })
         }
     }
@@ -85,11 +109,13 @@ function Get-ProtectedListenerSnapshot {
     return @($rows | Sort-Object LocalPort,LocalAddress,OwningProcess)
 }
 
-function Get-SnapshotFingerprint($Snapshot) {
+function Get-SnapshotFingerprint {
+    param($Snapshot)
     return (@($Snapshot) | ConvertTo-Json -Depth 5 -Compress)
 }
 
-function Assert-PackageManifest([string]$BaseDir) {
+function Assert-PackageManifest {
+    param([string]$BaseDir)
     $manifest = Join-Path $BaseDir 'VPS-Control-v7-SHA256.txt'
     if (-not (Test-Path -LiteralPath $manifest -PathType Leaf)) { throw 'PACKAGE_MANIFEST_MISSING' }
     $count = 0
@@ -100,15 +126,15 @@ function Assert-PackageManifest([string]$BaseDir) {
         $relative = $Matches[2].Trim()
         $path = Join-Path $BaseDir $relative
         if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw ('PACKAGE_FILE_MISSING: ' + $relative) }
-        $actual = Get-Sha256 $path
-        if ($actual -ne $expected) { throw ('PACKAGE_HASH_MISMATCH: ' + $relative) }
+        if ((Get-Sha256 $path) -ne $expected) { throw ('PACKAGE_HASH_MISMATCH: ' + $relative) }
         $count++
     }
     if ($count -lt 1) { throw 'PACKAGE_MANIFEST_EMPTY' }
     return $count
 }
 
-function Assert-PowerShellAst([string]$BaseDir) {
+function Assert-PowerShellAst {
+    param([string]$BaseDir)
     $files = @(Get-ChildItem -LiteralPath $BaseDir -Recurse -Filter '*.ps1' -File -ErrorAction Stop | Sort-Object FullName)
     if ($files.Count -lt 1) { throw 'NO_POWERSHELL_FILES' }
     foreach ($file in $files) {
@@ -123,7 +149,8 @@ function Assert-PowerShellAst([string]$BaseDir) {
     return $files.Count
 }
 
-function Invoke-FunctionalConsistency([string]$BaseDir) {
+function Invoke-FunctionalConsistency {
+    param([string]$BaseDir)
     $module = Join-Path $BaseDir 'modules\V7-Consistency.ps1'
     if (-not (Test-Path -LiteralPath $module -PathType Leaf)) { throw 'V7_CONSISTENCY_MODULE_MISSING' }
     . $module
@@ -199,7 +226,8 @@ namespace Pncc.Wu084 {
 '@
 }
 
-function Get-PidTopLevelWindows([int]$Pid) {
+function Get-PidTopLevelWindows {
+    param([int]$Pid)
     return @([Pncc.Wu084.NativeWindow]::ForProcess($Pid) | ForEach-Object {
         [pscustomobject]@{
             Handle = [long]$_.Handle
@@ -210,7 +238,8 @@ function Get-PidTopLevelWindows([int]$Pid) {
     })
 }
 
-function Add-WindowSample([int]$Pid,$Windows,[string]$Reason) {
+function Add-WindowSample {
+    param([int]$Pid,$Windows,[string]$Reason)
     if ($script:WindowSamples.Count -ge 40) { return }
     [void]$script:WindowSamples.Add([pscustomobject]@{
         Timestamp = (Get-Date).ToString('o')
@@ -221,21 +250,22 @@ function Add-WindowSample([int]$Pid,$Windows,[string]$Reason) {
     })
 }
 
-function Wait-ExpectedPidWindow([int]$Pid,[int]$TimeoutSeconds) {
+function Wait-ExpectedPidWindow {
+    param([int]$Pid,[int]$TimeoutSeconds)
     $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
     $lastFingerprint = ''
     $lastPeriodic = [datetime]::MinValue
     while ((Get-Date) -lt $deadline) {
-        $proc = Get-Process -Id $Pid -ErrorAction SilentlyContinue
-        if (-not $proc) {
+        if (-not (Get-Process -Id $Pid -ErrorAction SilentlyContinue)) {
             Add-WindowSample -Pid $Pid -Windows @() -Reason 'PROCESS_EXITED_BEFORE_UI'
             return $null
         }
         $windows = @(Get-PidTopLevelWindows -Pid $Pid)
-        $fingerprint = ($windows | ConvertTo-Json -Depth 4 -Compress)
+        $fingerprint = $windows | ConvertTo-Json -Depth 4 -Compress
         $now = Get-Date
         if ($fingerprint -ne $lastFingerprint -or ($now - $lastPeriodic).TotalSeconds -ge 5) {
-            Add-WindowSample -Pid $Pid -Windows $windows -Reason $(if ($fingerprint -ne $lastFingerprint) { 'WINDOW_SET_CHANGE' } else { 'PERIODIC' })
+            $reason = if ($fingerprint -ne $lastFingerprint) { 'WINDOW_SET_CHANGE' } else { 'PERIODIC' }
+            Add-WindowSample -Pid $Pid -Windows $windows -Reason $reason
             $lastFingerprint = $fingerprint
             $lastPeriodic = $now
         }
@@ -251,15 +281,26 @@ function Wait-ExpectedPidWindow([int]$Pid,[int]$TimeoutSeconds) {
     return $null
 }
 
-function Get-UiaElementsByExactName([string]$Name) {
+function Initialize-Uia {
     Add-Type -AssemblyName UIAutomationClient -ErrorAction Stop
     Add-Type -AssemblyName UIAutomationTypes -ErrorAction Stop
-    $root = [System.Windows.Automation.AutomationElement]::RootElement
-    $condition = New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::NameProperty,$Name)
-    return @($root.FindAll([System.Windows.Automation.TreeScope]::Descendants,$condition))
 }
 
-function Get-UiaClickableElementByExactName([string]$Name) {
+function Get-UiaElementsByExactName {
+    param([string]$Name)
+    Initialize-Uia
+    $root = [System.Windows.Automation.AutomationElement]::RootElement
+    $condition = New-Object -TypeName System.Windows.Automation.PropertyCondition -ArgumentList @([System.Windows.Automation.AutomationElement]::NameProperty,$Name)
+    $found = $root.FindAll([System.Windows.Automation.TreeScope]::Descendants,$condition)
+    $rows = New-Object Collections.ArrayList
+    for ($index = 0; $index -lt $found.Count; $index++) {
+        [void]$rows.Add($found.Item($index))
+    }
+    return @($rows)
+}
+
+function Get-UiaClickableElementByExactName {
+    param([string]$Name)
     foreach ($element in @(Get-UiaElementsByExactName -Name $Name)) {
         try {
             $rect = $element.Current.BoundingRectangle
@@ -270,7 +311,8 @@ function Get-UiaClickableElementByExactName([string]$Name) {
     return $null
 }
 
-function Invoke-UiaElement($Element) {
+function Invoke-UiaElement {
+    param($Element)
     if (-not $Element) { return $false }
     try {
         $pattern = $Element.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern)
@@ -292,7 +334,7 @@ function Invoke-UiaElement($Element) {
 }
 
 function Open-HiddenTrayIconsIfAvailable {
-    foreach ($name in @('Отображать скрытые значки','Показать скрытые значки','Show hidden icons')) {
+    foreach ($name in @($script:HiddenIconsRu1,$script:HiddenIconsRu2,'Show hidden icons')) {
         $button = Get-UiaClickableElementByExactName -Name $name
         if ($button -and (Invoke-UiaElement -Element $button)) {
             Start-Sleep -Milliseconds 700
@@ -302,8 +344,23 @@ function Open-HiddenTrayIconsIfAvailable {
     return $false
 }
 
+function Assert-CleanUiBaseline {
+    $existingTray = @(Get-UiaElementsByExactName -Name $script:ExpectedTrayName)
+    $existingWindow = @(Get-UiaElementsByExactName -Name $script:ExpectedWindowTitle)
+    if ($existingTray.Count -eq 0 -and $existingWindow.Count -eq 0) {
+        [void](Open-HiddenTrayIconsIfAvailable)
+        $existingTray = @(Get-UiaElementsByExactName -Name $script:ExpectedTrayName)
+        $existingWindow = @(Get-UiaElementsByExactName -Name $script:ExpectedWindowTitle)
+    }
+    if ($existingTray.Count -gt 0 -or $existingWindow.Count -gt 0) {
+        $script:FailureClass = 'DIRTY_UI_BASELINE'
+        throw ('PREEXISTING_VPS_CONTROL_UI_DETECTED tray=' + $existingTray.Count + ' window=' + $existingWindow.Count)
+    }
+    Add-EvidenceEvent 'UI_BASELINE_CLEAN' 'No pre-existing exact VPS Control Center tray or expected window was observable.'
+}
+
 function Invoke-ProductNativeTrayExit {
-    Add-EvidenceEvent 'CLEAN_EXIT_BEGIN' ('tray=' + $script:ExpectedTrayName + '; menu=' + $script:ExpectedExitMenuText)
+    Add-EvidenceEvent 'CLEAN_EXIT_BEGIN' ('tray=' + $script:ExpectedTrayName)
     $trayElement = Get-UiaClickableElementByExactName -Name $script:ExpectedTrayName
     if (-not $trayElement) {
         [void](Open-HiddenTrayIconsIfAvailable)
@@ -322,10 +379,11 @@ function Invoke-ProductNativeTrayExit {
     }
     if (-not $menuItem) { throw 'TRAY_EXIT_MENU_ITEM_NOT_FOUND_BY_UIA' }
     if (-not (Invoke-UiaElement -Element $menuItem)) { throw 'TRAY_EXIT_MENU_ITEM_INVOKE_FAILED' }
-    Add-EvidenceEvent 'CLEAN_EXIT_ACTION' 'Product tray Exit menu item invoked by UI Automation.'
+    Add-EvidenceEvent 'CLEAN_EXIT_ACTION' 'Product tray exit menu item invoked by UI Automation.'
 }
 
-function Wait-ProcessExit([int]$Pid,[int]$TimeoutSeconds) {
+function Wait-ProcessExit {
+    param([int]$Pid,[int]$TimeoutSeconds)
     $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
     while ((Get-Date) -lt $deadline) {
         if (-not (Get-Process -Id $Pid -ErrorAction SilentlyContinue)) { return $true }
@@ -334,11 +392,23 @@ function Wait-ProcessExit([int]$Pid,[int]$TimeoutSeconds) {
     return (-not (Get-Process -Id $Pid -ErrorAction SilentlyContinue))
 }
 
-function Stop-ExactTestOwnedProcessEmergency([int]$Pid) {
-    if ($Pid -le 0 -or $Pid -ne $script:TestOwnedPid) { throw 'EMERGENCY_CLEANUP_PID_GUARD_REJECTED' }
-    $proc = Get-Process -Id $Pid -ErrorAction SilentlyContinue
-    if (-not $proc) { return $true }
-    if ([string]$proc.ProcessName -notin @('powershell','pwsh')) { throw ('EMERGENCY_CLEANUP_PROCESS_IDENTITY_REJECTED: ' + $proc.ProcessName) }
+function Assert-ExactTestOwnedProcessIdentity {
+    param([int]$Pid)
+    if ($Pid -le 0 -or $Pid -ne $script:TestOwnedPid) { throw 'TEST_OWNED_PID_GUARD_REJECTED' }
+    $process = Get-Process -Id $Pid -ErrorAction SilentlyContinue
+    if (-not $process) { return $false }
+    if ($process.StartTime.ToUniversalTime().Ticks -ne $script:TestOwnedStartTicksUtc) { throw 'TEST_OWNED_CREATION_TIME_MISMATCH' }
+    $cim = Get-CimInstance Win32_Process -Filter ('ProcessId = ' + $Pid) -ErrorAction Stop
+    if (-not $cim) { throw 'TEST_OWNED_CIM_IDENTITY_MISSING' }
+    if (-not [string]::Equals([string]$cim.ExecutablePath,$script:TestOwnedExecutablePath,[StringComparison]::OrdinalIgnoreCase)) { throw 'TEST_OWNED_EXECUTABLE_PATH_MISMATCH' }
+    if (-not ([string]$cim.CommandLine).Contains($script:TestOwnedLauncherPath)) { throw 'TEST_OWNED_COMMAND_MARKER_MISSING' }
+    if (-not ([string]$cim.CommandLine).Contains('-Demo')) { throw 'TEST_OWNED_DEMO_MARKER_MISSING' }
+    return $true
+}
+
+function Stop-ExactTestOwnedProcessEmergency {
+    param([int]$Pid)
+    if (-not (Assert-ExactTestOwnedProcessIdentity -Pid $Pid)) { return $true }
     Stop-Process -Id $script:TestOwnedPid -Force -ErrorAction Stop
     return (Wait-ProcessExit -Pid $Pid -TimeoutSeconds 10)
 }
@@ -351,7 +421,6 @@ $portsAfter = @()
 $consistency = $null
 $packageManifestCount = 0
 $astCount = 0
-$productProcess = $null
 $success = $false
 
 try {
@@ -364,8 +433,10 @@ try {
     Add-EvidenceEvent 'CANDIDATE_VERIFIED' $candidateSha
 
     $portsBefore = @(Get-ProtectedListenerSnapshot)
-    [IO.File]::WriteAllText($script:PortsBeforePath,($portsBefore | ConvertTo-Json -Depth 5),(New-Object Text.UTF8Encoding($true)))
+    Write-JsonUtf8Bom -Path $script:PortsBeforePath -Value $portsBefore -Depth 5
     Add-EvidenceEvent 'PORT_BASELINE_BEFORE' (Get-SnapshotFingerprint $portsBefore)
+
+    Assert-CleanUiBaseline
 
     New-Item -ItemType Directory -Path $extractRoot -Force | Out-Null
     Expand-Archive -LiteralPath $CandidateZipPath -DestinationPath $extractRoot -Force
@@ -387,17 +458,21 @@ try {
     $launcherPath = Join-Path $baseDir 'VPS-Control-v7-launch.ps1'
     $arguments = '-NoLogo -NoProfile -ExecutionPolicy Bypass -STA -File "' + $launcherPath + '" -Demo'
     $productProcess = Start-Process -FilePath $powerShellExe -ArgumentList $arguments -WorkingDirectory $baseDir -PassThru
+    $productProcess.Refresh()
     $script:TestOwnedPid = [int]$productProcess.Id
+    $script:TestOwnedStartTicksUtc = [long]$productProcess.StartTime.ToUniversalTime().Ticks
+    $script:TestOwnedExecutablePath = $powerShellExe
+    $script:TestOwnedLauncherPath = $launcherPath
     $script:CleanupMode = 'PRODUCT_NATIVE_TRAY_EXIT_PENDING'
-    Add-EvidenceEvent 'PRODUCT_STARTED' ('pid=' + $script:TestOwnedPid)
+    Add-EvidenceEvent 'PRODUCT_STARTED' ('pid=' + $script:TestOwnedPid + '; startTicksUtc=' + $script:TestOwnedStartTicksUtc)
 
     $window = Wait-ExpectedPidWindow -Pid $script:TestOwnedPid -TimeoutSeconds $WindowTimeoutSeconds
     if (-not $window) {
         $script:FailureClass = 'OWNER_RUNNER_ACCEPTANCE_DEFECT / UI_WINDOW_NOT_OBSERVED'
-        throw ('EXPECTED_PID_OWNED_VISIBLE_WINDOW_NOT_OBSERVED: ' + $script:ExpectedWindowTitle)
+        throw 'EXPECTED_PID_OWNED_VISIBLE_WINDOW_NOT_OBSERVED'
     }
     $script:UiObserved = $true
-    Add-EvidenceEvent 'EXPECTED_UI_OBSERVED' ('pid=' + $script:TestOwnedPid + '; hwnd=' + $window.Handle + '; title=' + $window.Title)
+    Add-EvidenceEvent 'EXPECTED_UI_OBSERVED' ('pid=' + $script:TestOwnedPid + '; hwnd=' + $window.Handle)
 
     Invoke-ProductNativeTrayExit
     if (-not (Wait-ProcessExit -Pid $script:TestOwnedPid -TimeoutSeconds $CleanExitTimeoutSeconds)) {
@@ -409,7 +484,7 @@ try {
     Add-EvidenceEvent 'CLEAN_EXIT_PASS' ('pid=' + $script:TestOwnedPid)
 
     $portsAfter = @(Get-ProtectedListenerSnapshot)
-    [IO.File]::WriteAllText($script:PortsAfterPath,($portsAfter | ConvertTo-Json -Depth 5),(New-Object Text.UTF8Encoding($true)))
+    Write-JsonUtf8Bom -Path $script:PortsAfterPath -Value $portsAfter -Depth 5
     if ((Get-SnapshotFingerprint $portsBefore) -ne (Get-SnapshotFingerprint $portsAfter)) {
         $script:FailureClass = 'RUNTIME_BASELINE_CHANGED'
         throw 'PROTECTED_PORT_BASELINE_CHANGED'
@@ -424,9 +499,7 @@ catch {
 }
 finally {
     try {
-        if ($script:WindowSamples.Count -gt 0) {
-            [IO.File]::WriteAllText($script:WindowEvidencePath,($script:WindowSamples | ConvertTo-Json -Depth 8),(New-Object Text.UTF8Encoding($true)))
-        }
+        if ($script:WindowSamples.Count -gt 0) { Write-JsonUtf8Bom -Path $script:WindowEvidencePath -Value $script:WindowSamples -Depth 8 }
     }
     catch { }
 
@@ -435,14 +508,14 @@ finally {
     if ($stillRunning) {
         try {
             [void](Stop-ExactTestOwnedProcessEmergency -Pid $script:TestOwnedPid)
-            $script:CleanupMode = 'FORCED_TEST_OWNED_PROCESS_ONLY'
+            $script:CleanupMode = 'FORCED_EXACT_IDENTITY_TEST_OWNED_PROCESS_ONLY'
             $script:CleanExit = $false
             $success = $false
             if (-not $script:FailureClass) { $script:FailureClass = 'OWNER_RUNNER_ACCEPTANCE_DEFECT / EMERGENCY_CLEANUP_REQUIRED' }
-            Add-EvidenceEvent 'EMERGENCY_CLEANUP' ('exact test-owned pid=' + $script:TestOwnedPid)
+            Add-EvidenceEvent 'EMERGENCY_CLEANUP' ('exact identity test-owned pid=' + $script:TestOwnedPid)
         }
         catch {
-            $script:CleanupMode = 'EMERGENCY_CLEANUP_FAILED'
+            $script:CleanupMode = 'EMERGENCY_CLEANUP_BLOCKED_OR_FAILED'
             $script:CleanExit = $false
             $success = $false
             if (-not $script:FailureClass) { $script:FailureClass = 'EMERGENCY_CLEANUP_FAILURE' }
@@ -453,7 +526,7 @@ finally {
     try {
         if ($portsAfter.Count -eq 0) {
             $portsAfter = @(Get-ProtectedListenerSnapshot)
-            [IO.File]::WriteAllText($script:PortsAfterPath,($portsAfter | ConvertTo-Json -Depth 5),(New-Object Text.UTF8Encoding($true)))
+            Write-JsonUtf8Bom -Path $script:PortsAfterPath -Value $portsAfter -Depth 5
         }
     }
     catch { }
@@ -467,18 +540,19 @@ finally {
     if (-not $script:CleanExit) { $success = $false }
 
     $result = [ordered]@{
-        schema_version = 1
+        schema_version = 2
         contract = 'PNCC_V7_0_1_PHYSICAL_CLEAN_STARTUP_V2'
         runner_version = $script:RunnerVersion
         started_at = $start.ToString('o')
         completed_at = (Get-Date).ToString('o')
         candidate_sha256_expected = $script:ExpectedCandidateSha256
-        expected_window_title = $script:ExpectedWindowTitle
+        expected_window_title_codepoint_safe = $true
         package_manifest_entries = $packageManifestCount
         powershell_ast_files = $astCount
         functional_consistency_checks = $(if ($consistency) { [int]$consistency.Summary.Checks } else { 0 })
         functional_consistency_passed = $(if ($consistency) { [int]$consistency.Summary.Passed } else { 0 })
         test_process_pid = $script:TestOwnedPid
+        test_process_identity_guard = 'pid+creation_time+executable_path+launcher_marker+demo_marker'
         ui_observed = [bool]$script:UiObserved
         clean_exit = [bool]$script:CleanExit
         cleanup_mode = $script:CleanupMode
@@ -494,7 +568,7 @@ finally {
         failure_detail = $script:FailureDetail
         evidence = @($script:Evidence)
     }
-    try { [IO.File]::WriteAllText($script:ResultPath,($result | ConvertTo-Json -Depth 10),(New-Object Text.UTF8Encoding($true))) } catch { }
+    try { Write-JsonUtf8Bom -Path $script:ResultPath -Value $result -Depth 10 } catch { }
     try { if (Test-Path -LiteralPath $workRoot) { Remove-Item -LiteralPath $workRoot -Recurse -Force -ErrorAction SilentlyContinue } } catch { }
 }
 
