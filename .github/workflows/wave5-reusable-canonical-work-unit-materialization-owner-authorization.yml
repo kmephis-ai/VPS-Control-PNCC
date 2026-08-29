@@ -64,7 +64,14 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           t=Path('.github/workflows/wave5-reusable-canonical-work-unit-materialization-owner-authorization.yml').read_text(encoding='utf-8').lower()
-          forbidden=['pncc-provider-state','127.0.0.1:1080','127.0.0.1:1081','product/runtime','release create','git tag']
+          forbidden=[
+              'pncc-'+'provider-state',
+              '127.0.0.1:'+'1080',
+              '127.0.0.1:'+'1081',
+              'product/'+'runtime',
+              'release'+' create',
+              'git'+' tag'
+          ]
           for token in forbidden:
               assert token not in t, token
           PY
