@@ -2,19 +2,29 @@
     $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
     $runnerPath = Join-Path $repoRoot 'tools\runtime-agent\Invoke-PnccV701PhysicalCleanStartup.ps1'
     $runnerText = [IO.File]::ReadAllText($runnerPath)
+    $tokens = $null
+    $parseErrors = $null
+    $runnerAst = [System.Management.Automation.Language.Parser]::ParseFile($runnerPath,[ref]$tokens,[ref]$parseErrors)
 }
 
 Describe 'PIPE-WU-084 physical acceptance runner' {
     It 'is Windows PowerShell 5.1 parse-safe' {
-        $tokens = $null
-        $errors = $null
-        [void][System.Management.Automation.Language.Parser]::ParseFile($runnerPath,[ref]$tokens,[ref]$errors)
-        @($errors).Count | Should -Be 0
+        @($parseErrors).Count | Should -Be 0
+    }
+
+    It 'does not declare a parameter named Pid because PS5.1 PID is read-only' {
+        $pidParameters = @($runnerAst.FindAll({
+            param($node)
+            $node -is [System.Management.Automation.Language.ParameterAst] -and
+            [string]::Equals($node.Name.VariablePath.UserPath,'Pid',[StringComparison]::OrdinalIgnoreCase)
+        },$true))
+        $pidParameters.Count | Should -Be 0
+        $runnerText | Should -Match 'TargetProcessId'
     }
 
     It 'keeps the repository runner ASCII-safe for Windows PowerShell 5.1' {
         @($runnerText.ToCharArray() | Where-Object { [int]$_ -gt 127 }).Count | Should -Be 0
-        $runnerText | Should -Match ([regex]::Escape("RunnerVersion = '1.0.3'"))
+        $runnerText | Should -Match ([regex]::Escape("RunnerVersion = '1.0.4'"))
         $runnerText | Should -Match 'Convert-CodePointsToString'
         $runnerText | Should -Match '0x0414,0x0415,0x041C,0x041E'
         $runnerText | Should -Match '\[char\]0x00B7'
@@ -32,10 +42,11 @@ Describe 'PIPE-WU-084 physical acceptance runner' {
         $runnerText | Should -Not -Match 'MainWindowTitle'
     }
 
-    It 'requires the exact visible title for the exact test PID' {
+    It 'requires the exact visible title for the exact test process' {
         $runnerText | Should -Match 'Wait-ExpectedPidWindow'
         $runnerText | Should -Match '\$window\.Visible'
         $runnerText | Should -Match '\[StringComparison\]::Ordinal'
+        $runnerText | Should -Match 'Wait-ExpectedPidWindow -TargetProcessId \$script:TestOwnedPid'
     }
 
     It 'fails closed when an old VPS Control UI baseline is observable' {
@@ -72,6 +83,23 @@ Describe 'PIPE-WU-084 physical acceptance runner' {
         $runnerText | Should -Match ([regex]::Escape("CleanupMode = 'FORCED_EXACT_IDENTITY_TEST_OWNED_PROCESS_ONLY'"))
         $runnerText | Should -Match ([regex]::Escape('$script:CleanExit = $false'))
         $runnerText | Should -Match ([regex]::Escape('if (-not $script:CleanExit) { $success = $false }'))
+    }
+
+    It 'preserves the extracted workroot when the launched process is still alive' {
+        $runnerText | Should -Match 'processAliveAfterCleanup'
+        $runnerText | Should -Match ([regex]::Escape('$script:WorkRootPreserved = $true'))
+        $runnerText | Should -Match 'WORKROOT_PRESERVED'
+        $runnerText | Should -Match ([regex]::Escape('if (-not $script:WorkRootPreserved)'))
+        $runnerText | Should -Match 'work_root_preserved = \[bool\]\$script:WorkRootPreserved'
+    }
+
+    It 'captures the product launch log before temporary cleanup' {
+        $runnerText | Should -Match 'Copy-ProductLaunchLog'
+        $runnerText | Should -Match 'product-launch\.log'
+        $copyIndex = $runnerText.IndexOf('Copy-ProductLaunchLog')
+        $removeIndex = $runnerText.LastIndexOf('Remove-Item -LiteralPath $workRoot')
+        $copyIndex | Should -BeGreaterThan -1
+        $removeIndex | Should -BeGreaterThan $copyIndex
     }
 
     It 'keeps 1080 and 1081 observational and grants no runtime authority' {
