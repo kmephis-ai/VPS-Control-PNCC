@@ -1,0 +1,36 @@
+name: patch-version-transition-inventory
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  version-surface-inventory:
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Emit current 7.0.0 source occurrences
+        shell: python
+        run: |
+          import subprocess
+          out=subprocess.check_output(['git','grep','-n','7.0.0','--','src/windows-v7'],text=True,encoding='utf-8',errors='replace')
+          print('WU081_VERSION_SURFACE_BEGIN')
+          print(out,end='')
+          print('WU081_VERSION_SURFACE_END')
+      - name: Assert no runtime authority
+        shell: powershell
+        run: |
+          Write-Host 'RUNTIME_MUTATION=false'
+          Write-Host 'RUNTIME_AUTHORITY=false'
+          Write-Host 'RELEASE_OR_TAG_AUTHORIZED=false'
