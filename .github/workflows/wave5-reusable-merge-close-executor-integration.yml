@@ -1,0 +1,59 @@
+name: wave5-reusable-merge-close-executor-integration
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  reusable-merge-close-executor-integration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Run WU-101 executor integration tests
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_reusable_merge_close_executor_integration_wu101.py' -v
+      - name: Compile executor and eligibility evaluator
+        run: python3 -m py_compile .pncc-dev/scripts/execute_reusable_merge_close.py .pncc-dev/scripts/evaluate_autonomous_merge_issue_close_eligibility.py
+      - name: Assert canonical authority anchors remain exact
+        run: |
+          set -euo pipefail
+          test "$(git hash-object .pncc-dev/contracts/reusable-autonomous-merge-close-authorized.json)" = "baa503d63eaa437545ddcf0a045cf864d1ef36e6"
+          test "$(git hash-object .pncc-dev/attestations/reusable-autonomous-merge-close-owner-authorization-wu100.json)" = "1440aef6a7fffaee06149ef13b86bd17172ecc3e"
+          test "$(git hash-object .pncc-dev/contracts/reusable-autonomous-merge-close-authority-preparation.json)" = "d4cfd9d740e8323bc8686f32b46db2bbfaa53f20"
+          test "$(git hash-object .pncc-dev/contracts/autonomous-merge-issue-close-eligibility-policy.json)" = "8999f027e47e2b6da04f30a12ae9414cb3b7d05c"
+          test "$(git hash-object .pncc-dev/scripts/evaluate_autonomous_merge_issue_close_eligibility.py)" = "c142e78cff70caa38d5b85e9f06d5ff8d9c97728"
+      - name: Assert exact WU-101 branch and bounded diff
+        if: github.event_name == 'pull_request' && github.head_ref == 'agent/PIPE-WU-101-reusable-merge-close-executor-integration'
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin "${{ github.event.pull_request.base.sha }}"
+          git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}" | sort > /tmp/actual
+          printf '%s\n' \
+            '.github/workflows/wave5-reusable-merge-close-executor-integration.yml' \
+            '.pncc-dev/contracts/reusable-merge-close-executor-integration.json' \
+            '.pncc-dev/scripts/execute_reusable_merge_close.py' \
+            '.pncc-dev/tests/test_reusable_merge_close_executor_integration_wu101.py' | sort > /tmp/expected
+          diff -u /tmp/expected /tmp/actual
+          ! grep -E '^(\.pncc-state/|src/windows-v7/|\.adwf-consumer/external-binding\.json$|tools/runtime-agent/)' /tmp/actual
+      - name: Assert CI never executes mutation path
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          t=Path('.github/workflows/wave5-reusable-merge-close-executor-integration.yml').read_text(encoding='utf-8').lower()
+          for token in [
+              'contents:'+' write', 'issues:'+' write', 'pull-requests:'+' write',
+              'persist-credentials:'+' true', 'execute_reusable_merge_close.py'+' --execute',
+              'gh'+' pr merge', 'gh'+' issue close'
+          ]:
+              assert token not in t, token
+          PY
+      - name: Assert repository remains clean
+        run: test -z "$(git status --porcelain)"
