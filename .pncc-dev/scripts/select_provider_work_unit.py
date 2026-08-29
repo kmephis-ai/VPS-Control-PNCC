@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Read-only PNCC Work Unit selection from fresh GitHub provider truth.
+"""Read-only PNCC Work Unit selection and orchestration disposition.
 
-This is an intake/selection layer only. It never acquires a writer lease and never
-performs a provider mutation. Materialized CURRENT_WORK_UNIT, checkpoint, lease
-and resume semantics remain authoritative after selection.
+This module reads provider truth, validates the current Wave-5 proof baseline,
+classifies canonical Work Units and emits a deterministic orchestration
+disposition. It never acquires a writer lease and never mutates GitHub/runtime.
 """
 from __future__ import annotations
 
@@ -25,8 +25,13 @@ MARKER = re.compile(r"<!--\s*PNCC-WORK-UNIT(?P<attrs>.*?)-->", re.IGNORECASE | r
 WORK_UNIT_STATES = {"READY", "ACTIVE", "BLOCKED", "VERIFYING", "DONE", "SUPERSEDED"}
 REQUIRED_MARKER_KEYS = {"schema", "id", "state", "conflict_domain", "base", "runtime_required"}
 OPTIONAL_MARKER_KEYS = {"branch"}
-EXPECTED_STABLE_SHA = "1407f82b15ea2b70ba56b7406bb8dd0d9097c459b630d016d6a7b5f10a49e599"
+EXPECTED_STABLE_VERSION = "7.0.1"
+EXPECTED_STABLE_ATTESTATION = ".pncc-dev/attestations/stable-v7.0.1-completion.json"
+EXPECTED_STABLE_FILENAME = "VPS-Control-v7.0.1.zip"
+EXPECTED_STABLE_SHA = "22b843330516e481c467fe5cbe6d1d4c6758510c71bd2c46ebeec337f403ae72"
+EXPECTED_STABLE_SIZE = 701893
 EXPECTED_ADWF_SHA = "c7e0c059a901869d6369864e98d06238484778ec"
+EXPECTED_PACK_DIGEST = "fbe69c4e93ff8b07e7d0dc6f0cbd1f9ceb80617f472f1fbe5a1ce181279a0c8c"
 MUTATION_AUTHORITY = "NONE_BINDING_IS_PROOF_ONLY"
 
 
@@ -43,14 +48,30 @@ def load_json(path: Path) -> Any:
 
 def validate_readiness_guard(root: Path = ROOT) -> None:
     readiness = load_json(root / ".adwf-consumer" / "wave5-readiness.json")
-    stable = load_json(root / ".pncc-dev" / "attestations" / "stable-v7.0.0-completion.json")
+    stable = load_json(root / EXPECTED_STABLE_ATTESTATION)
     binding = load_json(root / ".adwf-consumer" / "external-binding.json")
 
-    if readiness.get("state") != "WAVE5_ADWF_PROOF_BASELINE_READY":
+    if readiness.get("role") != "PNCC_WAVE5_ADWF_PROOF_READINESS" or readiness.get("state") != "WAVE5_ADWF_PROOF_BASELINE_READY":
         raise SelectionError("WAVE5_READINESS_NOT_READY")
+
+    expected_baseline = {
+        "version": EXPECTED_STABLE_VERSION,
+        "completion_attestation": EXPECTED_STABLE_ATTESTATION,
+        "completion_state": "STABLE_COMPLETE",
+        "runtime_authority": True,
+        "artifact_filename": EXPECTED_STABLE_FILENAME,
+        "artifact_sha256": EXPECTED_STABLE_SHA,
+        "artifact_size_bytes": EXPECTED_STABLE_SIZE,
+    }
+    if readiness.get("stable_baseline") != expected_baseline:
+        raise SelectionError("WAVE5_STABLE_BASELINE_DRIFT")
+
     consumer = readiness.get("consumer", {})
     if consumer.get("mutation_authority") != MUTATION_AUTHORITY or consumer.get("managed_surface_adopted") is not False:
         raise SelectionError("WAVE5_READINESS_AUTHORITY_DRIFT")
+    if consumer.get("project_pack") != "powershell" or consumer.get("project_pack_digest") != EXPECTED_PACK_DIGEST:
+        raise SelectionError("WAVE5_PROJECT_PACK_DRIFT")
+
     safety = readiness.get("safety", {})
     forbidden_flags = (
         "autonomous_branch_mutation", "autonomous_merge", "autonomous_issue_close",
@@ -59,28 +80,47 @@ def validate_readiness_guard(root: Path = ROOT) -> None:
     )
     if any(safety.get(name) is not False for name in forbidden_flags):
         raise SelectionError("WAVE5_FORBIDDEN_AUTHORITY_PRESENT")
-    if readiness.get("framework", {}).get("source_sha") != EXPECTED_ADWF_SHA:
+    framework = readiness.get("framework", {})
+    if framework.get("source_sha") != EXPECTED_ADWF_SHA:
         raise SelectionError("WAVE5_ADWF_PIN_DRIFT")
-    if readiness.get("framework", {}).get("provider_ops_consumer_authority_granted") is not False:
+    if framework.get("provider_ops_consumer_authority_granted") is not False:
         raise SelectionError("PROVIDER_OPS_AUTHORITY_UNEXPECTED")
 
-    if stable.get("state") != "STABLE_COMPLETE" or stable.get("runtime_authority") is not True:
-        raise SelectionError("STABLE_COMPLETION_NOT_PROVEN")
-    if stable.get("artifact_sha256") != EXPECTED_STABLE_SHA or stable.get("fresh_nine_scope_reconcile") != "PASS":
-        raise SelectionError("STABLE_IDENTITY_OR_RECONCILE_DRIFT")
+    stable_expected = {
+        "stable_version": EXPECTED_STABLE_VERSION,
+        "state": "STABLE_COMPLETE",
+        "runtime_authority": True,
+        "artifact_filename": EXPECTED_STABLE_FILENAME,
+        "artifact_sha256": EXPECTED_STABLE_SHA,
+        "artifact_size_bytes": EXPECTED_STABLE_SIZE,
+        "physical_startup_acceptance": "PASS",
+        "fresh_nine_scope_reconcile": "PASS",
+        "promotion_state": "PROMOTED",
+        "stable_declared": True,
+        "release_asset_verified": True,
+        "next_frontier": "WAVE5_ADWF_AUTONOMOUS_EXECUTION",
+        "artifact_rebuilt": False,
+        "artifact_substituted": False,
+        "runtime_mutation": False,
+        "product_bytes_mutated": False,
+        "runtime_bytes_mutated": False,
+        "private_runtime_payload_published": False,
+        "reserve_1080_lifecycle_mutation": False,
+        "primary_1081_lifecycle_mutation": False,
+    }
+    for key, expected in stable_expected.items():
+        if stable.get(key) != expected:
+            raise SelectionError("STABLE_V701_TRUTH_DRIFT:" + key)
 
     if binding.get("framework", {}).get("source_sha") != EXPECTED_ADWF_SHA:
         raise SelectionError("EXTERNAL_BINDING_ADWF_PIN_DRIFT")
+    if binding.get("project_pack") != {"id": "powershell", "digest": EXPECTED_PACK_DIGEST}:
+        raise SelectionError("EXTERNAL_BINDING_PROJECT_PACK_DRIFT")
     if binding.get("mutation_authority") != MUTATION_AUTHORITY:
         raise SelectionError("EXTERNAL_BINDING_MUTATION_AUTHORITY_DRIFT")
 
 
 def parse_issue_intake_marker(text: str) -> dict[str, Any] | None:
-    """Parse the canonical Issue intake marker.
-
-    The Issue-intake phase may omit branch because branch materialization happens
-    after provider-truth selection. A legacy/materialized marker may include it.
-    """
     if not isinstance(text, str):
         raise SelectionError("ISSUE_BODY_TEXT_REQUIRED")
     matches = list(MARKER.finditer(text))
@@ -169,6 +209,27 @@ def _classify_marker(marker: dict[str, Any], default_head_sha: str) -> tuple[str
     return "BLOCKED", "UNCLASSIFIED_STATE"
 
 
+def _orchestration_disposition(classified: list[dict[str, Any]], selected: dict[str, Any] | None) -> str:
+    if selected is not None:
+        return "EXECUTABLE"
+    non_terminal = [item for item in classified if item["classification"] != "TERMINAL"]
+    classes = {item["classification"] for item in non_terminal}
+    if "WAITING_RUNTIME" in classes:
+        return "WAITING_RUNTIME"
+    if classes & {"BLOCKED", "WAITING_PROVIDER", "STALE_BASE"}:
+        return "BLOCKED"
+    return "NO_WORK"
+
+
+def _next_boundary(disposition: str) -> str:
+    return {
+        "EXECUTABLE": "DESIGN_DEFAULT_DENY_WRITER_LEASE_CLAIM_AUTHORITY",
+        "WAITING_RUNTIME": "WAIT_FOR_PRIVATE_RUNTIME_EVIDENCE",
+        "BLOCKED": "RECONCILE_PROVIDER_TRUTH_OR_GOVERNED_BOUNDARY",
+        "NO_WORK": "WAIT_FOR_OR_MATERIALIZE_GOVERNED_WORK_UNIT",
+    }[disposition]
+
+
 def select_from_provider_issues(
     issues: list[dict[str, Any]], *, repository: str, default_branch: str,
     default_head_sha: str, observed_at: str,
@@ -207,11 +268,7 @@ def select_from_provider_issues(
         if marker is None:
             ignored.append({"issue": number, "reason": "NO_CANONICAL_WORK_UNIT_MARKER"})
             continue
-        canonical.append({
-            "issue": number,
-            "title": str(issue.get("title") or ""),
-            "marker": marker,
-        })
+        canonical.append({"issue": number, "title": str(issue.get("title") or ""), "marker": marker})
 
     if malformed:
         raise SelectionError("MALFORMED_OPEN_WORK_UNIT_MARKER:" + json.dumps(malformed, sort_keys=True, separators=(",", ":")))
@@ -251,11 +308,13 @@ def select_from_provider_issues(
         if classification == "EXECUTABLE_READ_ONLY_SELECTION":
             executable.append(entry)
 
+    classified.sort(key=lambda item: (item["issue"], item["work_unit_id"]))
     executable.sort(key=lambda item: (item["issue"], item["work_unit_id"]))
     selected = executable[0] if executable else None
+    disposition = _orchestration_disposition(classified, selected)
 
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "role": "READ_ONLY_PROVIDER_WORK_UNIT_SELECTION",
         "state": "READ_ONLY_PROVIDER_TRUTH_SELECTION_PASS",
         "repository": repository,
@@ -263,6 +322,7 @@ def select_from_provider_issues(
         "default_branch_head_sha": default_head_sha,
         "observed_at": observed_at,
         "decision": "SELECTED" if selected else "NO_EXECUTABLE_WORK_UNIT",
+        "orchestration_disposition": disposition,
         "selected": selected,
         "executable_count": len(executable),
         "canonical_work_units": classified,
@@ -272,7 +332,7 @@ def select_from_provider_issues(
         "writer_lease_acquired": False,
         "runtime_action_performed": False,
         "promotion_or_release_action_performed": False,
-        "next_boundary": "DESIGN_DEFAULT_DENY_WRITER_LEASE_CLAIM_AUTHORITY" if selected else "WAIT_FOR_OR_MATERIALIZE_GOVERNED_WORK_UNIT",
+        "next_boundary": _next_boundary(disposition),
     }
 
 
@@ -288,8 +348,7 @@ def _github_get_json(url: str, token: str | None) -> tuple[Any, dict[str, str]]:
     try:
         with urllib.request.urlopen(req, timeout=30) as response:
             payload = json.loads(response.read().decode("utf-8"))
-            response_headers = {key.lower(): value for key, value in response.headers.items()}
-            return payload, response_headers
+            return payload, {key.lower(): value for key, value in response.headers.items()}
     except (urllib.error.URLError, urllib.error.HTTPError, UnicodeError, json.JSONDecodeError) as exc:
         raise SelectionError("GITHUB_READ_FAILED:" + type(exc).__name__) from exc
 
@@ -337,47 +396,38 @@ def main() -> int:
     parser.add_argument("--output")
     args = parser.parse_args()
 
-    try:
-        validate_readiness_guard(ROOT)
-        observed_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-        if args.live_github:
-            if args.issues_json or args.default_head_sha:
-                raise SelectionError("LIVE_AND_FIXTURE_INPUTS_MUTUALLY_EXCLUSIVE")
-            default_head, issues = fetch_live_provider_truth(args.repository, args.default_branch, os.environ.get("GITHUB_TOKEN"))
-        else:
-            if not args.issues_json or not args.default_head_sha:
-                raise SelectionError("FIXTURE_INPUTS_REQUIRED")
-            issues = load_json(Path(args.issues_json))
-            default_head = args.default_head_sha
+    validate_readiness_guard(ROOT)
+    observed_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
-        result = select_from_provider_issues(
-            issues,
-            repository=args.repository,
-            default_branch=args.default_branch,
-            default_head_sha=default_head,
-            observed_at=observed_at,
-        )
-        rendered = json.dumps(result, indent=2, sort_keys=True)
-        print(rendered)
-        if args.output:
-            Path(args.output).write_text(rendered + "\n", encoding="utf-8")
-        return 0
-    except SelectionError as exc:
-        result = {
-            "schema_version": 1,
-            "role": "READ_ONLY_PROVIDER_WORK_UNIT_SELECTION",
-            "state": "BLOCKED",
-            "reason": str(exc),
-            "mutation_authority": MUTATION_AUTHORITY,
-            "provider_mutation_performed": False,
-            "writer_lease_acquired": False,
-        }
-        rendered = json.dumps(result, indent=2, sort_keys=True)
-        print(rendered)
-        if args.output:
-            Path(args.output).write_text(rendered + "\n", encoding="utf-8")
-        return 2
+    if args.live_github:
+        head, issues = fetch_live_provider_truth(args.repository, args.default_branch, os.environ.get("GITHUB_TOKEN"))
+    else:
+        if not args.issues_json or not args.default_head_sha:
+            raise SelectionError("OFFLINE_PROVIDER_INPUT_REQUIRED")
+        payload = load_json(Path(args.issues_json))
+        issues = payload if isinstance(payload, list) else payload.get("issues")
+        head = args.default_head_sha
+
+    result = select_from_provider_issues(
+        issues,
+        repository=args.repository,
+        default_branch=args.default_branch,
+        default_head_sha=head,
+        observed_at=observed_at,
+    )
+    rendered = json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+    if args.output:
+        Path(args.output).write_text(rendered, encoding="utf-8", newline="\n")
+    else:
+        print(rendered, end="")
+    return 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    try:
+        raise SystemExit(main())
+    except SelectionError as exc:
+        print("READ_ONLY_PROVIDER_WORK_UNIT_SELECTION=BLOCKED")
+        print("ERROR=" + str(exc))
+        print("MUTATION_AUTHORITY=" + MUTATION_AUTHORITY)
+        raise SystemExit(2)
