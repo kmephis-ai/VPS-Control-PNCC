@@ -1,0 +1,203 @@
+{
+  "activation": {
+    "builder_introduced": true,
+    "candidate_artifact_generated": false,
+    "exact_base_main_sha": "9f4ca80e4396c5ff61a5b024f33063d4b18ff308",
+    "work_unit": "PIPE-WU-081"
+  },
+  "baseline": {
+    "activated_candidate_version": "7.0.1",
+    "embedded_version": "7.0.1",
+    "preimport_evidence_zip_sha256": "e25ed4fff7aa2b44dc81e460155fc3fcb3af86d5f5782ecdcb7d78eeed631cc4",
+    "previous_runtime_version": "7.0.0-rc14.38",
+    "remediated_file_sha256": {
+      "modules/V7-Consistency.ps1": "81c0d8afacd7644d8a8afb3c0819a5175b15f9d897b3de131a922073a2fa8c34"
+    },
+    "remediated_files": [
+      "modules/V7-Consistency.ps1"
+    ],
+    "remediation_class": "PRODUCT_DEFECT_STARTUP_BLOCKING_FALSE_POSITIVE_CONSISTENCY_GATE_PATCH_LINEAGE",
+    "requires_version_bump_before_build": false
+  },
+  "hash_semantics": "CANONICAL_GIT_BLOB_BYTES",
+  "inventory": [
+    {
+      "bytes": 5279,
+      "path": "VPS-Control-v6.5-modules.json",
+      "sha256": "017bcebec7dfbec3e06070762b1550dfd0f919f6007bce9ba738caba7535976a"
+    },
+    {
+      "bytes": 33691,
+      "path": "VPS-Control-v7-ARCHITECTURE.md",
+      "sha256": "731c26e048051633a8ca1798c1d35bef0bf32c67fe6e47acb87a6076f6c37828"
+    },
+    {
+      "bytes": 27096,
+      "path": "VPS-Control-v7-CAPABILITY-TRUTH.md",
+      "sha256": "0bef9241956524786706f9739ba057f09c93782802228b3c67bd57dc44cc1e9d"
+    },
+    {
+      "bytes": 33037,
+      "path": "VPS-Control-v7-README.txt",
+      "sha256": "476e34994de26452167c87b63bbbff2e1defd9c567e3a3f883d51423235e1583"
+    },
+    {
+      "bytes": 2963,
+      "path": "VPS-Control-v7-SHA256.txt",
+      "sha256": "3e3779b1e99a433269a5f2dc4bf3322a7081f7a81836d1606479bca8a5a5752d"
+    },
+    {
+      "bytes": 3211,
+      "path": "VPS-Control-v7-TUNNEL-CONTRACT.json",
+      "sha256": "b42e9d3c63ec9df27b7081a3c8e3900fe6454a4ab3967225ba4bde68e6844cb5"
+    },
+    {
+      "bytes": 3482,
+      "path": "VPS-Control-v7-browser-strict.ps1",
+      "sha256": "4e0ff527838cdb29da8195200a95471aa290cf8bd830024ee11cefeccb875828"
+    },
+    {
+      "bytes": 69,
+      "path": "VPS-Control-v7-demo.cmd",
+      "sha256": "f477250bd07abd95f78b82354d336b4614f220e1809589d7bf5995f1be8b5a91"
+    },
+    {
+      "bytes": 58113,
+      "path": "VPS-Control-v7-engine-upgrade.ps1",
+      "sha256": "7f8bc5caafcf7581a53e40500d4d2161ced60d43c3766f899fc5d4e1ec679345"
+    },
+    {
+      "bytes": 14226,
+      "path": "VPS-Control-v7-evidence-worker.ps1",
+      "sha256": "accc535655dbb9d1c9f56c0c9c6ffe6d3ba6e1fdfdbc6aef4d43d251568ab576"
+    },
+    {
+      "bytes": 15412,
+      "path": "VPS-Control-v7-keenetic.ps1",
+      "sha256": "9621754a5decb0f2991e479f3fcb52b7049847f36c75c89394c6ba33a3105933"
+    },
+    {
+      "bytes": 7862,
+      "path": "VPS-Control-v7-launch.ps1",
+      "sha256": "3f71c4b2eaa4cbd72b27659a01c04b3afba2d40c06f4fd5bc595515cb3523971"
+    },
+    {
+      "bytes": 24351,
+      "path": "VPS-Control-v7-tunnel-manager.ps1",
+      "sha256": "5c7e021b7e9a3225b688c14b906a29204f79ad8fe0259ee4aef533294c9f5f88"
+    },
+    {
+      "bytes": 7493,
+      "path": "VPS-Control-v7-vm-gateway.ps1",
+      "sha256": "406a81ae29896593bde0b050ab1c7b9c55ccc355b8342079236e4b26f3490961"
+    },
+    {
+      "bytes": 24619,
+      "path": "VPS-Control-v7-vps-manager.ps1",
+      "sha256": "f04edc6eb79752ec11ed5cdb90367e256ff456e2608cc4057718d610a75fe5ea"
+    },
+    {
+      "bytes": 753,
+      "path": "VPS-Control-v7.cmd",
+      "sha256": "8e59ac43cddcdf3f1811733b0bd953fda950af69aabd07981e7225bf72d76b02"
+    },
+    {
+      "bytes": 267331,
+      "path": "VPS-Control-v7.ps1",
+      "sha256": "90e60137757dd4ad5f38f19acd720719d0e1e14f8ecabec662eca844cce429b0"
+    },
+    {
+      "bytes": 2326,
+      "path": "VPS-Control-v7.vbs",
+      "sha256": "7935086caef4948b52fe11b03491f205a0e59bad367ee18e6f49bd8a7d895db3"
+    },
+    {
+      "bytes": 45842,
+      "path": "modules/V7-Consistency.ps1",
+      "sha256": "81c0d8afacd7644d8a8afb3c0819a5175b15f9d897b3de131a922073a2fa8c34"
+    },
+    {
+      "bytes": 6317,
+      "path": "modules/V7-Core.ps1",
+      "sha256": "1b9c6790dc6d9d96ee1257bc7b7525b3eb38ed9e056421c9b685b5f193ae9263"
+    },
+    {
+      "bytes": 14208,
+      "path": "modules/V7-DeepTelemetry.ps1",
+      "sha256": "07ab3b539d7a52412ca7b6ad307a18a7a8a2126a039ded007bd8fff6b711bca7"
+    },
+    {
+      "bytes": 5263,
+      "path": "modules/V7-Demo.ps1",
+      "sha256": "0a2a8ffb616ba6109358a9068ccde9d681d3d15a3d0845196fa7c253a14ca65c"
+    },
+    {
+      "bytes": 2387,
+      "path": "modules/V7-Events.ps1",
+      "sha256": "9cb78477e772904e72ab8e91b2eb943472c60974368f2156e90bc2d6872dc119"
+    },
+    {
+      "bytes": 8832,
+      "path": "modules/V7-KeeneticModel.ps1",
+      "sha256": "360bcfb5d8e9879f7cbf1a2d522dc39479ab244d1926847ba555fcfa8c1a7cb3"
+    },
+    {
+      "bytes": 5916,
+      "path": "modules/V7-Maintenance.ps1",
+      "sha256": "7a39c8f1ba1be46ea44e98796200bcd2433cec54b600bdc5f1d0a4a65066cfbb"
+    },
+    {
+      "bytes": 21373,
+      "path": "modules/V7-Observability.ps1",
+      "sha256": "87e6144655836bf5ee20ab95b3ad5b97d7dce94194f0b4ce77c7029b66db07c0"
+    },
+    {
+      "bytes": 9520,
+      "path": "modules/V7-Readiness.ps1",
+      "sha256": "5400cfe67969afe799881a686a81f8bf8ef0b4dc86d956efc46aebb94acc1ebc"
+    },
+    {
+      "bytes": 21002,
+      "path": "modules/V7-Runtime.ps1",
+      "sha256": "1e954956dd7402afe38cd91c52f469aca756faabf4ebd36a83a37c71c801be2f"
+    },
+    {
+      "bytes": 12718,
+      "path": "modules/V7-StatusCenter.ps1",
+      "sha256": "9af3b92ce6f229cb5674d0ff7b1e3f0f2258d5aae55e1ed161871d4cb394e86f"
+    },
+    {
+      "bytes": 8110,
+      "path": "modules/V7-Storage.ps1",
+      "sha256": "09543254899b567ee0eb98f01f22c00f74556d5211135eb2ddb3a548d84cf8f8"
+    },
+    {
+      "bytes": 3227,
+      "path": "modules/V7-Tunnels.ps1",
+      "sha256": "bbf48d3b5dfcbec5b75c6d7e18437c7f028ca24ef47da9825a57c6f22a7ffdcd"
+    },
+    {
+      "bytes": 1742,
+      "path": "modules/V7-UiCommon.ps1",
+      "sha256": "e99ba4e90fdb556d71617acc24c9073a553b1398c988a3781004212ee9f1bcc9"
+    }
+  ],
+  "parent": {
+    "previous_release_version": "7.0.0",
+    "previous_provenance_path": ".pncc-dev/provenance/canonical-source-wu080-startup-remediation.json",
+    "startup_remediation_module_git_blob_sha256": "81c0d8afacd7644d8a8afb3c0819a5175b15f9d897b3de131a922073a2fa8c34"
+  },
+  "provenance_id": "PNCC_CANONICAL_SOURCE_V7_0_1_PATCH_V1",
+  "safety": {
+    "artifact_exists": false,
+    "build_authority": false,
+    "build_input_ready": true,
+    "ci_is_runtime_truth": false,
+    "promotion_authority": false,
+    "runtime_authority": false,
+    "stable_done": false
+  },
+  "schema_version": 3,
+  "source_identity_semantic": "UNBUILT_V7_0_1_PATCH_SOURCE_BASELINE",
+  "source_root": "src/windows-v7"
+}
