@@ -30,8 +30,15 @@ jobs:
           assert p['mode']=='READ_ONLY_ADVISORY'
           assert p['natural_expiry_policy']=='EXPIRED_BY_TIME_IS_HISTORICAL_WITHOUT_PROVIDER_WRITE'
           assert p['historical_entry_reuse_forbidden'] is True
-          auth=[k for k in p if k.endswith('_authority')]
-          assert auth and all(p[k] is False for k in auth)
+          assert p['autonomous_execution_requires_explicit_authority'] is True
+          mutation=[
+            'autonomous_execution_authority','heartbeat_authority','release_authority','lease_acquisition_authority',
+            'provider_state_write_authority','autonomous_merge_authority','autonomous_issue_close_authority',
+            'runtime_action_authority','product_runtime_mutation_authority','adwf_binding_mutation_authority',
+            'promotion_release_tag_authority','ruleset_policy_mutation_authority','private_evidence_publication_authority',
+            'reserve_1080_lifecycle_mutation_authority','primary_1081_lifecycle_mutation_authority'
+          ]
+          assert all(p[k] is False for k in mutation)
           PY
       - name: Assert no provider-state or protected-surface mutation in PR
         if: github.event_name == 'pull_request'
