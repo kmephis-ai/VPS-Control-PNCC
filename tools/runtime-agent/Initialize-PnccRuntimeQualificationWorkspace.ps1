@@ -114,14 +114,18 @@ if (-not (Test-LowerHex $candidateProviderDigestRaw 64)) { Fail-Closed 'request 
 if ($innerExpectedSize -le 0 -or $candidateProviderArtifactId -le 0) { Fail-Closed 'request candidate size/provider id invalid' 5 }
 if ([string]::IsNullOrWhiteSpace($innerName) -or [IO.Path]::GetFileName($innerName) -cne $innerName) { Fail-Closed 'request artifact filename must be a basename' 5 }
 
-if ($candidateId -cmatch '^PNCC-V7\.0\.0-([0-9A-F]{12})$') {
-    $expectedCandidateProviderName = 'PNCC-V7.0.0-' + $sourceSha
+$candidateSuffix = ''
+if ($candidateId -cmatch '^PNCC-V(7\.0\.[0-9]+)-([0-9A-F]{12})$') {
+    $stableVersion = $Matches[1]
+    $candidateSuffix = $Matches[2]
+    $expectedCandidateProviderName = ('PNCC-V' + $stableVersion + '-' + $sourceSha)
 } elseif ($candidateId -cmatch '^PNCC-RC14\.39-([0-9A-F]{12})$') {
+    $candidateSuffix = $Matches[1]
     $expectedCandidateProviderName = 'PNCC-RC14.39-' + $sourceSha
 } else {
     Fail-Closed 'unsupported candidate id for provider bootstrap' 5
 }
-if ($Matches[1] -cne $sourceSha.Substring(0,12).ToUpperInvariant()) { Fail-Closed 'candidate/source suffix mismatch' 5 }
+if ($candidateSuffix -cne $sourceSha.Substring(0,12).ToUpperInvariant()) { Fail-Closed 'candidate/source suffix mismatch' 5 }
 
 if ($Mode -eq 'Provider') {
     $candidateMetadata = Get-ProviderMetadata $candidateProviderArtifactId
