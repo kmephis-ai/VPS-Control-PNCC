@@ -20,11 +20,10 @@ jobs:
           persist-credentials: false
       - name: Run WU-099 adversarial eligibility tests
         run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_autonomous_merge_issue_close_eligibility_wu099.py' -v
-      - name: Assert exact WU-099 branch and bounded diff
-        if: github.event_name == 'pull_request'
+      - name: Assert exact historical WU-099 branch and bounded diff
+        if: github.event_name == 'pull_request' && github.head_ref == 'agent/PIPE-WU-099-autonomous-merge-close-eligibility'
         run: |
           set -euo pipefail
-          test "${{ github.head_ref }}" = "agent/PIPE-WU-099-autonomous-merge-close-eligibility"
           git fetch --no-tags --depth=1 origin "${{ github.event.pull_request.base.sha }}"
           git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}" | sort > /tmp/actual
           printf '%s\n' \
