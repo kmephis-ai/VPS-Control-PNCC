@@ -7,7 +7,7 @@ Describe 'WU-090 PS5.1 release publication compatibility shim' {
         $path = Join-Path $repoRoot 'tools\release\Invoke-PnccV701StableReleasePublicationPs51.ps1'
         $executorPath = Join-Path $repoRoot 'tools\release\Invoke-PnccV701StableReleasePublication.ps1'
         $raw = Get-Content -LiteralPath $path -Raw
-        $executorRaw = Get-Content -LiteralPath $executorPath -Raw
+        $executorRaw = (Get-Content -LiteralPath $executorPath -Raw) -replace "`r`n","`n"
         $tokens = $null
         $errors = $null
         [void][System.Management.Automation.Language.Parser]::ParseFile($path,[ref]$tokens,[ref]$errors)
@@ -27,10 +27,12 @@ Describe 'WU-090 PS5.1 release publication compatibility shim' {
         $script:ShimRaw.Contains("`$PinnedExecutorPath = 'tools/release/Invoke-PnccV701StableReleasePublication.ps1'") | Should -BeTrue
     }
 
-    It 'applies the exact native gh patch once to the executor text' {
-        $pattern = '(?m)^    \$raw = @\(& \$script:GhPath @Arguments 2>&1\)\r?\n    \$code = \$LASTEXITCODE$'
-        $matches = [regex]::Matches($script:ExecutorRaw,$pattern)
-        $matches.Count | Should -Be 1
+    It 'applies the exact literal native gh patch once to normalized executor text' {
+        $needle = "    `$raw = @(& `$script:GhPath @Arguments 2>&1)`n    `$code = `$LASTEXITCODE"
+        $first = $script:ExecutorRaw.IndexOf($needle,[StringComparison]::Ordinal)
+        $last = $script:ExecutorRaw.LastIndexOf($needle,[StringComparison]::Ordinal)
+        $first | Should -BeGreaterOrEqual 0
+        $last | Should -Be $first
         $replacement = @'
     $savedErrorActionPreference = $ErrorActionPreference
     try {
@@ -42,7 +44,7 @@ Describe 'WU-090 PS5.1 release publication compatibility shim' {
         $ErrorActionPreference = $savedErrorActionPreference
     }
 '@
-        $patched = [regex]::Replace($script:ExecutorRaw,$pattern,[System.Text.RegularExpressions.MatchEvaluator]{ param($m) $replacement },1)
+        $patched = $script:ExecutorRaw.Replace($needle,$replacement)
         $patched | Should -Not -Be $script:ExecutorRaw
         $patched.Contains("`$ErrorActionPreference = 'Continue'") | Should -BeTrue
         $patched.Contains('$ErrorActionPreference = $savedErrorActionPreference') | Should -BeTrue
@@ -51,9 +53,12 @@ Describe 'WU-090 PS5.1 release publication compatibility shim' {
         @($errors).Count | Should -Be 0
     }
 
-    It 'uses literal invariant checks and emits explicit patch PASS' {
-        $script:ShimRaw.Contains('if (-not $patched.Contains("`$ErrorActionPreference = ''Continue''"))') | Should -BeTrue
-        $script:ShimRaw.Contains('if (-not $patched.Contains(''$ErrorActionPreference = $savedErrorActionPreference''))') | Should -BeTrue
+    It 'uses literal patch site and invariant checks' {
+        $script:ShimRaw.Contains('$text = $text -replace "`r`n","`n"') | Should -BeTrue
+        $script:ShimRaw.Contains('$text.IndexOf($needle,[StringComparison]::Ordinal)') | Should -BeTrue
+        $script:ShimRaw.Contains('$text.LastIndexOf($needle,[StringComparison]::Ordinal)') | Should -BeTrue
+        $script:ShimRaw.Contains('PS51_NATIVE_COMMAND_PATCH_SITE_NOT_FOUND') | Should -BeTrue
+        $script:ShimRaw.Contains('PS51_NATIVE_COMMAND_PATCH_SITE_NOT_UNIQUE') | Should -BeTrue
         $script:ShimRaw.Contains('PS51_NATIVE_COMMAND_PATCH=PASS') | Should -BeTrue
     }
 
