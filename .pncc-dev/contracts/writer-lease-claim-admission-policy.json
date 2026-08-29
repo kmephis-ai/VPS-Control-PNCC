@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "role": "WRITER_LEASE_CLAIM_ADMISSION_POLICY",
+  "mode": "READ_ONLY_ADVISORY",
+  "required_orchestration_schema_version": 2,
+  "required_orchestration_state": "READ_ONLY_PROVIDER_TRUTH_SELECTION_PASS",
+  "required_orchestration_disposition": "EXECUTABLE",
+  "required_selection_classification": "EXECUTABLE_READ_ONLY_SELECTION",
+  "existing_writer_lease_contract": "WRITER_LEASE",
+  "existing_writer_lease_schema_version": 1,
+  "active_lease_conflict_policy": "BLOCK_ANY_UNEXPIRED_ACTIVE_LEASE_IN_CONFLICT_DOMAIN",
+  "historical_lease_policy": "OBSERVE_RELEASED_OR_EXPIRED_NEVER_REUSE_AS_ACTIVE",
+  "holder_policy": "NONEMPTY_EXPLICIT_HOLDER_REQUIRED",
+  "base_policy": "SELECTION_BASE_MUST_EQUAL_DEFAULT_BRANCH_HEAD",
+  "claim_decisions": [
+    "CLAIM_ELIGIBLE",
+    "BLOCKED"
+  ],
+  "provider_mutation_authority": false,
+  "writer_lease_acquisition_authority": false,
+  "writer_lease_heartbeat_authority": false,
+  "writer_lease_release_authority": false,
+  "writer_lease_steal_authority": false,
+  "branch_creation_authority": false,
+  "autonomous_merge_authority": false,
+  "autonomous_issue_close_authority": false,
+  "runtime_action_authority": false,
+  "promotion_release_tag_authority": false,
+  "ruleset_policy_mutation_authority": false,
+  "next_boundary_if_eligible": "SEPARATE_EXPLICIT_WRITER_LEASE_ACQUISITION_AUTHORITY_DESIGN"
+}
