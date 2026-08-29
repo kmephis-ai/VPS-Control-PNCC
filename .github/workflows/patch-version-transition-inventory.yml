@@ -23,8 +23,9 @@ jobs:
       - name: Emit current 7.0.0 source occurrences
         shell: python
         run: |
-          import subprocess
-          out=subprocess.check_output(['git','grep','-n','7.0.0','--','src/windows-v7'],text=True,encoding='utf-8',errors='replace')
+          import subprocess, sys
+          sys.stdout.reconfigure(encoding='utf-8')
+          out=subprocess.check_output(['git','grep','-n','7.0.0','--','src/windows-v7'],text=True,encoding='utf-8',errors='strict')
           print('WU081_VERSION_SURFACE_BEGIN')
           print(out,end='')
           print('WU081_VERSION_SURFACE_END')
