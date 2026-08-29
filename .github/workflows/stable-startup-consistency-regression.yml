@@ -50,11 +50,19 @@ jobs:
         shell: powershell
         run: |
           $ErrorActionPreference='Stop'
-          $hash=([string](Get-FileHash -LiteralPath 'src\windows-v7\modules\V7-Consistency.ps1' -Algorithm SHA256).Hash).ToLowerInvariant()
-          $manifest=Get-Content -LiteralPath 'src\windows-v7\VPS-Control-v7-SHA256.txt' -Raw
+          $module='src\windows-v7\modules\V7-Consistency.ps1'
+          $manifestPath='src\windows-v7\VPS-Control-v7-SHA256.txt'
+          $hash=([string](Get-FileHash -LiteralPath $module -Algorithm SHA256).Hash).ToLowerInvariant()
+          $manifest=Get-Content -LiteralPath $manifestPath -Raw
           $expectedLine="$hash  modules\V7-Consistency.ps1"
           if(-not $manifest.Contains($expectedLine)){throw "manifest does not seal corrected module SHA256=$hash"}
+          $manifestHash=([string](Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash).ToLowerInvariant()
+          $moduleBytes=(Get-Item -LiteralPath $module).Length
+          $manifestBytes=(Get-Item -LiteralPath $manifestPath).Length
           Write-Host "WU080_MODULE_SHA256=$hash"
+          Write-Host "WU080_MODULE_BYTES=$moduleBytes"
+          Write-Host "WU080_MANIFEST_SHA256=$manifestHash"
+          Write-Host "WU080_MANIFEST_BYTES=$manifestBytes"
           Write-Host 'PACKAGE_MANIFEST_CORRECTED_MODULE=PASS'
 
       - name: Assert physical startup remains private evidence only
