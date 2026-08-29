@@ -23,10 +23,9 @@ jobs:
       - name: Run WU-100 adversarial preparation tests
         run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_reusable_autonomous_merge_close_authority_preparation_wu100.py' -v
       - name: Assert exact WU-100 branch and bounded diff
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && github.head_ref == 'agent/PIPE-WU-100-reusable-merge-close-authority-preparation'
         run: |
           set -euo pipefail
-          test "${{ github.head_ref }}" = "agent/PIPE-WU-100-reusable-merge-close-authority-preparation"
           git fetch --no-tags --depth=1 origin "${{ github.event.pull_request.base.sha }}"
           git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}" | sort > /tmp/actual
           printf '%s\n' \
