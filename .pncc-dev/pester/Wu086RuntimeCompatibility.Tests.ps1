@@ -2,8 +2,10 @@
     $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
     $agentPath = Join-Path $repoRoot 'tools\runtime-agent\Invoke-PnccRuntimeQualificationAgent.ps1'
     $bootstrapPath = Join-Path $repoRoot 'tools\runtime-agent\Initialize-PnccRuntimeQualificationWorkspace.ps1'
+    $builderPath = Join-Path $repoRoot '.github\workflows\candidate-builder.yml'
     $agentText = [IO.File]::ReadAllText($agentPath)
     $bootstrapText = [IO.File]::ReadAllText($bootstrapPath)
+    $builderText = [IO.File]::ReadAllText($builderPath)
 }
 
 Describe 'PIPE-WU-086 runtime qualification compatibility' {
@@ -24,13 +26,17 @@ Describe 'PIPE-WU-086 runtime qualification compatibility' {
     It 'preserves historical RC14.39 identity admission' {
         $agentText | Should -Match 'PNCC-RC14\\\.39'
         $bootstrapText | Should -Match 'PNCC-RC14\\\.39'
+        $bootstrapText | Should -Match ([regex]::Escape("'PNCC-RC14.39-' + `$sourceSha"))
     }
 
-    It 'derives Stable provider bundle names from the exact 7.0.x version and source sha' {
+    It 'preserves historical v7.0.0 provider naming while using the current builder contract for later 7.0.x' {
+        $builderText | Should -Match ([regex]::Escape('name: PNCC-CANDIDATE-${{ github.sha }}'))
         $bootstrapText | Should -Match '\^PNCC-V\(7\\\.0\\\.\[0-9\]\+\)-'
-        $bootstrapText | Should -Match ([regex]::Escape("'PNCC-V' + `$stableVersion + '-' + `$sourceSha"))
-        $legacyHardcode = "'PNCC-V7.0.0-' + " + '$sourceSha'
-        $bootstrapText | Should -Not -Match ([regex]::Escape($legacyHardcode))
+        $bootstrapText | Should -Match ([regex]::Escape("if (`$stableVersion -ceq '7.0.0')"))
+        $bootstrapText | Should -Match ([regex]::Escape("'PNCC-V7.0.0-' + `$sourceSha"))
+        $bootstrapText | Should -Match ([regex]::Escape("'PNCC-CANDIDATE-' + `$sourceSha"))
+        $legacyDynamicName = "'PNCC-V' + " + '$stableVersion' + " + '-' + " + '$sourceSha'
+        $bootstrapText | Should -Not -Match ([regex]::Escape($legacyDynamicName))
     }
 
     It 'requires provider build run identity and cannot grant runtime authority in dry-run' {

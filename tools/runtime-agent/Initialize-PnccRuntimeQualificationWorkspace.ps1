@@ -118,7 +118,11 @@ $candidateSuffix = ''
 if ($candidateId -cmatch '^PNCC-V(7\.0\.[0-9]+)-([0-9A-F]{12})$') {
     $stableVersion = $Matches[1]
     $candidateSuffix = $Matches[2]
-    $expectedCandidateProviderName = ('PNCC-V' + $stableVersion + '-' + $sourceSha)
+    if ($stableVersion -ceq '7.0.0') {
+        $expectedCandidateProviderName = 'PNCC-V7.0.0-' + $sourceSha
+    } else {
+        $expectedCandidateProviderName = 'PNCC-CANDIDATE-' + $sourceSha
+    }
 } elseif ($candidateId -cmatch '^PNCC-RC14\.39-([0-9A-F]{12})$') {
     $candidateSuffix = $Matches[1]
     $expectedCandidateProviderName = 'PNCC-RC14.39-' + $sourceSha

@@ -1,0 +1,12 @@
+{
+  "request_identity": true,
+  "actual_provider_naming": true,
+  "stage_a_contract": true,
+  "primary_ownership_contract": true,
+  "watchdog_contract": true,
+  "proxifier_contract": true,
+  "credential_hostkey_contract": true,
+  "reserve_observation_only": true,
+  "private_result_contract": true,
+  "promotion_false": true
+}
