@@ -1,0 +1,37 @@
+name: wave5-writer-lease-lifecycle-branch-authority-preparation
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  authority-preparation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Validate preparation contract
+        run: python3 .pncc-dev/scripts/validate_writer_lease_lifecycle_branch_execution_authority_preparation.py
+      - name: Run preparation adversarial tests
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_writer_lease_lifecycle_branch_execution_authority_preparation.py' -v
+      - name: Assert no protected or provider-state mutation in PR
+        if: github.event_name == 'pull_request'
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin "${{ github.event.pull_request.base.sha }}"
+          changed="$(git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}")"
+          printf '%s\n' "$changed"
+          ! printf '%s\n' "$changed" | grep -E '^(\.pncc-state/|src/windows-v7/|\.adwf-consumer/external-binding\.json$|tools/runtime-agent/)'
+      - name: Assert exact design policy blob is preserved
+        run: |
+          test "$(git hash-object .pncc-dev/contracts/writer-lease-lifecycle-autonomous-execution-policy.json)" = "942492b4ffe2c2a8c4369b15b617ad9f7f795643"
+      - name: Assert repository remains clean
+        run: test -z "$(git status --porcelain)"
