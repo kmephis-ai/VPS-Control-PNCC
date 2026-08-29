@@ -14,11 +14,11 @@
   "wu087_state": "V701_NINE_SCOPE_OWNER_QUALIFICATION_PASS",
   "wu088_decision_state": "ELIGIBLE_FOR_OWNER_RUNTIME_AUTHORITY_DECISION",
   "runtime_authority_candidate": true,
-  "owner_authorization_present": false,
-  "owner_authorization_binding_complete": false,
+  "owner_authorization_present": true,
+  "owner_authorization_binding_complete": true,
   "owner_authorization_scope": "RUNTIME_AUTHORITY_GRANT_ONLY",
-  "grant_state": "WAITING_OWNER_AUTHORIZATION",
-  "runtime_authority": false,
+  "grant_state": "RUNTIME_AUTHORITY_GRANTED",
+  "runtime_authority": true,
   "promotion_eligible": false,
   "release_or_tag_authorized": false,
   "tag_created": false,
@@ -30,5 +30,5 @@
   "product_bytes_mutated": false,
   "runtime_bytes_mutated": false,
   "private_runtime_payload_published": false,
-  "next_transaction": "EXPLICIT_OWNER_AUTHORIZATION_BOUND_TO_PREPARATION_MERGE_REQUIRED"
+  "next_transaction": "SEPARATE_EXPLICIT_OWNER_AUTHORIZED_RELEASE_PROMOTION"
 }
