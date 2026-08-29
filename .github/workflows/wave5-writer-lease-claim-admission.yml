@@ -27,7 +27,7 @@ jobs:
       - name: Validate existing durable writer lease contract remains authoritative
         run: |
           set -euo pipefail
-          python3 .pncc-dev/scripts/validate_state.py --schema writer-lease --input .pncc-dev/examples/writer-lease.valid.json
+          python3 .pncc-dev/scripts/validate_state.py --validate-examples
 
       - name: Assert WU-094 policy is read-only and exact
         run: |
@@ -76,7 +76,7 @@ jobs:
           git fetch --no-tags --depth=1 origin "${{ github.event.pull_request.base.sha }}"
           changed="$(git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}")"
           printf '%s\n' "$changed"
-          ! printf '%s\n' "$changed" | grep -E '^(src/windows-v7/|\.adwf-consumer/external-binding\.json$|\.pncc-dev/schemas/writer-lease\.schema\.json$|\.pncc-dev/examples/writer-lease\.valid\.json$|tools/runtime-agent/)' 
+          ! printf '%s\n' "$changed" | grep -E '^(src/windows-v7/|\.adwf-consumer/external-binding\.json$|\.pncc-dev/schemas/writer-lease\.schema\.json$|\.pncc-dev/examples/writer-lease\.valid\.json$|tools/runtime-agent/)'
 
       - name: Assert repository remains clean
         run: test -z "$(git status --porcelain)"
