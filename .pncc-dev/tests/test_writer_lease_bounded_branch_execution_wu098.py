@@ -42,9 +42,12 @@ class BoundedExecutionTests(unittest.TestCase):
         for k in ['direct_main_write_authority','autonomous_merge_authority','autonomous_issue_close_authority','lease_steal_authority','force_ref_update_authority','runtime_action_authority','adwf_binding_mutation_authority','promotion_release_tag_authority','ruleset_policy_mutation_authority','private_evidence_publication_authority','reserve_1080_lifecycle_mutation_authority','primary_1081_lifecycle_mutation_authority']:
             self.assertIs(self.a[k],False,k)
 
-    def test_pr_boundary_is_pending_and_exact(self):
-        self.assertIsNone(self.r['pr_number'])
+    def test_pr_boundary_is_open_and_exact(self):
+        self.assertEqual(self.r['pr_number'],238)
+        self.assertEqual(self.r['pr_base_branch'],'main')
+        self.assertEqual(self.r['pr_base_sha'],self.r['authorization_main_sha'])
+        self.assertEqual(self.r['pr_head_branch'],self.r['execution_branch'])
         self.assertIs(self.r['pr_head_must_equal_execution_branch'],True)
-        self.assertEqual(self.r['execution_state'],'LEASE_ACQUIRED_BRANCH_CREATED_PR_PENDING')
+        self.assertEqual(self.r['execution_state'],'PR_OPEN_CI_PENDING')
 
 if __name__=='__main__': unittest.main()
