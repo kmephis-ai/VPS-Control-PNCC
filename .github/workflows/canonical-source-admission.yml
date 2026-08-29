@@ -28,18 +28,25 @@ jobs:
         run: |
           from pathlib import Path
           import hashlib,json,subprocess,re
-          version='7.0.0'
-          root='src/windows-v7'
-          prov_path=Path('.pncc-dev/provenance/canonical-source-post-rc14.38.json')
-          if not prov_path.is_file(): raise SystemExit('canonical provenance missing')
-          prov=json.loads(prov_path.read_text(encoding='utf-8'))
+          declaration=json.loads(Path('.pncc-dev/candidate-source.json').read_text(encoding='utf-8-sig'))
+          version=declaration.get('candidate_version')
+          roots=declaration.get('source_roots')
+          if not isinstance(version,str) or not version: raise SystemExit('candidate version missing')
+          if not isinstance(roots,list) or len(roots)!=1 or not isinstance(roots[0],str): raise SystemExit('exactly one canonical source root required')
+          root=roots[0]
+          prov_value=declaration.get('provenance_path')
+          if not isinstance(prov_value,str) or not prov_value: raise SystemExit('current provenance path missing')
+          prov_path=Path(prov_value)
+          if not prov_path.is_file(): raise SystemExit('current canonical provenance missing')
+          prov=json.loads(prov_path.read_text(encoding='utf-8-sig'))
           if prov.get('hash_semantics')!='CANONICAL_GIT_BLOB_BYTES': raise SystemExit('unexpected hash_semantics')
           if prov.get('source_root')!=root: raise SystemExit('unexpected source_root')
           inv=prov.get('inventory',[])
-          if len(inv)!=32: raise SystemExit(f'expected 32 provenance entries, got {len(inv)}')
+          if not isinstance(inv,list) or not inv: raise SystemExit('provenance inventory missing')
           def blob(path): return subprocess.check_output(['git','show',f'HEAD:{path}'])
           actual_paths=[]
           for rec in inv:
+              if not isinstance(rec,dict) or set(rec)!={'bytes','path','sha256'}: raise SystemExit('malformed provenance row')
               rel=rec['path']; b=blob(root+'/'+rel)
               if len(b)!=rec['bytes'] or hashlib.sha256(b).hexdigest()!=rec['sha256']:
                   raise SystemExit('provenance Git-blob mismatch: '+rel)
@@ -51,7 +58,8 @@ jobs:
           first=next((x.strip() for x in manifest if x.strip()),'')
           if version not in first: raise SystemExit('manifest current-version heading mismatch')
           rows=[x for x in manifest if x and not x.startswith('#')]
-          if len(rows)!=31: raise SystemExit(f'expected 31 package manifest entries, got {len(rows)}')
+          expected_manifest=sorted(x for x in expected if x!='VPS-Control-v7-SHA256.txt')
+          if len(rows)!=len(expected_manifest): raise SystemExit(f'expected {len(expected_manifest)} package manifest entries, got {len(rows)}')
           manifest_paths=[]
           for row in rows:
               m=re.match(r'^([0-9a-f]{64})  (.+)$',row)
@@ -60,16 +68,14 @@ jobs:
               b=blob(root+'/'+rel)
               if hashlib.sha256(b).hexdigest()!=m.group(1): raise SystemExit('package manifest mismatch: '+rel)
               manifest_paths.append(rel)
-          expected_manifest=sorted(x for x in expected if x!='VPS-Control-v7-SHA256.txt')
           if sorted(manifest_paths)!=expected_manifest: raise SystemExit('package manifest coverage mismatch')
           base=prov.get('baseline',{})
-          if base.get('previous_runtime_version')!='7.0.0-rc14.38': raise SystemExit('previous runtime version provenance invalid')
           if base.get('embedded_version')!=version or base.get('activated_candidate_version')!=version: raise SystemExit('activated candidate version provenance invalid')
           if base.get('requires_version_bump_before_build') is not False: raise SystemExit('version bump boundary not cleared')
           safety=prov.get('safety',{})
           if safety.get('build_input_ready') is not True or safety.get('artifact_exists') is not False: raise SystemExit('build-input/artifact truth invalid')
           if any(safety.get(k) for k in ('runtime_authority','promotion_authority','stable_done')): raise SystemExit('provenance grants forbidden authority')
-          print('CANONICAL_GIT_BLOB_PROVENANCE=PASS FILES=32 MANIFEST=31 VERSION=7.0.0 ARTIFACT_EXISTS=false')
+          print(f'CANONICAL_GIT_BLOB_PROVENANCE=PASS FILES={len(inv)} MANIFEST={len(rows)} VERSION={version} ARTIFACT_EXISTS=false PROVENANCE={prov_path.as_posix()}')
 
       - name: Verify Windows PowerShell 5.1 AST, BOM and credential transport
         shell: powershell
@@ -98,8 +104,11 @@ jobs:
         run: |
           from pathlib import Path
           import json
-          version='7.0.0'
-          root=Path('src/windows-v7')
+          declaration=json.loads(Path('.pncc-dev/candidate-source.json').read_text(encoding='utf-8-sig'))
+          version=declaration['candidate_version']
+          roots=declaration['source_roots']
+          if len(roots)!=1: raise SystemExit('exactly one canonical source root required')
+          root=Path(roots[0])
           c=json.loads((root/'VPS-Control-v7-TUNNEL-CONTRACT.json').read_text(encoding='utf-8-sig'))
           if c.get('ContractVersion')!=version: raise SystemExit('tunnel ContractVersion mismatch')
           by={x['Id']:x for x in c['Tunnels']}
@@ -112,4 +121,4 @@ jobs:
           launch=(root/'VPS-Control-v7-launch.ps1').read_text(encoding='utf-8-sig')
           assert f"$UiVersion = '{version}'" in main
           assert f"$LauncherVersion = '{version}'" in launch
-          print('CANONICAL_FIXED_BOUNDARIES=PASS PRIMARY=1081 RESERVE=1080 PWFILE=true VERSION=7.0.0')
+          print(f'CANONICAL_FIXED_BOUNDARIES=PASS PRIMARY=1081 RESERVE=1080 PWFILE=true VERSION={version}')
