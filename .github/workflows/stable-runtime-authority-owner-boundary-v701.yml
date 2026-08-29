@@ -1,0 +1,112 @@
+name: stable-runtime-authority-owner-boundary-v701
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.pncc-dev/attestations/stable-runtime-authority-owner-grant-v7.0.1.json'
+      - '.pncc-dev/scripts/evaluate_stable_runtime_authority_owner_grant_v701.py'
+      - '.pncc-dev/tests/test_v701_owner_runtime_authority_boundary.py'
+      - '.github/workflows/stable-runtime-authority-owner-grant.yml'
+      - '.github/workflows/stable-runtime-authority-owner-boundary-v701.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.pncc-dev/attestations/stable-runtime-authority-owner-grant-v7.0.1.json'
+      - '.pncc-dev/scripts/evaluate_stable_runtime_authority_owner_grant_v701.py'
+      - '.pncc-dev/tests/test_v701_owner_runtime_authority_boundary.py'
+      - '.github/workflows/stable-runtime-authority-owner-grant.yml'
+      - '.github/workflows/stable-runtime-authority-owner-boundary-v701.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  waiting-owner-authorization:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Compile validator and regression without repository side effects
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          for raw in (
+              '.pncc-dev/scripts/evaluate_stable_runtime_authority_owner_grant_v701.py',
+              '.pncc-dev/tests/test_v701_owner_runtime_authority_boundary.py',
+          ):
+              path=Path(raw)
+              compile(path.read_text(encoding='utf-8-sig'), str(path), 'exec')
+              print('PY_COMPILE=PASS PATH='+raw)
+          PY
+
+      - name: Validate default-deny Owner authorization boundary
+        run: python3 .pncc-dev/scripts/evaluate_stable_runtime_authority_owner_grant_v701.py
+
+      - name: Run WU-089 regressions
+        run: python3 .pncc-dev/tests/test_v701_owner_runtime_authority_boundary.py
+
+      - name: Assert generic continuation cannot materialize grant state
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          p='.pncc-dev/attestations/stable-runtime-authority-owner-grant-v7.0.1.json'
+          d=json.load(open(p,encoding='utf-8'))
+          assert d['grant_state']=='WAITING_OWNER_AUTHORIZATION'
+          assert d['owner_authorization_present'] is False
+          assert d['owner_authorization_binding_complete'] is False
+          assert d['runtime_authority'] is False
+          assert d['promotion_eligible'] is False
+          assert d['release_or_tag_authorized'] is False
+          assert d['next_transaction']=='EXPLICIT_OWNER_AUTHORIZATION_BOUND_TO_PREPARATION_MERGE_REQUIRED'
+          PY
+
+      - name: Assert PR cannot mutate product source
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --name-only "${BASE_SHA}...${HEAD_SHA}" > "${RUNNER_TEMP}/wu089-files.txt"
+          if grep -Eq '^src/windows-v7/' "${RUNNER_TEMP}/wu089-files.txt"; then
+            echo 'PRODUCT_SOURCE_MUTATION_FORBIDDEN=true' >&2
+            cat "${RUNNER_TEMP}/wu089-files.txt" >&2
+            exit 1
+          fi
+          echo 'PRODUCT_SOURCE_MUTATION=false'
+
+      - name: Assert no PRIVATE evidence or write authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          tracked="$(git ls-files)"
+          if printf '%s\n' "$tracked" | grep -Eq '(^|/)(private-evidence\.zip|PNCC-WU087\.log|wu087-owner-run-result\.json)$'; then
+            echo 'PRIVATE_RUNTIME_PAYLOAD_TRACKED=true' >&2
+            exit 1
+          fi
+          python3 - <<'PY'
+          from pathlib import Path
+          for raw in (
+              '.github/workflows/stable-runtime-authority-owner-grant.yml',
+              '.github/workflows/stable-runtime-authority-owner-boundary-v701.yml',
+          ):
+              s=Path(raw).read_text(encoding='utf-8')
+              assert 'contents: read' in s
+              for token in ('contents: write','releases: write','git push','git tag','gh release'):
+                  assert token.lower() not in s.lower(), (raw, token)
+          PY
+
+      - name: Assert repository remains clean
+        run: test -z "$(git status --porcelain --untracked-files=all)"
