@@ -1,0 +1,82 @@
+name: wave5-writer-lease-claim-admission
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  writer-lease-claim-admission:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact PNCC revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Run adversarial claim-admission tests
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_writer_lease_claim_admission.py' -v
+
+      - name: Validate existing durable writer lease contract remains authoritative
+        run: |
+          set -euo pipefail
+          python3 .pncc-dev/scripts/validate_state.py --schema writer-lease --input .pncc-dev/examples/writer-lease.valid.json
+
+      - name: Assert WU-094 policy is read-only and exact
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('.pncc-dev/contracts/writer-lease-claim-admission-policy.json').read_text(encoding='utf-8'))
+          assert p['role'] == 'WRITER_LEASE_CLAIM_ADMISSION_POLICY'
+          assert p['mode'] == 'READ_ONLY_ADVISORY'
+          assert p['required_orchestration_schema_version'] == 2
+          assert p['required_orchestration_disposition'] == 'EXECUTABLE'
+          assert p['existing_writer_lease_contract'] == 'WRITER_LEASE'
+          assert p['existing_writer_lease_schema_version'] == 1
+          assert p['active_lease_conflict_policy'] == 'BLOCK_ANY_UNEXPIRED_ACTIVE_LEASE_IN_CONFLICT_DOMAIN'
+          assert p['next_boundary_if_eligible'] == 'SEPARATE_EXPLICIT_WRITER_LEASE_ACQUISITION_AUTHORITY_DESIGN'
+          authority=[k for k in p if k.endswith('_authority')]
+          assert len(authority) >= 10
+          assert all(p[k] is False for k in authority)
+          PY
+
+      - name: Assert no mutation implementation was introduced
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          targets=[
+            Path('.pncc-dev/scripts/evaluate_writer_lease_claim_admission.py'),
+            Path('.github/workflows/wave5-writer-lease-claim-admission.yml'),
+          ]
+          text='\n'.join(p.read_text(encoding='utf-8') for p in targets).lower()
+          forbidden=[
+            'contents:'+' write', 'issues:'+' write', 'pull-requests:'+' write',
+            'git'+' push', 'git'+' tag', 'gh'+' pr merge', 'gh'+' issue close',
+            '--method'+' post', '--method'+' patch', '--method'+' put', '--method'+' delete',
+            'writer_lease_acquired'+'": true', 'writer_lease_stolen'+'": true'
+          ]
+          for token in forbidden:
+              assert token not in text, token
+          PY
+
+      - name: Assert protected surfaces unchanged in this PR
+        if: github.event_name == 'pull_request'
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin "${{ github.event.pull_request.base.sha }}"
+          changed="$(git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}")"
+          printf '%s\n' "$changed"
+          ! printf '%s\n' "$changed" | grep -E '^(src/windows-v7/|\.adwf-consumer/external-binding\.json$|\.pncc-dev/schemas/writer-lease\.schema\.json$|\.pncc-dev/examples/writer-lease\.valid\.json$|tools/runtime-agent/)' 
+
+      - name: Assert repository remains clean
+        run: test -z "$(git status --porcelain)"
