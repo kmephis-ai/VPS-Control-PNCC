@@ -53,9 +53,27 @@ def _validate_policy(policy: dict[str, Any]) -> None:
         raise LifecycleError("POLICY_IDENTITY_INVALID")
     if policy.get("mode") != "READ_ONLY_ADVISORY":
         raise LifecycleError("POLICY_MODE_INVALID")
-    expected_false = [k for k in policy if k.endswith("_authority")]
-    if not expected_false or any(policy.get(k) is not False for k in expected_false):
+    mutation_authorities = (
+        "autonomous_execution_authority",
+        "heartbeat_authority",
+        "release_authority",
+        "lease_acquisition_authority",
+        "provider_state_write_authority",
+        "autonomous_merge_authority",
+        "autonomous_issue_close_authority",
+        "runtime_action_authority",
+        "product_runtime_mutation_authority",
+        "adwf_binding_mutation_authority",
+        "promotion_release_tag_authority",
+        "ruleset_policy_mutation_authority",
+        "private_evidence_publication_authority",
+        "reserve_1080_lifecycle_mutation_authority",
+        "primary_1081_lifecycle_mutation_authority",
+    )
+    if any(policy.get(k) is not False for k in mutation_authorities):
         raise LifecycleError("POLICY_MUTATION_AUTHORITY_PRESENT")
+    if policy.get("autonomous_execution_requires_explicit_authority") is not True:
+        raise LifecycleError("POLICY_EXPLICIT_AUTHORITY_REQUIREMENT_INVALID")
     if policy.get("natural_expiry_policy") != "EXPIRED_BY_TIME_IS_HISTORICAL_WITHOUT_PROVIDER_WRITE":
         raise LifecycleError("POLICY_EXPIRY_INVALID")
     if policy.get("historical_entry_reuse_forbidden") is not True:
