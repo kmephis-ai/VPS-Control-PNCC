@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - '.pncc-dev/attestations/stable-release-tag-promotion-v7.0.1.json'
+      - '.pncc-dev/attestations/stable-release-tag-owner-authorization-v7.0.1.json'
       - '.pncc-dev/scripts/evaluate_stable_release_tag_promotion_v701.py'
       - '.pncc-dev/tests/test_v701_release_tag_promotion_boundary.py'
       - '.github/workflows/stable-release-tag-promotion.yml'
@@ -13,6 +14,7 @@ on:
     branches: [main]
     paths:
       - '.pncc-dev/attestations/stable-release-tag-promotion-v7.0.1.json'
+      - '.pncc-dev/attestations/stable-release-tag-owner-authorization-v7.0.1.json'
       - '.pncc-dev/scripts/evaluate_stable_release_tag_promotion_v701.py'
       - '.pncc-dev/tests/test_v701_release_tag_promotion_boundary.py'
       - '.github/workflows/stable-release-tag-promotion.yml'
@@ -22,11 +24,11 @@ permissions:
   contents: read
 
 jobs:
-  waiting-owner-release-authorization:
+  exact-owner-authorized-pending-publication:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Checkout exact revision
+      - name: Checkout exact revision with authorization history
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -48,13 +50,51 @@ jobs:
               print('PY_COMPILE=PASS PATH='+raw)
           PY
 
-      - name: Validate default-deny v7.0.1 publication boundary
+      - name: Verify exact Owner-authorized prepared contract blob
+        env:
+          AUTHORIZED_PREPARATION_MAIN: 41e8c9c8bed2cc37423c33750d0748c49ff941b7
+          AUTHORIZED_PREPARED_BLOB: f20891555e6db3a0b5bb57488bac5e8ccf36eb71
+        shell: bash
+        run: |
+          set -euo pipefail
+          git cat-file -e "${AUTHORIZED_PREPARATION_MAIN}^{commit}"
+          git cat-file -e "${AUTHORIZED_PREPARED_BLOB}^{blob}"
+          git cat-file blob "${AUTHORIZED_PREPARED_BLOB}" > "${RUNNER_TEMP}/authorized-prepared-promotion.json"
+          python3 - <<'PY'
+          import json, os
+          p=os.path.join(os.environ['RUNNER_TEMP'],'authorized-prepared-promotion.json')
+          d=json.load(open(p,encoding='utf-8'))
+          assert d['contract_id']=='PNCC_STABLE_RELEASE_TAG_PROMOTION_V2'
+          assert d['stable_version']=='7.0.1'
+          assert d['stable_artifact_filename']=='VPS-Control-v7.0.1.zip'
+          assert d['stable_artifact_sha256']=='22b843330516e481c467fe5cbe6d1d4c6758510c71bd2c46ebeec337f403ae72'
+          assert d['stable_artifact_size_bytes']==701893
+          assert d['request_id']=='PNCC-RQ-V7.0.1-D58023321360'
+          assert d['candidate_id']=='PNCC-V7.0.1-D58023321360'
+          assert d['runtime_authority'] is True
+          assert d['target_tag']=='v7.0.1'
+          assert d['target_release_name']=='VPS Control PNCC v7.0.1'
+          assert d['target_tag_commit_policy']=='PREPARATION_MERGE_SHA_ONLY'
+          assert d['target_tag_commit'] is None
+          assert d['owner_release_authorization_present'] is False
+          assert d['owner_release_authorization_binding_complete'] is False
+          assert d['promotion_state']=='WAITING_OWNER_RELEASE_AUTHORIZATION'
+          assert d['promotion_eligible'] is False
+          assert d['release_or_tag_authorized'] is False
+          assert d['tag_created'] is False
+          assert d['release_created'] is False
+          assert d['stable_declared'] is False
+          PY
+          echo "AUTHORIZED_PREPARATION_MAIN=${AUTHORIZED_PREPARATION_MAIN}"
+          echo "AUTHORIZED_PREPARED_BLOB=${AUTHORIZED_PREPARED_BLOB}"
+
+      - name: Validate exact authorized pending v7.0.1 publication boundary
         run: python3 .pncc-dev/scripts/evaluate_stable_release_tag_promotion_v701.py
 
-      - name: Run WU-090 regressions
+      - name: Run WU-090 authorization regressions
         run: python3 .pncc-dev/tests/test_v701_release_tag_promotion_boundary.py
 
-      - name: Verify target publication namespace remains unused
+      - name: Verify target publication namespace remains unused before execution
         env:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
@@ -65,22 +105,19 @@ jobs:
           import os
           import urllib.error
           import urllib.request
-
           repo=os.environ['REPOSITORY']
           token=os.environ.get('GH_TOKEN','')
           headers={
               'Accept':'application/vnd.github+json',
               'X-GitHub-Api-Version':'2022-11-28',
-              'User-Agent':'pncc-v701-release-boundary',
+              'User-Agent':'pncc-v701-release-authorized-boundary',
           }
           if token:
               headers['Authorization']='Bearer '+token
-
-          urls=(
+          for url in (
               f'https://api.github.com/repos/{repo}/git/ref/tags/v7.0.1',
               f'https://api.github.com/repos/{repo}/releases/tags/v7.0.1',
-          )
-          for url in urls:
+          ):
               req=urllib.request.Request(url,headers=headers,method='GET')
               try:
                   with urllib.request.urlopen(req,timeout=30) as response:
@@ -91,25 +128,37 @@ jobs:
                   print('NAMESPACE_ABSENT=PASS URL='+url)
           PY
 
-      - name: Assert generic continuation cannot authorize publication
+      - name: Assert authorization has no publication side effects
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           import json
-          p='.pncc-dev/attestations/stable-release-tag-promotion-v7.0.1.json'
-          d=json.load(open(p,encoding='utf-8'))
+          d=json.load(open('.pncc-dev/attestations/stable-release-tag-promotion-v7.0.1.json',encoding='utf-8'))
+          a=json.load(open('.pncc-dev/attestations/stable-release-tag-owner-authorization-v7.0.1.json',encoding='utf-8'))
+          assert a['authorized_preparation_main']=='41e8c9c8bed2cc37423c33750d0748c49ff941b7'
+          assert a['authorized_prepared_promotion_contract_blob_sha']=='f20891555e6db3a0b5bb57488bac5e8ccf36eb71'
+          assert a['owner_release_authorization_scope']=='RELEASE_TAG_STABLE_PROMOTION_ONLY'
+          assert a['owner_release_authorization_present'] is True
+          assert a['owner_release_authorization_binding_complete'] is True
           assert d['runtime_authority'] is True
-          assert d['owner_release_authorization_present'] is False
-          assert d['owner_release_authorization_binding_complete'] is False
-          assert d['promotion_state']=='WAITING_OWNER_RELEASE_AUTHORIZATION'
-          assert d['promotion_eligible'] is False
-          assert d['release_or_tag_authorized'] is False
+          assert d['owner_release_authorization_present'] is True
+          assert d['owner_release_authorization_binding_complete'] is True
+          assert d['promotion_state']=='AUTHORIZED_PENDING_EXECUTION'
+          assert d['promotion_eligible'] is True
+          assert d['release_or_tag_authorized'] is True
+          assert d['target_tag_commit']=='41e8c9c8bed2cc37423c33750d0748c49ff941b7'
           assert d['tag_created'] is False
           assert d['release_created'] is False
           assert d['release_asset_verified'] is False
           assert d['stable_declared'] is False
-          assert d['target_tag_commit'] is None
+          assert d['release_asset_server_digest'] is None
+          assert d['artifact_rebuilt'] is False
+          assert d['artifact_substituted'] is False
+          assert d['runtime_mutation'] is False
+          assert d['product_bytes_mutated'] is False
+          assert d['runtime_bytes_mutated'] is False
+          assert d['private_runtime_payload_published'] is False
           PY
 
       - name: Assert PR cannot mutate product source
