@@ -24,14 +24,14 @@
   "owner_release_authorization_present": true,
   "owner_release_authorization_binding_complete": true,
   "owner_release_authorization_scope": "RELEASE_TAG_STABLE_PROMOTION_ONLY",
-  "promotion_state": "AUTHORIZED_PENDING_EXECUTION",
+  "promotion_state": "PROMOTED",
   "promotion_eligible": true,
   "release_or_tag_authorized": true,
-  "tag_created": false,
-  "release_created": false,
-  "release_asset_verified": false,
-  "release_asset_server_digest": null,
-  "stable_declared": false,
+  "tag_created": true,
+  "release_created": true,
+  "release_asset_verified": true,
+  "release_asset_server_digest": "sha256:22b843330516e481c467fe5cbe6d1d4c6758510c71bd2c46ebeec337f403ae72",
+  "stable_declared": true,
   "artifact_rebuilt": false,
   "artifact_substituted": false,
   "runtime_mutation": false,
@@ -40,5 +40,5 @@
   "private_runtime_payload_published": false,
   "overwrite_existing_tag_forbidden": true,
   "overwrite_existing_release_forbidden": true,
-  "next_transaction": "CREATE_EXACT_TAG_AND_RELEASE_NO_OVERWRITE"
+  "next_transaction": "POST_STABLE_CLOSEOUT"
 }
