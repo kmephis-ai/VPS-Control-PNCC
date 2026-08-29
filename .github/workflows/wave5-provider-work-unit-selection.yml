@@ -23,7 +23,7 @@ jobs:
           persist-credentials: false
 
       - name: Run adversarial selector tests
-        run: python3 -m unittest .pncc-dev/tests/test_provider_work_unit_selector.py -v
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_provider_work_unit_selector.py' -v
 
       - name: Read fresh GitHub provider truth and select without mutation
         env:
