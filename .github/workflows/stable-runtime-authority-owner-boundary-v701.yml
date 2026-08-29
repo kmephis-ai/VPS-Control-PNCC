@@ -104,7 +104,14 @@ jobs:
           ):
               s=Path(raw).read_text(encoding='utf-8')
               assert 'contents: read' in s
-              for token in ('contents: write','releases: write','git push','git tag','gh release'):
+              forbidden=(
+                  'contents:'+' write',
+                  'releases:'+' write',
+                  'git'+' push',
+                  'git'+' tag',
+                  'gh'+' release',
+              )
+              for token in forbidden:
                   assert token.lower() not in s.lower(), (raw, token)
           PY
 
