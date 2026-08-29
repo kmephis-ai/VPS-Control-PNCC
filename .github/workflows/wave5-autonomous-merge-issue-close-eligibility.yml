@@ -52,8 +52,17 @@ jobs:
           import json
           from pathlib import Path
           p=json.loads(Path('.pncc-dev/contracts/autonomous-merge-issue-close-eligibility-policy.json').read_text(encoding='utf-8'))
-          fields=[k for k in p if k.endswith('_authority')]
-          assert fields
+          fields=[
+              'autonomous_merge_authority','autonomous_issue_close_authority',
+              'direct_main_write_authority','provider_state_write_authority',
+              'lease_acquisition_authority','heartbeat_authority','release_authority',
+              'runtime_action_authority','product_runtime_mutation_authority',
+              'adwf_binding_mutation_authority','promotion_release_tag_authority',
+              'ruleset_policy_mutation_authority','private_evidence_publication_authority',
+              'reserve_1080_lifecycle_mutation_authority','primary_1081_lifecycle_mutation_authority'
+          ]
+          assert p['merge_requires_explicit_authority'] is True
+          assert p['close_requires_explicit_authority'] is True
           assert all(p[k] is False for k in fields), fields
           PY
       - name: Assert repository remains clean
