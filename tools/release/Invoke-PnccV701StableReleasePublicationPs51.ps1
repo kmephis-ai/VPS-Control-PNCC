@@ -69,9 +69,13 @@ try {
 '@
     $patched = [regex]::Replace($text,$pattern,[System.Text.RegularExpressions.MatchEvaluator]{ param($m) $replacement },1)
     if ($patched -eq $text) { throw 'PS51_NATIVE_COMMAND_PATCH_NOT_APPLIED' }
-    if (([regex]::Matches($patched,"\$ErrorActionPreference = 'Continue'" )).Count -ne 1) {
+    if (-not $patched.Contains("`$ErrorActionPreference = 'Continue'")) {
         throw 'PS51_NATIVE_COMMAND_PATCH_INVARIANT_FAILED'
     }
+    if (-not $patched.Contains('$ErrorActionPreference = $savedErrorActionPreference')) {
+        throw 'PS51_NATIVE_COMMAND_RESTORE_INVARIANT_FAILED'
+    }
+    Write-Host 'PS51_NATIVE_COMMAND_PATCH=PASS'
 
     Set-Content -LiteralPath $PatchedPath -Value $patched -Encoding UTF8
     $tokens = $null
