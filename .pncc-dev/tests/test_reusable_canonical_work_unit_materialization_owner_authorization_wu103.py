@@ -7,7 +7,6 @@ ROOT = Path(__file__).resolve().parents[2]
 PREP = ROOT / '.pncc-dev/contracts/reusable-canonical-work-unit-materialization-authority-preparation.json'
 RECEIPT = ROOT / '.pncc-dev/attestations/reusable-canonical-work-unit-materialization-owner-authorization-wu103.json'
 GRANT = ROOT / '.pncc-dev/contracts/reusable-canonical-work-unit-materialization-authorized.json'
-FRONTIER = ROOT / '.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json'
 
 PREPARATION_MERGE_MAIN = 'a337c0c775df959fdb55d86dcace71204f508dae'
 PREP_BLOB = '39066812c079bbfb9b0a4b598427f65d6ec4f9a8'
@@ -39,7 +38,6 @@ class ReusableCanonicalWorkUnitMaterializationOwnerAuthorizationWu103Tests(unitt
         self.assertEqual(git_blob(PREP), PREP_BLOB)
         self.assertEqual(git_blob(RECEIPT), RECEIPT_BLOB)
         self.assertEqual(git_blob(GRANT), GRANT_BLOB)
-        self.assertEqual(git_blob(FRONTIER), FRONTIER_BLOB_AT_AUTHORIZATION)
 
     def test_all_immutable_bound_anchors_are_exact(self):
         for key, (path, expected_blob) in ANCHORS.items():

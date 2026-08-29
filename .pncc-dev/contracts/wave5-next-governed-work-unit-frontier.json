@@ -2,36 +2,39 @@
   "schema_version": 1,
   "role": "WAVE5_NEXT_GOVERNED_WORK_UNIT_FRONTIER",
   "state": "ACTIVE",
-  "frontier_id": "REUSABLE_CANONICAL_WORK_UNIT_MATERIALIZATION_AUTHORITY_PREPARATION",
-  "title_template": "{work_unit_id} — Reusable canonical Work Unit materialization authority preparation",
-  "goal": "Prepare a default-deny reusable authority boundary that may create exactly one deterministic canonical PNCC Work Unit intake Issue from an exact PLAN_ONLY materialization proposal.",
-  "conflict_domain": "wave5-reusable-canonical-work-unit-materialization-authority-preparation",
+  "frontier_id": "GOVERNED_FRONTIER_LIFECYCLE_AND_IN_PR_ADVANCEMENT",
+  "title_template": "{work_unit_id} — Governed frontier lifecycle and in-PR advancement",
+  "goal": "Eliminate stale-frontier replay by making frontier consumption and advancement a deterministic, fail-closed part of each governed frontier-derived Work Unit transaction.",
+  "conflict_domain": "wave5-governed-frontier-lifecycle-advancement",
   "runtime_required": false,
   "scope": [
-    "prepare an exact reusable Issue-intake materialization authority contract bound to the canonical planner and policy",
-    "define fresh Provider Truth, NO_WORK, deterministic proposal, duplicate-prevention and exact-current-main preconditions",
-    "define one-Issue-only target constraints and fail-closed provider readback requirements",
-    "keep the preparation transaction default-deny until separate explicit Owner Authorization"
+    "define a machine-readable frontier lifecycle contract with exact predecessor frontier identity and selected Work Unit binding",
+    "require each non-terminal frontier-derived Work Unit to advance the dynamic frontier in the same bounded Work Unit PR before merge, or set it to NONE when no next frontier exists",
+    "add a read-only fail-closed validator/evaluator and hosted regression gate that rejects replay of a consumed or completed frontier",
+    "preserve the existing materialization planner, materialization policy, reusable materialization grant, selector and Work Unit schema byte-for-byte",
+    "as the WU-104 completion transition, advance the frontier to the exact ADWF Consumer Project Pack provenance reconciliation derived from fresh PNCC and ADWF provider truth"
   ],
   "forbidden_scope": [
-    "grant reusable Issue-write authority in the preparation transaction",
-    "create more than one canonical Work Unit Issue",
-    "mutate an existing Issue, PR or unrelated branch",
-    "mutate provider-state or Writer Lease under the materialization authority",
+    "change the reusable materialization authority or its immutable planner/policy/selector/schema anchors",
+    "manually create or mutate a canonical Work Unit Issue outside the already-authorized reusable materializer",
+    "mutate .adwf-consumer binding or readiness in this frontier-lifecycle Work Unit",
+    "mutate provider-state or Writer Lease semantics outside existing separately authorized lifecycle contracts",
     "perform runtime or product/runtime source mutation",
-    "mutate ADWF binding, release/tag/promotion, rulesets, PRIVATE evidence or 1080/1081 lifecycle"
+    "mutate the ADWF repository, release/tag/promotion state, rulesets, PRIVATE evidence or 1080/1081 lifecycle"
   ],
   "required_checks": [
     "wave5-governed-work-unit-materialization",
+    "wave5-governed-frontier-lifecycle",
     "public-safety",
     "quality-fast",
     "quality-deep"
   ],
   "exit_criteria": [
-    "preparation contract remains default-deny",
-    "future authority target is exactly one planner-derived canonical intake Issue",
-    "all planner/policy/provider/main/proposal anchors are explicit and fail closed",
-    "no Issue creation is performed by the preparation Work Unit"
+    "the historical WU-103 frontier cannot be replayed after WU-103 completion",
+    "a frontier-derived Work Unit cannot reach merge eligibility while leaving its consumed frontier unchanged unless the frontier is explicitly terminal NONE",
+    "materialization planner, materialization policy, reusable materialization grant, selector and Work Unit schema blobs remain unchanged",
+    "WU-104 advances the canonical frontier in its own bounded PR to the exact next ADWF Consumer Project Pack provenance reconciliation frontier",
+    "exact-head hosted CI passes with no product/runtime, provider-state, ADWF binding or 1080/1081 mutation"
   ],
-  "next_natural_boundary": "EXPLICIT_OWNER_AUTHORIZATION_REUSABLE_CANONICAL_WORK_UNIT_MATERIALIZATION_ONLY"
+  "next_natural_boundary": "ADWF_CONSUMER_PROJECT_PACK_PROVENANCE_RECONCILIATION"
 }
