@@ -46,9 +46,11 @@ class ReusableCanonicalWorkUnitMaterializationPreparationTests(unittest.TestCase
             self.assertTrue(path.is_file(), self.c[path_key])
             self.assertEqual(git_blob_sha(path), self.c[sha_key], self.c[path_key])
 
-    def test_preparation_frontier_anchor_is_exact_but_dynamic_future_input(self):
-        path = ROOT / self.c['frontier_path']
-        self.assertEqual(git_blob_sha(path), self.c['frontier_blob_sha_at_preparation'])
+    def test_preparation_frontier_anchor_is_historical_and_dynamic_future_input(self):
+        self.assertEqual(
+            self.c['frontier_blob_sha_at_preparation'],
+            '3897e6db3bb9d853de7b4b04cebc82c6f0d55563',
+        )
         self.assertEqual(self.c['frontier_semantics'], 'DYNAMIC_GOVERNED_INPUT_REVALIDATED_EVERY_TRANSACTION')
         self.assertFalse(self.c['frontier_blob_is_lifetime_authority_anchor'])
         self.assertTrue(self.c['frontier_must_be_canonical_on_fresh_current_main'])
