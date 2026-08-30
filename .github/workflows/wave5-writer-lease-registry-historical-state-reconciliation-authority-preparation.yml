@@ -48,6 +48,7 @@ jobs:
           test "$(git hash-object .pncc-dev/scripts/validate_writer_lease_registry_historical_state_reconciliation_authority_preparation.py)" = "c5826ab87527465b36166a79ee87fdfdb99ab4ea"
           test "$(git hash-object .pncc-dev/tests/test_writer_lease_registry_historical_state_reconciliation_authority_preparation_wu121.py)" = "9f14171938f55fe72a270c02388ff6781a931159"
           test "$(git hash-object .pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json)" = "c3c33fd1504400bf2e48f6bc1024a7ad9a174d2c"
+          test "$(git hash-object .github/workflows/wave5-autonomous-continuation-human-by-exception-readiness-decision.yml)" = "1903a056d7fe0ae20c1754584dadff83b432b4e5"
           test "$(git hash-object .pncc-dev/contracts/autonomous-continuation-human-by-exception-readiness-assessment-wu119.json)" = "ad147299e65cec74f3fc5ef0365376f50f1485aa"
           test "$(git hash-object .pncc-dev/contracts/autonomous-continuation-human-by-exception-readiness-decision-wu120.json)" = "a014f81efa52671bf3f637f7a16dc6332a70091b"
           test "$(git hash-object .pncc-dev/contracts/writer-lease-registry-topology.json)" = "2b9dec3f2b28aadb80ac8edbb09bdc9d453115a1"
@@ -113,6 +114,7 @@ jobs:
           test "$(git rev-parse "$FIRST_COMMIT^")" = "$BASE_SHA"
           git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort > /tmp/actual
           printf '%s\n' \
+            '.github/workflows/wave5-autonomous-continuation-human-by-exception-readiness-decision.yml' \
             '.github/workflows/wave5-writer-lease-registry-historical-state-reconciliation-authority-preparation.yml' \
             '.pncc-dev/contracts/governed-frontier-transition-pipe-wu-121.json' \
             '.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json' \
