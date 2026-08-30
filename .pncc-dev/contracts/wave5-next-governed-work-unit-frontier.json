@@ -2,22 +2,25 @@
   "schema_version": 1,
   "role": "WAVE5_NEXT_GOVERNED_WORK_UNIT_FRONTIER",
   "state": "ACTIVE",
-  "frontier_id": "SEPARATE_REUSABLE_AUTONOMOUS_CONTINUATION_EXECUTOR_AUTHORITY_PREPARATION",
-  "title_template": "{work_unit_id} — Reusable autonomous continuation executor authority preparation",
-  "goal": "Prepare a default-deny reusable autonomous continuation executor authority contract and explicit Owner Authorization boundary without granting or exercising reusable executor authority.",
-  "conflict_domain": "wave5-reusable-autonomous-continuation-executor-authority-preparation",
+  "frontier_id": "EXPLICIT_OWNER_AUTHORIZATION_FOR_REUSABLE_AUTONOMOUS_CONTINUATION_EXECUTOR",
+  "title_template": "{work_unit_id} — Explicit Owner Authorization for reusable autonomous continuation executor",
+  "goal": "Require one exact explicit Owner Authorization, bound to the canonical WU-110 preparation contract blob and WU-110 post-merge main SHA, before any reusable autonomous continuation executor grant can become canonical.",
+  "conflict_domain": "wave5-reusable-autonomous-continuation-executor-owner-authorization",
   "runtime_required": false,
   "scope": [
-    "bind the prepared executor authority to the exact WU-109 execution-admission policy/evaluator and canonical existing reusable materialization, Writer Lease and merge/Issue-close grants",
-    "define exact per-transaction freshness, selected Work Unit, lease, branch, pull-request, CI, CAS, pinned-head merge and post-merge close evidence required before any future delegated execution",
-    "define default-deny interruption and recovery semantics so wait, stop, blocked and classified-failure states never become guessed mutations",
-    "define exact Owner Authorization receipt and future canonical grant binding plus revocation and anchor-drift fail-closed behavior",
-    "keep reusable_autonomous_continuation_executor_authority=false and all mutation authority false throughout this preparation Work Unit",
-    "advance the governed frontier only to the explicit Owner Authorization boundary"
+    "fresh-read canonical WU-110 preparation after its merge and bind authorization to its exact contract blob and actual post-merge main SHA",
+    "accept only an explicit Owner Authorization whose scope is exactly REUSABLE_AUTONOMOUS_CONTINUATION_EXECUTOR_ONLY; generic continuation text such as Continue or Продолжай is insufficient",
+    "materialize one machine-readable Owner Authorization receipt only after exact explicit authorization is present",
+    "prepare one canonical reusable autonomous continuation executor grant bound to the exact receipt, WU-110 preparation contract and immutable WU-109 admission plus existing reusable authority anchors",
+    "keep the future executor limited to delegating only transaction paths independently admitted by WU-109 and still authorized by their existing reusable grants",
+    "define revocation, anchor-drift, stale provider truth, interruption, wait, stop, blocked and classified-failure behavior as fail closed",
+    "perform no reusable autonomous continuation executor transaction during this authorization Work Unit"
   ],
   "forbidden_scope": [
-    "grant or exercise reusable autonomous continuation executor authority",
-    "execute Issue-create, Issue-update, branch, pull-request, provider-state, Writer Lease, workflow-rerun, merge or Issue-close transactions under the prepared executor",
+    "treat generic Continue, Продолжай, keep going or equivalent continuation language as Owner Authorization",
+    "create an Owner Authorization receipt or reusable executor grant without exact explicit Owner Authorization",
+    "execute Issue-create, Issue-update, branch, pull-request, provider-state, Writer Lease, workflow-rerun, merge or Issue-close through the reusable executor during the authorization Work Unit",
+    "broaden or replace the existing materialization, Writer Lease or merge/Issue-close grants",
     "mutate product/runtime source or runtime state",
     "mutate ADWF Consumer binding/provenance or the ADWF repository",
     "perform release/tag/promotion, ruleset/policy administration, PRIVATE evidence publication or 1080/1081 lifecycle mutation"
@@ -33,12 +36,12 @@
     "quality-deep"
   ],
   "exit_criteria": [
-    "one exact prepared reusable executor authority contract is machine readable and default deny",
-    "the preparation binds immutable canonical admission and delegated reusable-authority anchors without broadening them",
-    "all future mutation paths remain conditional on exact fresh transaction evidence and their existing delegated authority semantics",
-    "reusable executor authority remains false until a separate exact Owner Authorization receipt is present",
-    "unknown, stale, contradictory, interrupted or classified-failure states fail closed or require separate authority",
-    "exact-head hosted CI passes with no provider-state, ADWF, product/runtime or 1080/1081 mutation"
+    "explicit Owner Authorization is present and its exact scope is REUSABLE_AUTONOMOUS_CONTINUATION_EXECUTOR_ONLY",
+    "authorization receipt binds the exact canonical WU-110 preparation contract blob and actual WU-110 post-merge main SHA",
+    "canonical reusable executor grant binds the exact receipt, preparation contract, WU-109 admission anchors and unchanged existing reusable authority grants",
+    "the grant cannot infer authority and cannot execute wait, stop, blocked or separate-authority states",
+    "all stale, contradictory, interrupted, classified-failure, revoked or anchor-drift states fail closed",
+    "exact-head hosted CI passes with no executor transaction, product/runtime, ADWF or 1080/1081 mutation"
   ],
-  "next_natural_boundary": "EXPLICIT_OWNER_AUTHORIZATION_FOR_REUSABLE_AUTONOMOUS_CONTINUATION_EXECUTOR"
+  "next_natural_boundary": "CONTROLLED_FIRST_REUSABLE_AUTONOMOUS_CONTINUATION_TRANSACTION"
 }

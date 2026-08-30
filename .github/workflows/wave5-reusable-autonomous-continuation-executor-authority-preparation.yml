@@ -1,0 +1,97 @@
+name: wave5-reusable-autonomous-continuation-executor-authority-preparation
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  reusable-autonomous-continuation-executor-authority-preparation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Validate WU-110 preparation contract and canonical anchors
+        run: python3 .pncc-dev/scripts/validate_reusable_autonomous_continuation_executor_authority_preparation.py
+
+      - name: Run WU-110 adversarial preparation tests
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_reusable_autonomous_continuation_executor_authority_preparation_wu110.py' -v
+
+      - name: Assert exact preparation blobs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object .pncc-dev/contracts/reusable-autonomous-continuation-executor-authority-preparation.json)" = "4050c89d6c79d40649d45b983527924f8dcb5901"
+          test "$(git hash-object .pncc-dev/scripts/validate_reusable_autonomous_continuation_executor_authority_preparation.py)" = "b45d572918a902537987e74951da9ccc58cbdd2c"
+          test "$(git hash-object .pncc-dev/tests/test_reusable_autonomous_continuation_executor_authority_preparation_wu110.py)" = "b26faa861aa4a64e0a3d66d4721525e1d3c27de6"
+          test "$(git hash-object .pncc-dev/contracts/autonomous-continuation-execution-admission-policy.json)" = "406d78da6250c452bfc7706b57dc51a18ca48977"
+          test "$(git hash-object .pncc-dev/scripts/evaluate_autonomous_continuation_execution_admission.py)" = "cde13515632717b81cef77876e53e9ceef0c46bf"
+          test "$(git hash-object .pncc-dev/contracts/reusable-canonical-work-unit-materialization-authorized.json)" = "39db0554b86932b1beb4bb7250d040c06f9371ea"
+          test "$(git hash-object .pncc-dev/contracts/reusable-writer-lease-bounded-branch-authorized.json)" = "717e1f9081915f40fad2e0620c64245a650ca235"
+          test "$(git hash-object .pncc-dev/contracts/reusable-autonomous-merge-close-authorized.json)" = "baa503d63eaa437545ddcf0a045cf864d1ef36e6"
+
+      - name: Assert exact PIPE-WU-110 bounded diff
+        if: github.event_name == 'pull_request' && github.head_ref == 'agent/PIPE-WU-110-reusable-autonomous-continuation-executor-authority-preparation'
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin "$BASE_SHA"
+          git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort > /tmp/actual
+          printf '%s\n' \
+            '.github/workflows/wave5-reusable-autonomous-continuation-executor-authority-preparation.yml' \
+            '.pncc-dev/contracts/governed-frontier-transition-pipe-wu-110.json' \
+            '.pncc-dev/contracts/reusable-autonomous-continuation-executor-authority-preparation.json' \
+            '.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json' \
+            '.pncc-dev/scripts/validate_reusable_autonomous_continuation_executor_authority_preparation.py' \
+            '.pncc-dev/tests/test_reusable_autonomous_continuation_executor_authority_preparation_wu110.py' | sort > /tmp/expected
+          diff -u /tmp/expected /tmp/actual
+          ! grep -E '^(\.pncc-state/|src/windows-v7/|\.adwf-consumer/|tools/runtime-agent/|\.pncc-dev/attestations/)' /tmp/actual
+          ! grep -E 'reusable-autonomous-continuation-executor-authorized\.json$' /tmp/actual
+
+      - name: Assert preparation and workflow remain read only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          t=Path('.github/workflows/wave5-reusable-autonomous-continuation-executor-authority-preparation.yml').read_text(encoding='utf-8').lower()
+          forbidden=[
+              'contents:'+' write','actions:'+' write','issues:'+' write','pull-requests:'+' write',
+              'git'+' push','gh'+' pr merge','gh'+' issue close',
+              '--method'+' post','--method'+' patch','--method'+' put','--method'+' delete'
+          ]
+          for token in forbidden:
+              assert token not in t, token
+          p=json.loads(Path('.pncc-dev/contracts/reusable-autonomous-continuation-executor-authority-preparation.json').read_text(encoding='utf-8'))
+          false_fields=[
+              'reusable_authority_granted','reusable_autonomous_continuation_executor_authority',
+              'provider_mutation_authority','issue_create_authority','issue_update_authority','issue_close_authority',
+              'branch_mutation_authority','pull_request_mutation_authority','writer_lease_mutation_authority',
+              'workflow_rerun_authority','merge_authority','runtime_action_authority','product_runtime_mutation_authority',
+              'adwf_binding_mutation_authority','adwf_repository_mutation_authority','release_tag_promotion_authority',
+              'ruleset_policy_mutation_authority','private_evidence_publication_authority','force_ref_update_authority',
+              'silent_lease_steal_authority','reserve_1080_lifecycle_mutation_authority','primary_1081_lifecycle_mutation_authority'
+          ]
+          assert p['preparation_state']=='WAITING_EXPLICIT_OWNER_AUTHORIZATION'
+          assert p['explicit_owner_authorization_required'] is True
+          assert p['generic_continuation_text_is_owner_authorization'] is False
+          assert p['owner_authorization_present'] is False
+          assert p['owner_authorization_binding_complete'] is False
+          assert all(p[k] is False for k in false_fields)
+          PY
+
+      - name: Assert repository remains clean
+        run: test -z "$(git status --porcelain)"
