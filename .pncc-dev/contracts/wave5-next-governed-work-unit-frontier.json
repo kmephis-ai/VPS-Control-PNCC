@@ -2,53 +2,51 @@
   "schema_version": 1,
   "role": "WAVE5_NEXT_GOVERNED_WORK_UNIT_FRONTIER",
   "state": "ACTIVE",
-  "frontier_id": "CONTROLLED_WRITER_LEASE_REGISTRY_HISTORICAL_STATE_RECONCILIATION_EXECUTION",
-  "title_template": "{work_unit_id} — Controlled Writer Lease registry historical state reconciliation execution",
-  "goal": "Execute one atomic CAS-bound historical Writer Lease registry reconciliation under the canonical WU-122 grant, changing only the exact four authorized historical state fields from ACTIVE to RELEASED, then prove post-transaction provider truth before any readiness reassessment.",
-  "conflict_domain": "wave5-writer-lease-registry-historical-state-reconciliation-execution",
+  "frontier_id": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_READINESS_REASSESSMENT_AFTER_LEASE_HYGIENE",
+  "title_template": "{work_unit_id} — Human-by-Exception readiness reassessment after Writer Lease hygiene",
+  "goal": "Reassess, without granting new authority, Human-by-Exception readiness after the exact WU-123 historical Writer Lease hygiene transaction has removed the four stale ACTIVE records that blocked the prior readiness decision, using fresh canonical and provider truth rather than reusing the pre-hygiene assessment.",
+  "conflict_domain": "wave5-autonomous-continuation-human-by-exception-readiness-reassessment-after-lease-hygiene",
   "runtime_required": false,
-  "authorization_grant": {
-    "path": ".pncc-dev/contracts/writer-lease-registry-historical-state-reconciliation-authorized.json",
-    "blob_sha": "20fc664e90b1390351a5de70c98563140ef3190d",
-    "required_scope": "EXACT_FOUR_STALE_WRITER_LEASE_STATE_FIELDS_ACTIVE_TO_RELEASED_ONLY"
-  },
   "scope": [
-    "fresh-read canonical WU-122 grant, current main, provider-state head and exact registry before execution",
-    "require all four exact historical entries to remain ACTIVE and expired before one atomic registry CAS",
-    "change only the four exact state fields ACTIVE to RELEASED in one transaction",
-    "preserve registry generation, entry count/order and every immutable field of every entry",
-    "perform mandatory provider readback proving exact post-state and no collateral drift",
-    "advance only after proven reconciliation to a fresh Human-by-Exception readiness reassessment"
+    "fresh-read canonical WU-119 assessment, WU-120 decision, WU-121 preparation, WU-122 Owner Authorization and WU-123 execution evidence",
+    "recompute Writer Lease registry hygiene from fresh provider-state truth and prove no stale historical ACTIVE records remain outside the current governed writer",
+    "reassess every Human-by-Exception rubric criterion previously blocked or conditioned by Writer Lease hygiene",
+    "distinguish proven autonomous capability from owner-controlled, runtime-controlled and separately authorized boundaries",
+    "produce a fresh machine-readable readiness reassessment without converting reassessment success into mutation authority",
+    "advance only to a separately governed post-hygiene readiness decision"
   ],
   "forbidden_scope": [
-    "partial or superset reconciliation",
-    "change registry generation or entry ordering/count",
-    "change lease identity, work-unit/conflict-domain/holder/base/branch/generation/timestamps",
-    "change current Writer Lease lifecycle semantics or unrelated provider-state",
-    "infer success after unknown provider outcome or replay ambiguous CAS",
-    "grant Human-by-Exception or higher autonomy as a side effect",
-    "mutate product/runtime source or physical runtime, ADWF binding/repository, release/tag/promotion, ruleset/security policy, PRIVATE evidence or 1080/1081 lifecycle"
+    "reuse the pre-hygiene WU-119 assessment as current truth without fresh recomputation",
+    "automatically grant Human-by-Exception or higher-autonomy execution authority from WU-123 reconciliation success",
+    "broaden Writer Lease, merge, Issue-close, continuation, session-resume or provider-state authority",
+    "weaken owner escalation, runtime qualification, promotion, ruleset or security boundaries",
+    "mutate product/runtime source or physical runtime, ADWF binding/repository, release/tag/promotion, PRIVATE evidence or 1080/1081 lifecycle",
+    "reinterpret current Writer Lease ownership without fresh provider-state readback"
   ],
   "required_checks": [
     "pipeline-state",
     "wave5-provider-work-unit-selection",
     "wave5-writer-lease-registry-topology",
     "wave5-writer-lease-claim-admission",
-    "wave5-writer-lease-bounded-branch-execution",
     "wave5-writer-lease-registry-historical-state-reconciliation-owner-authorization",
+    "wave5-writer-lease-registry-historical-state-reconciliation-execution",
+    "wave5-autonomous-continuation-human-by-exception-readiness-assessment",
+    "wave5-autonomous-continuation-human-by-exception-readiness-decision",
     "public-safety",
     "quality-fast",
     "quality-deep"
   ],
   "exit_criteria": [
-    "canonical WU-122 grant and receipt remain exact and not revoked",
-    "all four exact stale historical state fields are RELEASED after one atomic CAS",
-    "registry generation and all unrelated semantics remain unchanged",
-    "fresh post-transaction provider readback proves no collateral drift",
-    "next frontier is Human-by-Exception readiness reassessment after lease hygiene"
+    "fresh provider truth proves historical Writer Lease hygiene remains reconciled and current ownership is unambiguous",
+    "every prior Human-by-Exception blocker is freshly re-evaluated against post-hygiene truth",
+    "reassessment explicitly records any remaining owner, runtime, policy, security or promotion escalation boundary",
+    "reassessment grants no direct provider-state, merge, runtime, release, ruleset, ADWF or higher-autonomy authority",
+    "exact-head hosted CI passes with no product/runtime, ADWF or 1080/1081 mutation",
+    "next frontier is a separately governed post-hygiene readiness decision"
   ],
-  "provider_mutation_authority": "EXACT_WU122_GRANT_ONLY",
-  "writer_lease_historical_mutation_authority": "EXACT_WU122_GRANT_ONLY",
+  "provider_mutation_authority": false,
+  "writer_lease_mutation_authority": false,
+  "merge_authority": false,
   "runtime_action_authority": false,
   "product_runtime_mutation_authority": false,
   "adwf_repository_mutation_authority": false,
@@ -57,5 +55,5 @@
   "reserve_1080_lifecycle_mutation_authority": false,
   "primary_1081_lifecycle_mutation_authority": false,
   "higher_autonomy_authority": false,
-  "next_natural_boundary": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_READINESS_REASSESSMENT_AFTER_LEASE_HYGIENE"
+  "next_natural_boundary": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_READINESS_DECISION_AFTER_LEASE_HYGIENE"
 }
