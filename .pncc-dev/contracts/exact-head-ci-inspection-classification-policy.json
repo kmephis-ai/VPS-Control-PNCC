@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "role": "EXACT_HEAD_CI_INSPECTION_CLASSIFICATION_POLICY",
+  "mode": "READ_ONLY_FAIL_CLOSED",
+  "repository": "kmephis-ai/VPS-Control-PNCC",
+  "default_branch": "main",
+  "snapshot_role": "EXACT_HEAD_CI_PROVIDER_SNAPSHOT",
+  "provider_truth_fresh_required": true,
+  "inventory_complete_required": true,
+  "effective_inventory_required": true,
+  "superseded_runs_accounted_for_required": true,
+  "exact_pr_head_binding_required": true,
+  "unique_effective_workflow_name_required": true,
+  "required_workflows": [
+    "pipeline-state",
+    "wave5-provider-work-unit-selection",
+    "public-safety",
+    "quality-fast",
+    "quality-deep"
+  ],
+  "pending_statuses": [
+    "queued",
+    "in_progress",
+    "pending",
+    "requested",
+    "waiting"
+  ],
+  "completed_status": "completed",
+  "success_conclusion": "success",
+  "non_success_conclusions": [
+    "action_required",
+    "cancelled",
+    "failure",
+    "neutral",
+    "skipped",
+    "stale",
+    "startup_failure",
+    "timed_out"
+  ],
+  "failure_attribution_policy": "EXPLICIT_EVIDENCE_REQUIRED_NEVER_INFER_FROM_WORKFLOW_NAME",
+  "failure_attribution_classes": [
+    "HARNESS_OR_VALIDATION_DEFECT",
+    "PRODUCT_RUNTIME_DEFECT_CANDIDATE",
+    "PROVIDER_ENVIRONMENT_AMBIGUITY"
+  ],
+  "failure_attribution_source": "HOSTED_CI_JOB_STEP_LOG_OR_MACHINE_EVIDENCE",
+  "mixed_failure_classification_policy": "PROVIDER_ENVIRONMENT_AMBIGUITY",
+  "missing_failure_attribution_policy": "PROVIDER_ENVIRONMENT_AMBIGUITY",
+  "decisions": [
+    "CI_SUCCESS",
+    "CI_PENDING",
+    "HARNESS_OR_VALIDATION_DEFECT_CANDIDATE",
+    "PRODUCT_RUNTIME_DEFECT_CANDIDATE",
+    "PROVIDER_ENVIRONMENT_AMBIGUITY",
+    "BLOCKED"
+  ],
+  "next_boundaries": {
+    "CI_SUCCESS": "EXISTING_RELEASED_LEASE_AND_MERGE_ELIGIBILITY_PATH",
+    "CI_PENDING": "WAIT_FOR_EXACT_HEAD_CI",
+    "HARNESS_OR_VALIDATION_DEFECT_CANDIDATE": "SEPARATE_BOUNDED_HARNESS_OR_VALIDATION_REPAIR",
+    "PRODUCT_RUNTIME_DEFECT_CANDIDATE": "SEPARATE_PRODUCT_RUNTIME_DEFECT_GOVERNANCE",
+    "PROVIDER_ENVIRONMENT_AMBIGUITY": "COLLECT_MORE_PROVIDER_OR_CI_EVIDENCE",
+    "BLOCKED": "RECONCILE_EXACT_HEAD_CI_PROVIDER_TRUTH"
+  },
+  "anchor_paths": {
+    "continuation_policy": ".pncc-dev/contracts/provider-truth-continuation-policy.json",
+    "continuation_evaluator": ".pncc-dev/scripts/evaluate_provider_truth_continuation.py",
+    "selector": ".pncc-dev/scripts/select_provider_work_unit.py",
+    "planner": ".pncc-dev/scripts/plan_governed_work_unit_materialization.py",
+    "materialization_grant": ".pncc-dev/contracts/reusable-canonical-work-unit-materialization-authorized.json",
+    "writer_lease_grant": ".pncc-dev/contracts/reusable-writer-lease-bounded-branch-authorized.json",
+    "merge_close_grant": ".pncc-dev/contracts/reusable-autonomous-merge-close-authorized.json",
+    "frontier_lifecycle_policy": ".pncc-dev/contracts/governed-frontier-lifecycle-policy.json"
+  },
+  "anchor_blobs": {
+    "continuation_policy": "4c6fe2895d41ed9282e9209223a5dd27b209a2fc",
+    "continuation_evaluator": "33fdd78096ae09c9706e0802a94b310ba5fa4bd2",
+    "selector": "8045a97d5344f058064690cb265b30f88973e2b8",
+    "planner": "c561b34dbf3fb7cfefd1a2a9780aba6e857ec78c",
+    "materialization_grant": "39db0554b86932b1beb4bb7250d040c06f9371ea",
+    "writer_lease_grant": "717e1f9081915f40fad2e0620c64245a650ca235",
+    "merge_close_grant": "baa503d63eaa437545ddcf0a045cf864d1ef36e6",
+    "frontier_lifecycle_policy": "a9d04f0c8611f29cb1cd1929719dbec6f7434c52"
+  },
+  "provider_mutation_authority": false,
+  "workflow_rerun_authority": false,
+  "issue_mutation_authority": false,
+  "branch_mutation_authority": false,
+  "pull_request_mutation_authority": false,
+  "writer_lease_mutation_authority": false,
+  "merge_authority": false,
+  "runtime_action_authority": false,
+  "product_runtime_mutation_authority": false,
+  "adwf_binding_mutation_authority": false,
+  "adwf_repository_mutation_authority": false,
+  "release_tag_promotion_authority": false,
+  "ruleset_policy_mutation_authority": false,
+  "private_evidence_publication_authority": false,
+  "reserve_1080_lifecycle_mutation_authority": false,
+  "primary_1081_lifecycle_mutation_authority": false,
+  "next_boundary": "AUTONOMOUS_CONTINUATION_CONTROL_LOOP_INTEGRATION"
+}

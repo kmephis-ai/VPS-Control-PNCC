@@ -1,0 +1,193 @@
+name: wave5-exact-head-ci-inspection-classification
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+  pull-requests: read
+
+jobs:
+  exact-head-ci-inspection-classification:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Run WU-107 adversarial classification tests
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_exact_head_ci_inspection_classification_wu107.py' -v
+
+      - name: Assert exact CI classification anchors
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object .pncc-dev/contracts/exact-head-ci-inspection-classification-policy.json)" = "98499793b870932f2e70b7b6293ff5fffeecbd29"
+          test "$(git hash-object .pncc-dev/scripts/evaluate_exact_head_ci_inspection_classification.py)" = "12bfea6f4bc87a7c14ba6c403238d5b10affe6cf"
+          test "$(git hash-object .pncc-dev/tests/test_exact_head_ci_inspection_classification_wu107.py)" = "c4e876821cf8b5745b2d47687d94db96396955e2"
+          test "$(git hash-object .pncc-dev/contracts/provider-truth-continuation-policy.json)" = "4c6fe2895d41ed9282e9209223a5dd27b209a2fc"
+          test "$(git hash-object .pncc-dev/scripts/evaluate_provider_truth_continuation.py)" = "33fdd78096ae09c9706e0802a94b310ba5fa4bd2"
+          test "$(git hash-object .pncc-dev/scripts/select_provider_work_unit.py)" = "8045a97d5344f058064690cb265b30f88973e2b8"
+          test "$(git hash-object .pncc-dev/scripts/plan_governed_work_unit_materialization.py)" = "c561b34dbf3fb7cfefd1a2a9780aba6e857ec78c"
+          test "$(git hash-object .pncc-dev/contracts/reusable-canonical-work-unit-materialization-authorized.json)" = "39db0554b86932b1beb4bb7250d040c06f9371ea"
+          test "$(git hash-object .pncc-dev/contracts/reusable-writer-lease-bounded-branch-authorized.json)" = "717e1f9081915f40fad2e0620c64245a650ca235"
+          test "$(git hash-object .pncc-dev/contracts/reusable-autonomous-merge-close-authorized.json)" = "baa503d63eaa437545ddcf0a045cf864d1ef36e6"
+
+      - name: Inspect fresh exact-head provider CI truth read only
+        if: github.event_name == 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - "$RUNNER_TEMP/exact-head-ci-snapshot.json" <<'PY'
+          import json, os, sys, time, urllib.request
+
+          out=sys.argv[1]
+          repo=os.environ["REPOSITORY"]
+          pr=int(os.environ["PR_NUMBER"])
+          expected=os.environ["EXPECTED_HEAD"]
+          token=os.environ["GITHUB_TOKEN"]
+          headers={
+              "Accept":"application/vnd.github+json",
+              "Authorization":"Bearer "+token,
+              "X-GitHub-Api-Version":"2022-11-28",
+              "User-Agent":"pncc-wave5-ci-inspector",
+          }
+
+          def get(url):
+              req=urllib.request.Request(url,headers=headers)
+              with urllib.request.urlopen(req,timeout=30) as response:
+                  return json.load(response)
+
+          pr_data=get(f"https://api.github.com/repos/{repo}/pulls/{pr}")
+          observed=((pr_data.get("head") or {}).get("sha"))
+          if observed != expected:
+              raise SystemExit(f"PR_HEAD_DRIFT:{expected}:{observed}")
+
+          required={
+              "pipeline-state",
+              "wave5-provider-work-unit-selection",
+              "public-safety",
+              "quality-fast",
+              "quality-deep",
+          }
+          all_runs=[]
+          for attempt in range(20):
+              all_runs=[]
+              page=1
+              while True:
+                  data=get(f"https://api.github.com/repos/{repo}/actions/runs?head_sha={expected}&event=pull_request&per_page=100&page={page}")
+                  batch=data.get("workflow_runs") or []
+                  all_runs.extend(batch)
+                  if len(batch) < 100:
+                      break
+                  page += 1
+              if required.issubset({str(x.get("name") or "") for x in all_runs}):
+                  break
+              if attempt == 19:
+                  missing=sorted(required-{str(x.get("name") or "") for x in all_runs})
+                  raise SystemExit("REQUIRED_WORKFLOW_PROVIDER_REGISTRATION_INCOMPLETE:"+",".join(missing))
+              time.sleep(3)
+
+          effective={}
+          for raw in all_runs:
+              name=str(raw.get("name") or "")
+              if not name:
+                  continue
+              prior=effective.get(name)
+              if prior is None or int(raw.get("id") or 0) > int(prior.get("id") or 0):
+                  effective[name]=raw
+
+          runs=[]
+          for name,raw in sorted(effective.items()):
+              runs.append({
+                  "id": int(raw["id"]),
+                  "name": name,
+                  "head_sha": raw.get("head_sha"),
+                  "status": raw.get("status"),
+                  "conclusion": raw.get("conclusion"),
+                  "failure_attribution": None,
+              })
+
+          snapshot={
+              "schema_version":1,
+              "role":"EXACT_HEAD_CI_PROVIDER_SNAPSHOT",
+              "repository":repo,
+              "default_branch":"main",
+              "provider_truth_fresh":True,
+              "inventory_complete":True,
+              "effective_inventory":True,
+              "superseded_runs_accounted_for":True,
+              "pr_number":pr,
+              "pr_base_sha":((pr_data.get("base") or {}).get("sha")),
+              "pr_head_sha":expected,
+              "observed_pr_head_sha":observed,
+              "workflow_runs":runs,
+          }
+          with open(out,"w",encoding="utf-8") as f:
+              json.dump(snapshot,f,sort_keys=True,indent=2)
+              f.write("\n")
+          PY
+          python3 .pncc-dev/scripts/evaluate_exact_head_ci_inspection_classification.py --input "$RUNNER_TEMP/exact-head-ci-snapshot.json"
+
+      - name: Assert exact PIPE-WU-107 bounded diff
+        if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'agent/PIPE-WU-107-')
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin "$BASE_SHA"
+          git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort > /tmp/actual
+          printf '%s\n' \
+            '.github/workflows/wave5-exact-head-ci-inspection-classification.yml' \
+            '.pncc-dev/contracts/exact-head-ci-inspection-classification-policy.json' \
+            '.pncc-dev/contracts/governed-frontier-transition-pipe-wu-107.json' \
+            '.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json' \
+            '.pncc-dev/scripts/evaluate_exact_head_ci_inspection_classification.py' \
+            '.pncc-dev/tests/test_exact_head_ci_inspection_classification_wu107.py' | sort > /tmp/expected
+          diff -u /tmp/expected /tmp/actual
+          ! grep -E '^(\.pncc-state/|src/windows-v7/|\.adwf-consumer/|tools/runtime-agent/)' /tmp/actual
+
+      - name: Assert workflow and policy remain read only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          w=Path('.github/workflows/wave5-exact-head-ci-inspection-classification.yml').read_text(encoding='utf-8').lower()
+          forbidden=[
+              'contents:'+' write','actions:'+' write','issues:'+' write','pull-requests:'+' write',
+              'git'+' push','gh'+' pr merge','gh'+' issue close',
+              '--method'+' post','--method'+' patch','--method'+' put','--method'+' delete'
+          ]
+          for token in forbidden:
+              assert token not in w, token
+          p=json.loads(Path('.pncc-dev/contracts/exact-head-ci-inspection-classification-policy.json').read_text(encoding='utf-8'))
+          fields=[
+              'provider_mutation_authority','workflow_rerun_authority','issue_mutation_authority',
+              'branch_mutation_authority','pull_request_mutation_authority','writer_lease_mutation_authority',
+              'merge_authority','runtime_action_authority','product_runtime_mutation_authority',
+              'adwf_binding_mutation_authority','adwf_repository_mutation_authority','release_tag_promotion_authority',
+              'ruleset_policy_mutation_authority','private_evidence_publication_authority',
+              'reserve_1080_lifecycle_mutation_authority','primary_1081_lifecycle_mutation_authority'
+          ]
+          assert all(p[k] is False for k in fields)
+          PY
+
+      - name: Assert repository remains clean
+        run: test -z "$(git status --porcelain)"
