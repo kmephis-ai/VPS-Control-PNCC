@@ -2,24 +2,24 @@
   "schema_version": 1,
   "role": "WAVE5_NEXT_GOVERNED_WORK_UNIT_FRONTIER",
   "state": "ACTIVE",
-  "frontier_id": "DURABLE_AUTONOMOUS_CONTINUATION_SESSION_RESUME",
-  "title_template": "{work_unit_id} — Durable autonomous continuation session resume",
-  "goal": "Define and prove a provider-truth-backed durable session resume contract so a later ChatGPT/Codex session can resume autonomous PNCC continuation from fresh canonical state without replaying stale admissions, transactions, leases, branch state or CI conclusions.",
-  "conflict_domain": "wave5-durable-autonomous-continuation-session-resume",
+  "frontier_id": "DURABLE_AUTONOMOUS_CONTINUATION_SESSION_RESUME_EXECUTION",
+  "title_template": "{work_unit_id} — Durable autonomous continuation session resume execution",
+  "goal": "Exercise the canonical WU-115 durable resume contract across a controlled session handoff so continuation after the handoff is derived only from fresh provider truth and fresh WU-108/WU-109 recomputation, never from persisted admission, CI, CAS or merge-eligibility state.",
+  "conflict_domain": "wave5-durable-autonomous-continuation-session-resume-execution",
   "runtime_required": false,
   "scope": [
-    "define one machine-readable durable resume checkpoint identity bound to fresh current main, selected canonical Work Unit, provider-state head/registry generation, Writer Lease state, bounded branch/PR/CI state and last completed steady-state iteration",
-    "require every resumed session to fresh-read provider truth and recompute WU-108 control-loop plus WU-109 execution admission before any mutation",
-    "distinguish clean iteration boundary, interrupted transaction, pending provider readback, expired or released lease, branch/PR drift and completed Work Unit states without guessing",
-    "forbid replay of a prior session control-loop decision, execution admission, CAS token, branch-head assumption, CI classification or merge eligibility result",
-    "define fail-closed reconciliation when durable checkpoint and fresh provider truth disagree, including explicit separate-authority routing for classified failures",
-    "keep checkpoint contents public-safe and free of credentials, private runtime evidence, host identifiers or secret-bearing transport data"
+    "persist one canonical public-safe checkpoint at a clean iteration boundary and treat it only as a hint after a simulated session handoff",
+    "fresh-read current main, selected canonical Work Unit, provider-state registry, Writer Lease, branch, pull-request and exact-head CI truth after the handoff",
+    "prove persisted control-loop, execution-admission, CI-success and registry CAS observations are discarded and cannot authorize a resumed mutation",
+    "recompute fresh WU-108 and WU-109 decisions after the handoff before executing at most one exact delegated transaction",
+    "advance provider truth after the checkpoint and prove the stale checkpoint is superseded rather than replayed",
+    "exercise interrupted or readback-pending checkpoint semantics and prove provider reconciliation occurs before any resumed mutation"
   ],
   "forbidden_scope": [
-    "treat a persisted checkpoint as mutation authority or as a substitute for fresh provider truth",
-    "resume an interrupted mutation by assuming whether it completed; mandatory provider readback/reconciliation is required first",
-    "reuse expired Writer Lease ownership, stale registry CAS tokens, stale PR head or stale CI success after session handoff",
-    "broaden existing reusable materialization, Writer Lease, autonomous merge/Issue-close or continuation executor authority",
+    "reuse checkpoint admission, Writer Lease ownership, registry CAS token, CI success or merge eligibility as resumed authority",
+    "assume an interrupted transaction completed or failed without fresh provider readback",
+    "batch multiple delegated provider mutations under one resumed admission or skip the WU-113 one-transaction-per-iteration contract",
+    "broaden existing reusable materialization, Writer Lease, autonomous merge/Issue-close, steady-state or session-resume authority",
     "mutate product/runtime source or physical runtime, ADWF Consumer binding/provenance or the ADWF repository",
     "perform release/tag/promotion, ruleset/policy administration, PRIVATE evidence publication or 1080/1081 lifecycle mutation"
   ],
@@ -29,21 +29,20 @@
     "wave5-exact-head-ci-inspection-classification",
     "wave5-autonomous-continuation-control-loop",
     "wave5-autonomous-continuation-execution-admission",
-    "wave5-reusable-autonomous-continuation-executor-owner-authorization",
-    "wave5-reusable-autonomous-continuation-executor-first-transaction",
     "wave5-reusable-autonomous-continuation-steady-state",
     "wave5-reusable-autonomous-continuation-steady-state-execution",
+    "wave5-durable-autonomous-continuation-session-resume",
     "public-safety",
     "quality-fast",
     "quality-deep"
   ],
   "exit_criteria": [
-    "one durable checkpoint schema/policy and fail-closed resume evaluator are machine readable and adversarially tested",
-    "fresh provider truth is mandatory at session resume and stale persisted decisions/CAS tokens cannot authorize mutation",
-    "clean-boundary resume and interrupted-transaction reconciliation are deterministic and mutually exclusive",
-    "expired/released lease, branch/PR drift, pending/failed CI and post-merge states route to the exact current canonical continuation boundary rather than replaying old state",
-    "checkpoint contains no private runtime payload, credentials or secret-bearing local evidence",
+    "a real clean-boundary checkpoint is resumed through fresh provider truth with all persisted decision state discarded",
+    "at least one post-handoff delegated transaction is admitted only by freshly recomputed WU-108/WU-109 decisions and is followed by mandatory provider readback",
+    "checkpoint/provider drift is detected and fresh provider truth wins deterministically",
+    "interrupted and provider-readback-pending states never replay a transaction and require reconciliation first",
+    "all checkpoint and resume evidence is public-safe and grants no direct mutation authority",
     "exact-head hosted CI passes with no product/runtime, ADWF or 1080/1081 mutation"
   ],
-  "next_natural_boundary": "DURABLE_AUTONOMOUS_CONTINUATION_SESSION_RESUME_EXECUTION"
+  "next_natural_boundary": "DURABLE_AUTONOMOUS_CONTINUATION_MULTI_SESSION_STEADY_STATE"
 }

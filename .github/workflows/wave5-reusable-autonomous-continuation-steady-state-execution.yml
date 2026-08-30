@@ -27,7 +27,7 @@ jobs:
       - name: Run WU-114 adversarial tests
         run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_reusable_autonomous_continuation_steady_state_execution_wu114.py' -v
 
-      - name: Assert exact WU-114 artifacts and immutable anchors
+      - name: Assert exact WU-114 immutable artifacts and anchors
         shell: bash
         run: |
           set -euo pipefail
@@ -35,7 +35,6 @@ jobs:
           test "$(git hash-object .pncc-dev/scripts/validate_reusable_autonomous_continuation_steady_state_execution_wu114.py)" = "59b2d93593b433e6dbeb0e0b3e5c0d2d286f1fd0"
           test "$(git hash-object .pncc-dev/tests/test_reusable_autonomous_continuation_steady_state_execution_wu114.py)" = "cc26c2bb39e8241199bdecdb5e6bab830d49b0d0"
           test "$(git hash-object .pncc-dev/contracts/governed-frontier-transition-pipe-wu-114.json)" = "46ff3f6b30c5d153883ec114807db002b8d24b88"
-          test "$(git hash-object .pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json)" = "335b9f9d6e3c434dcb5bd61905c3cad9ece9fab6"
           test "$(git hash-object .pncc-dev/contracts/reusable-autonomous-continuation-steady-state-policy.json)" = "6957f09565a66e7b7f7206a640157aac4491bfa8"
           test "$(git hash-object .pncc-dev/scripts/evaluate_reusable_autonomous_continuation_steady_state.py)" = "66af19669dbd7efff1aa3709d263c590fcec5108"
           test "$(git hash-object .pncc-dev/contracts/reusable-autonomous-continuation-executor-authorized.json)" = "2c62780720dace54b220cedd42f77f834886e62a"
@@ -65,7 +64,7 @@ jobs:
           assert e['branch']=='agent/PIPE-WU-114-reusable-autonomous-continuation-steady-state-execution'
           PY
 
-      - name: Assert exact bounded diff and branch ancestry
+      - name: Assert exact bounded WU-114 diff and branch ancestry
         if: github.event_name == 'pull_request' && github.head_ref == 'agent/PIPE-WU-114-reusable-autonomous-continuation-steady-state-execution'
         shell: bash
         env:
@@ -87,9 +86,11 @@ jobs:
             '.pncc-dev/scripts/validate_reusable_autonomous_continuation_steady_state_execution_wu114.py' \
             '.pncc-dev/tests/test_reusable_autonomous_continuation_steady_state_execution_wu114.py' | sort > /tmp/expected
           diff -u /tmp/expected /tmp/actual
+          test "$(git hash-object .pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json)" = "335b9f9d6e3c434dcb5bd61905c3cad9ece9fab6"
           ! grep -E '^(\.pncc-state/|src/windows-v7/|\.adwf-consumer/|tools/runtime-agent/)' /tmp/actual
 
-      - name: Assert two fresh one-transaction iterations and durable-resume frontier
+      - name: Assert WU-114 iteration evidence and original frontier transition
+        if: github.event_name == 'pull_request' && github.head_ref == 'agent/PIPE-WU-114-reusable-autonomous-continuation-steady-state-execution'
         shell: bash
         run: |
           python3 - <<'PY'
