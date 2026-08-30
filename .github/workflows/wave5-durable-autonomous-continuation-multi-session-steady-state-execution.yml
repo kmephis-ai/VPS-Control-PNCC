@@ -32,7 +32,6 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git hash-object .pncc-dev/contracts/durable-autonomous-continuation-multi-session-steady-state-execution-wu118.json)" = "33c887d92e4f7e2fde384f5946a3240142a6bd4a"
-          test "$(git hash-object .pncc-dev/scripts/validate_durable_autonomous_continuation_multi-session-steady-state-execution-wu118.py 2>/dev/null || true)" != "33c887d92e4f7e2fde384f5946a3240142a6bd4a"
           test "$(git hash-object .pncc-dev/scripts/validate_durable_autonomous_continuation_multi_session_steady_state_execution_wu118.py)" = "01f55600cefeac21fbcc13e676141caa60fd9da1"
           test "$(git hash-object .pncc-dev/tests/test_durable_autonomous_continuation_multi_session_steady_state_execution_wu118.py)" = "1446add3386b08c70f86763a30891128849ac5e6"
           test "$(git hash-object .pncc-dev/contracts/durable-autonomous-continuation-session-checkpoint-wu118.json)" = "b458e310ce54a86e9be0ecc7e1fda4e9530d6e92"
