@@ -106,6 +106,7 @@ jobs:
           git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort > /tmp/actual
           printf '%s\n' \
             '.github/workflows/wave5-durable-autonomous-continuation-session-resume.yml' \
+            '.github/workflows/wave5-reusable-autonomous-continuation-steady-state-execution.yml' \
             '.pncc-dev/contracts/durable-autonomous-continuation-session-checkpoint-wu115.json' \
             '.pncc-dev/contracts/durable-autonomous-continuation-session-resume-policy.json' \
             '.pncc-dev/contracts/governed-frontier-transition-pipe-wu-115.json' \
