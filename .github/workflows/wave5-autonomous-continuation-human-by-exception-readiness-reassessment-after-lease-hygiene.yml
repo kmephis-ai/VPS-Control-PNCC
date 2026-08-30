@@ -85,7 +85,7 @@ jobs:
           test "$(git hash-object .github/workflows/wave5-writer-lease-registry-historical-state-reconciliation-execution.yml)" = "2c8333d89098a3304cd2169ccecfdf85c1544ead"
 
       - name: Run WU-124 adversarial reassessment tests
-        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_autonomous_continuation_human_by_exception_readiness-reassessment-wu124.py' -v
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_autonomous_continuation_human_by_exception_readiness_reassessment_wu124.py' -v
 
       - name: Evaluate WU-124 governed frontier lifecycle on original PR only
         if: github.event_name == 'pull_request' && github.head_ref == 'agent/PIPE-WU-124-human-by-exception-readiness-reassessment-after-lease-hygiene'
