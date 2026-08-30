@@ -1,0 +1,204 @@
+{
+  "schema_version": 1,
+  "role": "DURABLE_AUTONOMOUS_CONTINUATION_SESSION_RESUME_EXECUTION_EVIDENCE",
+  "evidence_state": "RECORDED",
+  "work_unit_id": "PIPE-WU-116",
+  "issue_number": 280,
+  "base_main_sha": "a16e831591ab89e7175ab80cc313bc1da3f2d6c4",
+  "frontier_id": "DURABLE_AUTONOMOUS_CONTINUATION_SESSION_RESUME_EXECUTION",
+  "predecessor_frontier_blob_sha": "61fd1e5c450652874b5ff19c7370771bca88d0e5",
+  "branch": "agent/PIPE-WU-116-durable-autonomous-continuation-session-resume-execution",
+  "checkpoint_path": ".pncc-dev/contracts/durable-autonomous-continuation-session-checkpoint-wu115.json",
+  "checkpoint_blob_sha": "aa7b7e7cf2fa9657bb3897d47055971466975965",
+  "resume_policy_path": ".pncc-dev/contracts/durable-autonomous-continuation-session-resume-policy.json",
+  "resume_policy_blob_sha": "4305cd65c2ed7eaf67a6a6df24d3b4bb4d612446",
+  "resume_evaluator_path": ".pncc-dev/scripts/evaluate_durable_autonomous_continuation_session_resume.py",
+  "resume_evaluator_blob_sha": "f55d7d4de713e75f13a726292f61dad035c0a2a7",
+  "steady_state_policy_path": ".pncc-dev/contracts/reusable-autonomous-continuation-steady-state-policy.json",
+  "steady_state_policy_blob_sha": "6957f09565a66e7b7f7206a640157aac4491bfa8",
+  "steady_state_evaluator_path": ".pncc-dev/scripts/evaluate_reusable_autonomous_continuation_steady_state.py",
+  "steady_state_evaluator_blob_sha": "66af19669dbd7efff1aa3709d263c590fcec5108",
+  "control_loop_policy_blob_sha": "822bcd1833ff4843b6bd176337b3ef3b742275de",
+  "control_loop_evaluator_blob_sha": "1f794892cfec466505a1a6c38b271492f9759127",
+  "execution_admission_policy_blob_sha": "406d78da6250c452bfc7706b57dc51a18ca48977",
+  "execution_admission_evaluator_blob_sha": "cde13515632717b81cef77876e53e9ceef0c46bf",
+  "delegated_authority_grant_blob_sha": "717e1f9081915f40fad2e0620c64245a650ca235",
+  "handoff": {
+    "checkpoint_id": "PNCC-CONTINUATION-CHECKPOINT-WU115-CLEAN-A1",
+    "checkpoint_transaction_boundary": "CLEAN_ITERATION_BOUNDARY",
+    "checkpoint_recorded_main_sha": "f9e03320d815cc870836067f24cce14ecba1cc62",
+    "checkpoint_selected_work_unit_id": "PIPE-WU-115",
+    "checkpoint_provider_state_head_sha": "1f76a1247c0f8757c28b18aac10b7d8ad5b6d6ad",
+    "checkpoint_registry_blob_sha": "a254843017e09e4170d914476f756cd008254177",
+    "checkpoint_registry_generation": 23,
+    "checkpoint_control_loop_decision": "PLAN_EXISTING_BOUNDED_BRANCH_CREATE",
+    "checkpoint_execution_admission_decision": "ADMIT_EXISTING_WRITER_LEASE_AUTHORITY",
+    "checkpoint_is_mutation_authority": false,
+    "persisted_control_loop_reused": false,
+    "persisted_execution_admission_reused": false,
+    "persisted_ci_success_reused": false,
+    "persisted_registry_cas_reused": false,
+    "persisted_merge_eligibility_reused": false
+  },
+  "fresh_resume_truth_before_transaction": {
+    "provider_truth_fresh": true,
+    "current_main_sha": "a16e831591ab89e7175ab80cc313bc1da3f2d6c4",
+    "selected_work_unit": {
+      "work_unit_id": "PIPE-WU-116",
+      "issue_number": 280,
+      "base_sha": "a16e831591ab89e7175ab80cc313bc1da3f2d6c4",
+      "runtime_required": false,
+      "provider_open": true
+    },
+    "provider_state": {
+      "state_branch_head_sha": "67369cb80f66417d4393c5d644ea16f77bd7acd1",
+      "registry_blob_sha": "f6c2dd82177690c291dace29db2051f58ed6a654",
+      "registry_generation": 23,
+      "wu115_lease_state": "RELEASED",
+      "wu116_lease_present": false
+    },
+    "branch_state": {
+      "present": false,
+      "name": "agent/PIPE-WU-116-durable-autonomous-continuation-session-resume-execution"
+    },
+    "pull_request_state": "NONE",
+    "ci_state": "NONE",
+    "checkpoint_drift_fields": [
+      "current_main",
+      "selected_work_unit",
+      "provider_state",
+      "writer_lease",
+      "branch"
+    ],
+    "resume_decision": "RECOMPUTE_FRESH_CONTINUATION",
+    "fresh_wu108_recomputation_required": true,
+    "fresh_wu109_recomputation_required_before_mutation": true,
+    "checkpoint_authority_used": false
+  },
+  "post_handoff_iterations": [
+    {
+      "iteration_sequence": 1,
+      "provider_truth_fresh": true,
+      "control_loop_fresh_for_iteration": true,
+      "execution_admission_fresh_for_iteration": true,
+      "control_loop_reused_from_prior_session": false,
+      "execution_admission_reused_from_prior_session": false,
+      "previous_iteration_fresh_provider_readback_completed": false,
+      "control_loop_decision": "PLAN_EXISTING_WRITER_LEASE_ACQUISITION",
+      "execution_admission_decision": "ADMIT_EXISTING_WRITER_LEASE_AUTHORITY",
+      "delegated_authority_identity": "EXISTING_REUSABLE_WRITER_LEASE_BOUNDED_BRANCH_AUTHORITY",
+      "target_action": "WRITER_LEASE_ACQUIRE_FRESH_CAS_PATH",
+      "delegated_transaction_count": 1,
+      "transaction_kind": "WRITER_LEASE_ACQUISITION",
+      "provider_state_before": {
+        "state_branch_head_sha": "67369cb80f66417d4393c5d644ea16f77bd7acd1",
+        "registry_blob_sha": "f6c2dd82177690c291dace29db2051f58ed6a654",
+        "registry_generation": 23,
+        "exact_work_unit_lease_present": false
+      },
+      "transaction_result": {
+        "provider_mutation_performed": true,
+        "provider_state_commit_sha": "fb6d0972d5ec76cc8395c00acc04aaf09fdc9c83",
+        "lease_id": "6e472245-25f9-4d88-b9fb-dcdddabf43b1",
+        "holder": "chatgpt-wave5-writer",
+        "branch": "agent/PIPE-WU-116-durable-autonomous-continuation-session-resume-execution",
+        "state": "ACTIVE",
+        "generation": 24,
+        "acquired_at": "2026-08-30T13:41:00Z",
+        "heartbeat_at": "2026-08-30T13:41:00Z",
+        "expires_at": "2026-08-30T14:41:00Z"
+      },
+      "provider_state_after": {
+        "state_branch_head_sha": "fb6d0972d5ec76cc8395c00acc04aaf09fdc9c83",
+        "registry_blob_sha": "0dcc35c0fd6e917165652cb8f36027d8abf1fd33",
+        "registry_generation": 24,
+        "exact_work_unit_lease_present": true,
+        "exact_work_unit_lease_state": "ACTIVE"
+      },
+      "fresh_provider_readback_completed": true,
+      "readback_matches_expected_transaction": true
+    },
+    {
+      "iteration_sequence": 2,
+      "provider_truth_fresh": true,
+      "control_loop_fresh_for_iteration": true,
+      "execution_admission_fresh_for_iteration": true,
+      "control_loop_reused_from_prior_session": false,
+      "execution_admission_reused_from_prior_session": false,
+      "previous_iteration_fresh_provider_readback_completed": true,
+      "control_loop_decision": "PLAN_EXISTING_BOUNDED_BRANCH_CREATE",
+      "execution_admission_decision": "ADMIT_EXISTING_WRITER_LEASE_AUTHORITY",
+      "delegated_authority_identity": "EXISTING_REUSABLE_WRITER_LEASE_BOUNDED_BRANCH_AUTHORITY",
+      "target_action": "BOUNDED_NON_MAIN_BRANCH_CREATE_PATH",
+      "delegated_transaction_count": 1,
+      "transaction_kind": "BOUNDED_BRANCH_CREATE",
+      "provider_state_before": {
+        "state_branch_head_sha": "fb6d0972d5ec76cc8395c00acc04aaf09fdc9c83",
+        "registry_blob_sha": "0dcc35c0fd6e917165652cb8f36027d8abf1fd33",
+        "registry_generation": 24,
+        "exact_work_unit_lease_present": true,
+        "exact_work_unit_lease_state": "ACTIVE"
+      },
+      "branch_state_before": {
+        "branch_present": false
+      },
+      "transaction_result": {
+        "provider_mutation_performed": true,
+        "branch_created": true,
+        "branch": "agent/PIPE-WU-116-durable-autonomous-continuation-session-resume-execution",
+        "branch_head_sha": "a16e831591ab89e7175ab80cc313bc1da3f2d6c4",
+        "branch_base_sha": "a16e831591ab89e7175ab80cc313bc1da3f2d6c4"
+      },
+      "branch_state_after": {
+        "branch_present": true,
+        "branch_head_sha": "a16e831591ab89e7175ab80cc313bc1da3f2d6c4",
+        "compare_status": "identical",
+        "ahead_by": 0,
+        "behind_by": 0
+      },
+      "provider_state_after": {
+        "state_branch_head_sha": "fb6d0972d5ec76cc8395c00acc04aaf09fdc9c83",
+        "registry_blob_sha": "0dcc35c0fd6e917165652cb8f36027d8abf1fd33",
+        "registry_generation": 24,
+        "exact_work_unit_lease_present": true,
+        "exact_work_unit_lease_state": "ACTIVE"
+      },
+      "fresh_provider_readback_completed": true,
+      "readback_matches_expected_transaction": true
+    }
+  ],
+  "interrupted_checkpoint_path": {
+    "transaction_boundary": "TRANSACTION_OUTCOME_UNKNOWN",
+    "expected_resume_decision": "RECONCILE_INTERRUPTED_TRANSACTION_FROM_PROVIDER_TRUTH",
+    "provider_reconciliation_required": true,
+    "delegated_transaction_replayed": false,
+    "mutation_performed_before_reconciliation": false
+  },
+  "readback_pending_checkpoint_path": {
+    "transaction_boundary": "PROVIDER_READBACK_PENDING",
+    "expected_resume_decision": "WAIT_FOR_FRESH_PROVIDER_READBACK",
+    "provider_reconciliation_required": true,
+    "delegated_transaction_replayed": false,
+    "mutation_performed_before_readback": false
+  },
+  "checkpoint_provider_drift_detected": true,
+  "fresh_provider_truth_superseded_checkpoint": true,
+  "fresh_control_loop_and_admission_per_iteration": true,
+  "stale_control_loop_or_admission_reuse_performed": false,
+  "stale_ci_or_cas_reuse_performed": false,
+  "batch_provider_mutation_performed": false,
+  "inferred_or_fallback_authority_used": false,
+  "main_unchanged_during_post_handoff_iterations": true,
+  "main_sha_after_iterations": "a16e831591ab89e7175ab80cc313bc1da3f2d6c4",
+  "checkpoint_is_mutation_authority": false,
+  "product_runtime_mutation_performed": false,
+  "runtime_action_performed": false,
+  "adwf_binding_or_repository_mutation_performed": false,
+  "release_tag_promotion_performed": false,
+  "ruleset_policy_mutation_performed": false,
+  "private_evidence_publication_performed": false,
+  "reserve_1080_lifecycle_mutation_performed": false,
+  "primary_1081_lifecycle_mutation_performed": false,
+  "authority_broadening_performed": false,
+  "next_boundary": "DURABLE_AUTONOMOUS_CONTINUATION_MULTI_SESSION_STEADY_STATE"
+}

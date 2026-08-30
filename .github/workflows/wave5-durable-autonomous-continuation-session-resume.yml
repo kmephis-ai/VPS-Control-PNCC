@@ -49,7 +49,7 @@ jobs:
           assert r['fresh_wu109_recomputation_required_before_mutation'] is True
           PY
 
-      - name: Assert exact WU-115 artifacts and immutable anchors
+      - name: Assert exact WU-115 immutable artifacts and anchors
         shell: bash
         run: |
           set -euo pipefail
@@ -59,7 +59,6 @@ jobs:
           test "$(git hash-object .pncc-dev/tests/test_durable_autonomous_continuation_session_resume_wu115.py)" = "087799b5c654c5f17a46c8f572fa4a87b28d98a3"
           test "$(git hash-object .pncc-dev/contracts/durable-autonomous-continuation-session-checkpoint-wu115.json)" = "aa7b7e7cf2fa9657bb3897d47055971466975965"
           test "$(git hash-object .pncc-dev/contracts/governed-frontier-transition-pipe-wu-115.json)" = "71b882042f5a5426f792fc916e6b399f49283028"
-          test "$(git hash-object .pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json)" = "61fd1e5c450652874b5ff19c7370771bca88d0e5"
           test "$(git hash-object .pncc-dev/contracts/reusable-autonomous-continuation-steady-state-execution-wu114.json)" = "8384ce0cc7440fe46ce08ba0061233012757cc49"
           test "$(git hash-object .pncc-dev/scripts/validate_reusable_autonomous_continuation_steady_state_execution_wu114.py)" = "59b2d93593b433e6dbeb0e0b3e5c0d2d286f1fd0"
           test "$(git hash-object .pncc-dev/contracts/autonomous-continuation-control-loop-policy.json)" = "822bcd1833ff4843b6bd176337b3ef3b742275de"
@@ -117,6 +116,20 @@ jobs:
           diff -u /tmp/expected /tmp/actual
           ! grep -E '^(\.pncc-state/|src/windows-v7/|\.adwf-consumer/|tools/runtime-agent/)' /tmp/actual
 
+      - name: Assert original WU-115 frontier transition
+        if: github.event_name == 'pull_request' && github.head_ref == 'agent/PIPE-WU-115-durable-autonomous-continuation-session-resume'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object .pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json)" = "61fd1e5c450652874b5ff19c7370771bca88d0e5"
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          f=json.loads(Path('.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json').read_text())
+          assert f['frontier_id']=='DURABLE_AUTONOMOUS_CONTINUATION_SESSION_RESUME_EXECUTION'
+          assert f['next_natural_boundary']=='DURABLE_AUTONOMOUS_CONTINUATION_MULTI_SESSION_STEADY_STATE'
+          PY
+
       - name: Assert checkpoint is hint-only and public-safe
         shell: bash
         run: |
@@ -126,15 +139,12 @@ jobs:
           from pathlib import Path
           cp=json.loads(Path('.pncc-dev/contracts/durable-autonomous-continuation-session-checkpoint-wu115.json').read_text())
           p=json.loads(Path('.pncc-dev/contracts/durable-autonomous-continuation-session-resume-policy.json').read_text())
-          f=json.loads(Path('.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json').read_text())
           for key in ('checkpoint_is_mutation_authority','checkpoint_cas_tokens_reusable','checkpoint_ci_success_reusable','checkpoint_admission_reusable','contains_private_runtime_payload','contains_credentials','contains_host_identifiers','contains_secret_transport_data'):
               assert cp[key] is False,key
           assert p['checkpoint_never_grants_mutation_authority'] is True
           assert p['provider_truth_supersedes_checkpoint'] is True
           assert p['fresh_wu108_recomputation_required_before_mutation'] is True
           assert p['fresh_wu109_recomputation_required_before_mutation'] is True
-          assert f['frontier_id']=='DURABLE_AUTONOMOUS_CONTINUATION_SESSION_RESUME_EXECUTION'
-          assert f['next_natural_boundary']=='DURABLE_AUTONOMOUS_CONTINUATION_MULTI_SESSION_STEADY_STATE'
           PY
 
       - name: Assert workflow itself is read only
