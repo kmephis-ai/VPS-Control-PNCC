@@ -32,22 +32,30 @@ jobs:
           git show 3fbb9852d5c3cfe5f7cbf2b0efc042ddf4abead0:.pncc-state/writer-lease-registry.json > /tmp/wu122-registry.json
           test "$(git hash-object /tmp/wu122-registry.json)" = "f6d1c7670d5a481f01830586b48009ae3d3d59aa"
 
-      - name: Assert exact WU-122 authorization artifacts and compatibility repair
+      - name: Assert immutable WU-122 authorization artifacts and compatibility repair
         shell: bash
         run: |
           set -euo pipefail
           test "$(git hash-object .pncc-dev/attestations/writer-lease-registry-historical-state-reconciliation-owner-authorization-wu122.json)" = "f1207b8b78081f107bf1f449066554b6693c922f"
           test "$(git hash-object .pncc-dev/contracts/writer-lease-registry-historical-state-reconciliation-authorized.json)" = "20fc664e90b1390351a5de70c98563140ef3190d"
-          test "$(git hash-object .pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json)" = "546ad9e256a838ab7c1ab32abbe037d999ea4b69"
           test "$(git hash-object .pncc-dev/contracts/governed-frontier-transition-pipe-wu-122.json)" = "3bd702f4166193d90e1fe76e132d6a74c9aae750"
-          test "$(git hash-object .pncc-dev/tests/test_writer_lease_registry_historical_state_reconciliation_owner_authorization_wu122.py)" = "ff71f7d6dcd1fd18a9316135ec2fbf2278c8f8c2"
+          test "$(git hash-object .pncc-dev/tests/test_writer_lease_registry_historical_state_reconciliation_owner_authorization_wu122.py)" = "0a455b5f1f67645cdff722fd2607b56b722f7816"
           test "$(git hash-object .pncc-dev/contracts/writer-lease-registry-historical-state-reconciliation-authority-preparation-wu121.json)" = "e0104e181a814960e30b1734e82770affbbf923c"
           test "$(git hash-object .github/workflows/wave5-writer-lease-registry-historical-state-reconciliation-authority-preparation.yml)" = "9f3af12f583680f8c5d2985e9dd5507e73b83ecd"
+          python3 - <<'PY'
+          import json
+          t=json.load(open('.pncc-dev/contracts/governed-frontier-transition-pipe-wu-122.json'))
+          assert t['successor_frontier']=={
+            'state':'ACTIVE',
+            'frontier_id':'CONTROLLED_WRITER_LEASE_REGISTRY_HISTORICAL_STATE_RECONCILIATION_EXECUTION',
+            'blob_sha':'546ad9e256a838ab7c1ab32abbe037d999ea4b69',
+          }
+          PY
 
       - name: Run WU-122 adversarial authorization tests
         run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_writer_lease_registry_historical_state_reconciliation_owner_authorization_wu122.py' -v
 
-      - name: Assert WU-122 lease acquisition append-only and stale history unchanged
+      - name: Assert WU-122 lease acquisition append-only and stale history unchanged at acquisition
         shell: bash
         run: |
           set -euo pipefail

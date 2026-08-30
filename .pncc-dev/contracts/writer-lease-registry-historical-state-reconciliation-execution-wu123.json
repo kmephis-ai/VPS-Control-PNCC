@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "role": "WRITER_LEASE_REGISTRY_HISTORICAL_STATE_RECONCILIATION_EXECUTION_EVIDENCE",
+  "evidence_state": "RECORDED",
+  "work_unit_id": "PIPE-WU-123",
+  "issue_number": 294,
+  "base_main_sha": "61a32add50f2db41fe462f5c84276f86fe2abbbc",
+  "branch": "agent/PIPE-WU-123-writer-lease-registry-historical-state-reconciliation-execution",
+  "frontier_id": "CONTROLLED_WRITER_LEASE_REGISTRY_HISTORICAL_STATE_RECONCILIATION_EXECUTION",
+  "predecessor_frontier_blob_sha": "546ad9e256a838ab7c1ab32abbe037d999ea4b69",
+  "authorization_scope": "EXACT_FOUR_STALE_WRITER_LEASE_STATE_FIELDS_ACTIVE_TO_RELEASED_ONLY",
+  "authorization_grant": {
+    "path": ".pncc-dev/contracts/writer-lease-registry-historical-state-reconciliation-authorized.json",
+    "blob_sha": "20fc664e90b1390351a5de70c98563140ef3190d"
+  },
+  "owner_authorization_receipt": {
+    "path": ".pncc-dev/attestations/writer-lease-registry-historical-state-reconciliation-owner-authorization-wu122.json",
+    "blob_sha": "f1207b8b78081f107bf1f449066554b6693c922f"
+  },
+  "preparation_contract": {
+    "path": ".pncc-dev/contracts/writer-lease-registry-historical-state-reconciliation-authority-preparation-wu121.json",
+    "blob_sha": "e0104e181a814960e30b1734e82770affbbf923c"
+  },
+  "current_writer_lease": {
+    "lease_id": "184af451-beeb-4447-b729-07799c89e56b",
+    "work_unit_id": "PIPE-WU-123",
+    "generation": 31,
+    "state_during_historical_cas": "ACTIVE",
+    "base_sha": "61a32add50f2db41fe462f5c84276f86fe2abbbc",
+    "branch": "agent/PIPE-WU-123-writer-lease-registry-historical-state-reconciliation-execution",
+    "acquisition_provider_state_commit_sha": "7b48a4701f04b72537f96e60401ed404ef226ea8",
+    "acquisition_registry_blob_sha": "2e6ecf0d3c03c4da8bab6bc47ea84ffdc66838ad"
+  },
+  "historical_reconciliation_transaction": {
+    "pre_provider_state_commit_sha": "7b48a4701f04b72537f96e60401ed404ef226ea8",
+    "pre_registry_blob_sha": "2e6ecf0d3c03c4da8bab6bc47ea84ffdc66838ad",
+    "post_provider_state_commit_sha": "c825b7b6b6a84fa2bbf2360b0768eae878c7845a",
+    "post_registry_blob_sha": "f5b9b45092e46fe3dd2539fcff0187426059233c",
+    "post_readback_provider_state_head_sha": "c825b7b6b6a84fa2bbf2360b0768eae878c7845a",
+    "registry_generation_before": 31,
+    "registry_generation_after": 31,
+    "provider_state_commit_count": 1,
+    "changed_provider_state_files": [
+      ".pncc-state/writer-lease-registry.json"
+    ],
+    "atomic_registry_cas_performed": true,
+    "fresh_post_transaction_provider_readback_completed": true,
+    "unknown_provider_outcome": false,
+    "cas_replay_performed": false
+  },
+  "exact_historical_set": [
+    {
+      "lease_id": "3bf7a003-1e8e-4ab2-910d-0c1d4aba9b03",
+      "work_unit_id": "PIPE-WU-096",
+      "generation": 1,
+      "pre_state": "ACTIVE",
+      "post_state": "RELEASED"
+    },
+    {
+      "lease_id": "ee8b93cb-c629-4f69-82c6-25793fd10d8f",
+      "work_unit_id": "PIPE-WU-105",
+      "generation": 10,
+      "pre_state": "ACTIVE",
+      "post_state": "RELEASED"
+    },
+    {
+      "lease_id": "38a86545-e9b7-47eb-9b6e-3c9974bbd020",
+      "work_unit_id": "PIPE-WU-105",
+      "generation": 11,
+      "pre_state": "ACTIVE",
+      "post_state": "RELEASED"
+    },
+    {
+      "lease_id": "9c2dcb40-26dc-4dce-aa4f-c1be79a66983",
+      "work_unit_id": "PIPE-WU-108",
+      "generation": 15,
+      "pre_state": "ACTIVE",
+      "post_state": "RELEASED"
+    }
+  ],
+  "registry_generation_unchanged": true,
+  "entry_count_unchanged": true,
+  "entry_order_unchanged": true,
+  "immutable_lease_fields_unchanged": true,
+  "unrelated_entries_semantically_identical": true,
+  "current_writer_entry_semantically_identical_during_historical_cas": true,
+  "exact_four_state_fields_only": true,
+  "partial_reconciliation_performed": false,
+  "superset_reconciliation_performed": false,
+  "historical_reactivation_performed": false,
+  "unrelated_provider_state_mutation_performed": false,
+  "product_runtime_mutation_performed": false,
+  "runtime_action_performed": false,
+  "adwf_binding_or_repository_mutation_performed": false,
+  "release_tag_promotion_performed": false,
+  "ruleset_policy_mutation_performed": false,
+  "private_evidence_publication_performed": false,
+  "reserve_1080_lifecycle_mutation_performed": false,
+  "primary_1081_lifecycle_mutation_performed": false,
+  "higher_autonomy_granted": false,
+  "next_boundary": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_READINESS_REASSESSMENT_AFTER_LEASE_HYGIENE"
+}
