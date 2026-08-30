@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "role": "DURABLE_AUTONOMOUS_CONTINUATION_SESSION_CHECKPOINT",
+  "checkpoint_state": "PERSISTED_HINT_ONLY",
+  "checkpoint_id": "PNCC-CONTINUATION-CHECKPOINT-WU115-CLEAN-A1",
+  "repository": "kmephis-ai/VPS-Control-PNCC",
+  "default_branch": "main",
+  "recorded_main_sha": "f9e03320d815cc870836067f24cce14ecba1cc62",
+  "selected_work_unit": {
+    "work_unit_id": "PIPE-WU-115",
+    "issue_number": 277,
+    "base_sha": "f9e03320d815cc870836067f24cce14ecba1cc62",
+    "runtime_required": false,
+    "provider_open": true
+  },
+  "provider_state": {
+    "state_branch_present": true,
+    "state_branch_head_sha": "1f76a1247c0f8757c28b18aac10b7d8ad5b6d6ad",
+    "registry_blob_sha": "a254843017e09e4170d914476f756cd008254177",
+    "registry_generation": 23
+  },
+  "execution_state": {
+    "lease": {
+      "state": "ACTIVE",
+      "lease_id": "509b6d46-6999-4cae-b586-2f1e6e86ff43",
+      "generation": 23,
+      "branch": "agent/PIPE-WU-115-durable-autonomous-continuation-session-resume"
+    },
+    "branch": {
+      "present": true,
+      "name": "agent/PIPE-WU-115-durable-autonomous-continuation-session-resume",
+      "head_sha": "f9e03320d815cc870836067f24cce14ecba1cc62"
+    },
+    "pull_request": {
+      "state": "NONE",
+      "number": null,
+      "base_sha": null,
+      "head_sha": null,
+      "merge_commit_sha": null
+    },
+    "ci": {
+      "state": "NONE",
+      "head_sha": null
+    }
+  },
+  "last_completed_steady_state_iteration": 2,
+  "transaction_boundary": "CLEAN_ITERATION_BOUNDARY",
+  "persisted_decisions": {
+    "control_loop_decision": "PLAN_EXISTING_BOUNDED_BRANCH_CREATE",
+    "execution_admission_decision": "ADMIT_EXISTING_WRITER_LEASE_AUTHORITY",
+    "ci_decision": null
+  },
+  "checkpoint_is_mutation_authority": false,
+  "checkpoint_cas_tokens_reusable": false,
+  "checkpoint_ci_success_reusable": false,
+  "checkpoint_admission_reusable": false,
+  "contains_private_runtime_payload": false,
+  "contains_credentials": false,
+  "contains_host_identifiers": false,
+  "contains_secret_transport_data": false
+}
