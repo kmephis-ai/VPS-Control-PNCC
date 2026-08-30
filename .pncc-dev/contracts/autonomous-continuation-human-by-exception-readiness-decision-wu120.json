@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "role": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_READINESS_DECISION",
+  "decision_state": "FINAL_DEFERRED_WITH_REQUIRED_REMEDIATION",
+  "decision_outcome": "DEFER_AND_REMEDIATE",
+  "higher_autonomy_authorized": false,
+  "authority_granted": false,
+  "repository": "kmephis-ai/VPS-Control-PNCC",
+  "default_branch": "main",
+  "work_unit": {
+    "work_unit_id": "PIPE-WU-120",
+    "issue_number": 288,
+    "base_sha": "bc8173ab6d5e46f99cf1f4b8ad85e3da398d0d44",
+    "branch": "agent/PIPE-WU-120-autonomous-continuation-human-by-exception-readiness-decision",
+    "runtime_required": false
+  },
+  "decision_reference_time": "2026-08-30T15:55:00Z",
+  "provider_snapshot": {
+    "state_branch_head_sha": "09924cbcd2258559092643661f8999237dceb931",
+    "registry_blob_sha": "3c9ff9e63a5974e54e69e6163f241eac36c0b5ba",
+    "registry_generation": 28
+  },
+  "current_writer": {
+    "lease_id": "c8d937b3-b408-43b8-a61d-aa45fb767cf1",
+    "work_unit_id": "PIPE-WU-120",
+    "generation": 28,
+    "base_sha": "bc8173ab6d5e46f99cf1f4b8ad85e3da398d0d44",
+    "branch": "agent/PIPE-WU-120-autonomous-continuation-human-by-exception-readiness-decision",
+    "state": "ACTIVE",
+    "expires_at": "2026-08-30T16:54:00Z",
+    "current_ownership_eligible": true
+  },
+  "assessment_input": {
+    "path": ".pncc-dev/contracts/autonomous-continuation-human-by-exception-readiness-assessment-wu119.json",
+    "blob_sha": "ad147299e65cec74f3fc5ef0365376f50f1485aa",
+    "assessment_state": "COMPLETE_WITH_BLOCKERS",
+    "readiness_verdict": "NOT_READY_FOR_HIGHER_AUTONOMY",
+    "decision_boundary_ready": true,
+    "authority_granted": false
+  },
+  "rubric_input": {
+    "path": ".pncc-dev/contracts/autonomous-continuation-human-by-exception-readiness-rubric.json",
+    "blob_sha": "8a75facb79773cadd786fd4384324ba984896ee7",
+    "mode": "ASSESSMENT_ONLY_FAIL_CLOSED"
+  },
+  "stale_history_decision": {
+    "count": 4,
+    "lease_ids": [
+      "3bf7a003-1e8e-4ab2-910d-0c1d4aba9b03",
+      "38a86545-e9b7-47eb-9b6e-3c9974bbd020",
+      "9c2dcb40-26dc-4dce-aa4f-c1be79a66983",
+      "ee8b93cb-c629-4f69-82c6-25793fd10d8f"
+    ],
+    "all_expired_at_decision_reference": true,
+    "current_ownership_eligible": false,
+    "historical_state_reconciliation_required": true,
+    "historical_state_mutation_performed_in_wu120": false,
+    "classification": "SEPARATE_AUTHORITY_REQUIRED"
+  },
+  "decision_reasons": [
+    {
+      "id": "STALE_ACTIVE_LEASE_HISTORY",
+      "classification": "SEPARATE_AUTHORITY_REQUIRED",
+      "effect": "BLOCK_HIGHER_AUTONOMY_UNTIL_RECONCILED"
+    },
+    {
+      "id": "OWNER_CONTROLLED_RUNTIME_AND_SECURITY_BOUNDARIES",
+      "classification": "OWNER_ESCALATION_REQUIRED",
+      "effect": "PRESERVE_INTENTIONAL_BOUNDARIES"
+    }
+  ],
+  "proven_existing_capabilities": [
+    "FRESH_PROVIDER_TRUTH_RECONCILIATION",
+    "FRESH_EXECUTION_ADMISSION",
+    "EXACT_HEAD_CI_CLASSIFICATION",
+    "ONE_DELEGATED_TRANSACTION_PER_ITERATION",
+    "MANDATORY_PROVIDER_READBACK",
+    "STEADY_STATE_CONTINUATION",
+    "DURABLE_SESSION_RESUME",
+    "MULTI_SESSION_CHECKPOINT_SUPERSESSION"
+  ],
+  "decision_constraints": {
+    "assessment_success_is_not_authority": true,
+    "stale_active_state_alone_is_not_ownership": true,
+    "fresh_latest_generation_binding_required_for_current_writer": true,
+    "unknown_provider_outcome_replay_forbidden": true,
+    "historical_reconciliation_requires_separate_authority": true,
+    "higher_autonomy_must_be_reassessed_after_reconciliation": true
+  },
+  "authority_flags": {
+    "provider_mutation_authority": false,
+    "writer_lease_historical_mutation_authority": false,
+    "branch_mutation_authority": false,
+    "pull_request_mutation_authority": false,
+    "merge_authority": false,
+    "issue_close_authority": false,
+    "runtime_action_authority": false,
+    "product_runtime_mutation_authority": false,
+    "release_tag_promotion_authority": false,
+    "ruleset_policy_mutation_authority": false,
+    "adwf_repository_mutation_authority": false,
+    "private_evidence_publication_authority": false,
+    "reserve_1080_lifecycle_mutation_authority": false,
+    "primary_1081_lifecycle_mutation_authority": false
+  },
+  "public_safety": {
+    "contains_credentials": false,
+    "contains_private_runtime_payload": false,
+    "contains_host_identifiers": false,
+    "contains_secret_transport_data": false,
+    "contains_external_ip_addresses": false
+  },
+  "next_boundary": "WRITER_LEASE_REGISTRY_HISTORICAL_STATE_RECONCILIATION"
+}
