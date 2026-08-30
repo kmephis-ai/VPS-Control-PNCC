@@ -80,7 +80,8 @@ def active_sets(registry: dict[str, Any], reference: datetime):
     return stale, current
 
 
-def validate_assessment(decision: dict[str, Any], assessment: Any, rubric: Any, root: Path) -> None:
+def validate_assessment(decision: dict[str, Any], assessment: Any, rubric: Any, root: Path,
+                        *, check_blobs: bool = True) -> None:
     if not isinstance(assessment, dict):
         raise DecisionError("ASSESSMENT_OBJECT_REQUIRED")
     if assessment.get("schema_version") != 1 or assessment.get("role") != "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_READINESS_ASSESSMENT":
@@ -99,10 +100,11 @@ def validate_assessment(decision: dict[str, Any], assessment: Any, rubric: Any, 
         raise DecisionError("ASSESSMENT_STALE_ID_SET_INVALID")
     if not isinstance(rubric, dict) or rubric.get("mode") != "ASSESSMENT_ONLY_FAIL_CLOSED":
         raise DecisionError("RUBRIC_MODE_INVALID")
-    if blob_sha(root / decision["assessment_input"]["path"]) != decision["assessment_input"]["blob_sha"]:
-        raise DecisionError("ASSESSMENT_BLOB_DRIFT")
-    if blob_sha(root / decision["rubric_input"]["path"]) != decision["rubric_input"]["blob_sha"]:
-        raise DecisionError("RUBRIC_BLOB_DRIFT")
+    if check_blobs:
+        if blob_sha(root / decision["assessment_input"]["path"]) != decision["assessment_input"]["blob_sha"]:
+            raise DecisionError("ASSESSMENT_BLOB_DRIFT")
+        if blob_sha(root / decision["rubric_input"]["path"]) != decision["rubric_input"]["blob_sha"]:
+            raise DecisionError("RUBRIC_BLOB_DRIFT")
 
 
 def evaluate(registry: Any, *, decision: Any = None, assessment: Any = None, rubric: Any = None,
@@ -209,9 +211,7 @@ def evaluate(registry: Any, *, decision: Any = None, assessment: Any = None, rub
         raise DecisionError("DECISION_CONSTRAINTS_INVALID")
     require_false_map(d.get("authority_flags"), "DECISION_AUTHORITY")
     require_false_map(d.get("public_safety"), "PUBLIC_SAFETY")
-
-    if check_anchors:
-        validate_assessment(d, a, r, root)
+    validate_assessment(d, a, r, root, check_blobs=check_anchors)
 
     return {
         "schema_version": 1,
