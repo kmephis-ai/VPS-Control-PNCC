@@ -1,0 +1,97 @@
+name: wave5-reusable-autonomous-continuation-executor-owner-authorization
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  reusable-autonomous-continuation-executor-owner-authorization:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Run WU-111 Owner Authorization tests
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_reusable_autonomous_continuation_executor_owner_authorization_wu111.py' -v
+
+      - name: Assert exact authorization anchors
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object .pncc-dev/contracts/reusable-autonomous-continuation-executor-authority-preparation.json)" = "4050c89d6c79d40649d45b983527924f8dcb5901"
+          test "$(git hash-object .pncc-dev/attestations/reusable-autonomous-continuation-executor-owner-authorization-wu111.json)" = "143723fee62a2955817e95e4cca48794769a0b46"
+          test "$(git hash-object .pncc-dev/contracts/reusable-autonomous-continuation-executor-authorized.json)" = "2c62780720dace54b220cedd42f77f834886e62a"
+          test "$(git hash-object .pncc-dev/tests/test_reusable_autonomous_continuation_executor_owner_authorization_wu111.py)" = "43ab56263b15839ce35898dde807e4246393ed79"
+          test "$(git hash-object .pncc-dev/contracts/autonomous-continuation-execution-admission-policy.json)" = "406d78da6250c452bfc7706b57dc51a18ca48977"
+          test "$(git hash-object .pncc-dev/scripts/evaluate_autonomous_continuation_execution_admission.py)" = "cde13515632717b81cef77876e53e9ceef0c46bf"
+          test "$(git hash-object .pncc-dev/contracts/autonomous-continuation-control-loop-policy.json)" = "822bcd1833ff4843b6bd176337b3ef3b742275de"
+          test "$(git hash-object .pncc-dev/scripts/evaluate_autonomous_continuation_control_loop.py)" = "1f794892cfec466505a1a6c38b271492f9759127"
+          test "$(git hash-object .pncc-dev/contracts/reusable-canonical-work-unit-materialization-authorized.json)" = "39db0554b86932b1beb4bb7250d040c06f9371ea"
+          test "$(git hash-object .pncc-dev/contracts/reusable-writer-lease-bounded-branch-authorized.json)" = "717e1f9081915f40fad2e0620c64245a650ca235"
+          test "$(git hash-object .pncc-dev/contracts/reusable-autonomous-merge-close-authorized.json)" = "baa503d63eaa437545ddcf0a045cf864d1ef36e6"
+          test "$(git hash-object .pncc-dev/contracts/reusable-merge-close-executor-integration.json)" = "220668dc1089aaa123085724db005f3eae9971c8"
+
+      - name: Assert exact PIPE-WU-111 bounded diff and frontier advancement
+        if: github.event_name == 'pull_request' && github.head_ref == 'agent/PIPE-WU-111-reusable-autonomous-continuation-executor-owner-authorization'
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin "$BASE_SHA"
+          git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort > /tmp/actual
+          printf '%s\n' \
+            '.github/workflows/wave5-reusable-autonomous-continuation-executor-owner-authorization.yml' \
+            '.pncc-dev/attestations/reusable-autonomous-continuation-executor-owner-authorization-wu111.json' \
+            '.pncc-dev/contracts/governed-frontier-transition-pipe-wu-111.json' \
+            '.pncc-dev/contracts/reusable-autonomous-continuation-executor-authorized.json' \
+            '.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json' \
+            '.pncc-dev/tests/test_reusable_autonomous_continuation_executor_owner_authorization_wu111.py' | sort > /tmp/expected
+          diff -u /tmp/expected /tmp/actual
+          test "$(git hash-object .pncc-dev/contracts/governed-frontier-transition-pipe-wu-111.json)" = "15d3d3c50906ea34b41c9c6fa0779a34d2e2a1cc"
+          test "$(git hash-object .pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json)" = "5ff880fbf150a0aa89204954a6c795fea4aa147d"
+          ! grep -E '^(\.pncc-state/|src/windows-v7/|\.adwf-consumer/|tools/runtime-agent/)' /tmp/actual
+
+      - name: Assert grant is delegation-only and no first executor transaction occurs here
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('.pncc-dev/attestations/reusable-autonomous-continuation-executor-owner-authorization-wu111.json').read_text())
+          g=json.loads(Path('.pncc-dev/contracts/reusable-autonomous-continuation-executor-authorized.json').read_text())
+          assert r['authorization_scope']=='REUSABLE_AUTONOMOUS_CONTINUATION_EXECUTOR_ONLY'
+          assert r['first_executor_transaction_authorized_in_this_work_unit'] is False
+          assert r['first_executor_transaction_performed_in_this_work_unit'] is False
+          assert g['reusable_autonomous_continuation_executor_authority'] is True
+          assert g['delegated_existing_authority_execution_authority'] is True
+          assert g['authorization_work_unit_first_executor_transaction_authority'] is False
+          for k,v in g.items():
+              if k.startswith('direct_') or k in {'runtime_action_authority','product_runtime_mutation_authority','adwf_binding_mutation_authority','adwf_repository_mutation_authority','release_tag_promotion_authority','ruleset_policy_mutation_authority','private_evidence_publication_authority','reserve_1080_lifecycle_mutation_authority','primary_1081_lifecycle_mutation_authority','force_ref_update_authority','silent_lease_steal_authority'}:
+                  assert v is False, k
+          PY
+
+      - name: Assert workflow itself is read only
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          t=Path('.github/workflows/wave5-reusable-autonomous-continuation-executor-owner-authorization.yml').read_text(encoding='utf-8').lower()
+          forbidden=['contents:'+' write','issues:'+' write','pull-requests:'+' write','actions:'+' write','git'+' push','gh'+' pr merge','gh'+' issue close','--method'+' post','--method'+' patch','--method'+' put','--method'+' delete']
+          for token in forbidden:
+              assert token not in t, token
+          PY
+
+      - name: Assert repository remains clean
+        run: test -z "$(git status --porcelain)"
