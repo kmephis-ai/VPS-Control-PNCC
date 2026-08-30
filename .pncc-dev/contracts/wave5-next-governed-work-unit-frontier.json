@@ -2,40 +2,38 @@
   "schema_version": 1,
   "role": "WAVE5_NEXT_GOVERNED_WORK_UNIT_FRONTIER",
   "state": "ACTIVE",
-  "frontier_id": "PROVIDER_TRUTH_PLANNER_SELECTOR_CONTINUATION_INTEGRATION",
-  "title_template": "{work_unit_id} — Provider Truth planner/selector continuation integration",
-  "goal": "Integrate the existing provider-truth Work Unit selector and governed materialization planner into one deterministic fail-closed continuation decision path without broadening mutation authority.",
-  "conflict_domain": "wave5-provider-truth-planner-selector-continuation-integration",
+  "frontier_id": "EXACT_HEAD_CI_INSPECTION_CLASSIFICATION_RECOVERY_INTEGRATION",
+  "title_template": "{work_unit_id} — Exact-head CI inspection/classification recovery integration",
+  "goal": "Integrate exact-head hosted CI inspection and fail-closed failure classification into the governed continuation path so success, pending checks, harness defects and product/runtime defect candidates are distinguished before any recovery or merge action.",
+  "conflict_domain": "wave5-exact-head-ci-inspection-classification-recovery-integration",
   "runtime_required": false,
   "scope": [
-    "consume fresh provider truth and the canonical selector outcome before deriving any continuation decision",
-    "when exactly one canonical executable Work Unit is selected, deterministically continue that selected Work Unit without materializing a second Work Unit",
-    "when the selector returns NO_WORK and the governed frontier is ACTIVE, derive only the exact PLAN_ONLY materialization proposal and leave Issue creation to the separately authorized reusable materialization transaction",
-    "fail closed on stale base SHA, incomplete or ambiguous provider truth, selector/planner disagreement, or frontier drift",
-    "preserve the reusable canonical materialization grant, Writer Lease grant, merge/Issue-close grant and all immutable materialization anchor bytes unchanged",
-    "keep continuation evaluation hosted and read only; no provider mutation is performed by the planner/selector integration itself"
+    "consume one exact selected PR head SHA and complete current-head workflow/check provider truth before deriving any CI decision",
+    "distinguish all-success, pending or in-progress, harness or validation defect, product/runtime defect candidate and provider/environment ambiguity without guessing",
+    "permit recovery planning only as read-only classification output; any rerun, branch mutation, runtime validation, merge or Issue-close remains under separate existing authority",
+    "preserve reusable Writer Lease, materialization and merge/Issue-close grants plus product/runtime bytes unchanged",
+    "fail closed on head drift, incomplete CI inventory, contradictory conclusions or inability to attribute a failure deterministically",
+    "keep CI inspection and classification hosted and read only"
   ],
   "forbidden_scope": [
-    "grant new Issue-create, branch, pull-request, Writer Lease, merge or Issue-close authority",
-    "mutate provider-state, Writer Lease semantics or reusable authority grants",
+    "grant workflow-rerun, branch, provider-state, merge or Issue-close authority",
+    "mutate product/runtime source or runtime state",
     "mutate ADWF Consumer binding/provenance or the ADWF repository",
-    "perform runtime or product/runtime source mutation",
     "perform release/tag/promotion, ruleset/policy administration, PRIVATE evidence publication or 1080/1081 lifecycle mutation"
   ],
   "required_checks": [
     "pipeline-state",
     "wave5-provider-work-unit-selection",
-    "wave5-governed-work-unit-materialization",
     "public-safety",
     "quality-fast",
     "quality-deep"
   ],
   "exit_criteria": [
-    "fresh provider truth deterministically yields either one exact selected canonical Work Unit or NO_WORK",
-    "selected-Work-Unit and NO_WORK continuation paths are mutually exclusive and fail closed on stale or contradictory inputs",
-    "NO_WORK can produce only the exact PLAN_ONLY planner proposal while Issue creation remains governed by the existing reusable materialization grant",
-    "selector, planner, materialization policy, reusable materialization grant and Work Unit schema immutable anchors remain byte-exact",
+    "exact-head CI inventory is complete and bound to one immutable PR head SHA",
+    "success and pending states are deterministic and cannot be confused with failure recovery",
+    "failed checks are classified fail-closed with evidence sufficient to distinguish harness/governance defects from product/runtime defect candidates",
+    "recovery output grants no mutation authority and requires a separately authorized execution path",
     "exact-head hosted CI passes with no provider-state, ADWF, product/runtime or 1080/1081 mutation"
   ],
-  "next_natural_boundary": "EXACT_HEAD_CI_INSPECTION_CLASSIFICATION_RECOVERY_INTEGRATION"
+  "next_natural_boundary": "AUTONOMOUS_CONTINUATION_CONTROL_LOOP_INTEGRATION"
 }
