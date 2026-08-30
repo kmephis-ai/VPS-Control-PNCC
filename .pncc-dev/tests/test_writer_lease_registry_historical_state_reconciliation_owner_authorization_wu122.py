@@ -6,7 +6,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 RECEIPT = ROOT / '.pncc-dev/attestations/writer-lease-registry-historical-state-reconciliation-owner-authorization-wu122.json'
 GRANT = ROOT / '.pncc-dev/contracts/writer-lease-registry-historical-state-reconciliation-authorized.json'
-FRONTIER = ROOT / '.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json'
 TRANSITION = ROOT / '.pncc-dev/contracts/governed-frontier-transition-pipe-wu-122.json'
 SCOPE = 'EXACT_FOUR_STALE_WRITER_LEASE_STATE_FIELDS_ACTIVE_TO_RELEASED_ONLY'
 IDS = [
@@ -21,7 +20,7 @@ def load(path):
     return json.loads(path.read_text())
 
 
-def validate(receipt, grant, frontier, transition):
+def validate(receipt, grant, transition):
     assert receipt['authorization_state'] == 'AUTHORIZED'
     assert receipt['authorization_source'] == 'EXPLICIT_OWNER_AUTHORIZATION_IN_CHAT'
     assert receipt['authorization_scope'] == SCOPE
@@ -50,14 +49,16 @@ def validate(receipt, grant, frontier, transition):
     assert grant['entry_order_must_remain_unchanged'] is True
     assert [x['lease_id'] for x in grant['exact_historical_set']] == IDS
 
-    assert frontier['frontier_id'] == 'CONTROLLED_WRITER_LEASE_REGISTRY_HISTORICAL_STATE_RECONCILIATION_EXECUTION'
-    assert frontier['runtime_required'] is False
-    assert frontier['authorization_grant']['blob_sha'] == '20fc664e90b1390351a5de70c98563140ef3190d'
-    assert frontier['higher_autonomy_authority'] is False
-
+    # The repository's current frontier is intentionally mutable across later
+    # governed Work Units. WU-122's immutable successor binding is preserved in
+    # its transition rather than by pinning the live frontier forever.
     assert transition['work_unit_id'] == 'PIPE-WU-122'
     assert transition['predecessor_frontier']['blob_sha'] == 'c3c33fd1504400bf2e48f6bc1024a7ad9a174d2c'
-    assert transition['successor_frontier']['blob_sha'] == '546ad9e256a838ab7c1ab32abbe037d999ea4b69'
+    assert transition['successor_frontier'] == {
+        'state': 'ACTIVE',
+        'frontier_id': 'CONTROLLED_WRITER_LEASE_REGISTRY_HISTORICAL_STATE_RECONCILIATION_EXECUTION',
+        'blob_sha': '546ad9e256a838ab7c1ab32abbe037d999ea4b69',
+    }
     assert transition['owner_authorization_receipt']['blob_sha'] == 'f1207b8b78081f107bf1f449066554b6693c922f'
     assert transition['authorized_grant']['blob_sha'] == '20fc664e90b1390351a5de70c98563140ef3190d'
     assert transition['provider_state_mutation_performed_in_wu122'] is False
@@ -69,47 +70,46 @@ class WU122OwnerAuthorizationTests(unittest.TestCase):
     def setUp(self):
         self.receipt = load(RECEIPT)
         self.grant = load(GRANT)
-        self.frontier = load(FRONTIER)
         self.transition = load(TRANSITION)
 
     def test_canonical_documents_validate(self):
-        validate(self.receipt, self.grant, self.frontier, self.transition)
+        validate(self.receipt, self.grant, self.transition)
 
     def test_generic_continuation_cannot_authorize(self):
         x = deepcopy(self.receipt)
         x['authorization_source'] = 'GENERIC_CONTINUATION_TEXT'
         with self.assertRaises(AssertionError):
-            validate(x, self.grant, self.frontier, self.transition)
+            validate(x, self.grant, self.transition)
 
     def test_scope_broadening_fails(self):
         x = deepcopy(self.grant)
         x['authorization_scope'] = 'GENERAL_PROVIDER_STATE_HYGIENE'
         with self.assertRaises(AssertionError):
-            validate(self.receipt, x, self.frontier, self.transition)
+            validate(self.receipt, x, self.transition)
 
     def test_partial_set_fails(self):
         x = deepcopy(self.grant)
         x['exact_historical_set'] = x['exact_historical_set'][:-1]
         with self.assertRaises(AssertionError):
-            validate(self.receipt, x, self.frontier, self.transition)
+            validate(self.receipt, x, self.transition)
 
     def test_superset_fails(self):
         x = deepcopy(self.grant)
         x['exact_historical_set'].append({'lease_id':'extra','work_unit_id':'PIPE-WU-X','generation':999,'expected_pre_state':'ACTIVE','authorized_post_state':'RELEASED'})
         with self.assertRaises(AssertionError):
-            validate(self.receipt, x, self.frontier, self.transition)
+            validate(self.receipt, x, self.transition)
 
     def test_execution_in_authorization_work_unit_fails(self):
         x = deepcopy(self.grant)
         x['authorization_work_unit_execution_authority'] = True
         with self.assertRaises(AssertionError):
-            validate(self.receipt, x, self.frontier, self.transition)
+            validate(self.receipt, x, self.transition)
 
     def test_generation_mutation_authority_fails(self):
         x = deepcopy(self.grant)
         x['registry_generation_must_remain_unchanged'] = False
         with self.assertRaises(AssertionError):
-            validate(self.receipt, x, self.frontier, self.transition)
+            validate(self.receipt, x, self.transition)
 
 
 if __name__ == '__main__':
