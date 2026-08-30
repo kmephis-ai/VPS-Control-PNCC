@@ -1,0 +1,138 @@
+name: wave5-autonomous-continuation-human-by-exception-readiness-decision-after-lease-hygiene
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  autonomous-continuation-human-by-exception-readiness-decision-after-lease-hygiene:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Fetch immutable WU-125 Provider Truth snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin pncc-provider-state
+          git cat-file -e 1ccba33253b1c3655d3046baa7021787e7daf12f^{commit}
+          git show 1ccba33253b1c3655d3046baa7021787e7daf12f:.pncc-state/writer-lease-registry.json > /tmp/wu125-registry.json
+          test "$(git hash-object /tmp/wu125-registry.json)" = "91216366ba87423ffa8d189927a458c09e6a5738"
+
+      - name: Assert canonical WU-124 source evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          git cat-file -e 56f66ba76f2f1af7ade69433e630eb61c3b4eda6^{commit}
+          git cat-file -e 7af4f2752ea59c2c79deb78defe04ce912282019^{commit}
+          test "$(git hash-object .pncc-dev/contracts/autonomous-continuation-human-by-exception-readiness-reassessment-wu124.json)" = "b63c89ef5b1cd785bbbab934a3ab87cb45e5245a"
+
+      - name: Evaluate canonical WU-125 readiness decision
+        run: python3 .pncc-dev/scripts/evaluate_autonomous_continuation_human_by_exception_readiness_decision_after_lease_hygiene.py --registry /tmp/wu125-registry.json
+
+      - name: Run WU-125 adversarial tests
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_autonomous_continuation_human_by_exception_readiness_decision_after_lease_hygiene_wu125.py' -v
+
+      - name: Assert exact immutable WU-125 artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object .pncc-dev/contracts/autonomous-continuation-human-by-exception-readiness-decision-after-lease-hygiene-wu125.json)" = "77874740f525739f5f88980ec4d01889f0eb3b61"
+          test "$(git hash-object .pncc-dev/contracts/governed-frontier-transition-pipe-wu-125.json)" = "d51f841d64ea9e598322f8d50b5aff949902ad44"
+          test "$(git hash-object .pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json)" = "ae0ba99bb3588b9a75e13789d233ce1379a51047"
+          test "$(git hash-object .pncc-dev/scripts/evaluate_autonomous_continuation_human_by_exception_readiness_decision_after_lease_hygiene.py)" = "d725f96ef85ee2de372c5bc61c52068017e5cb4b"
+          test "$(git hash-object .pncc-dev/tests/test_autonomous_continuation_human_by_exception_readiness_decision_after_lease_hygiene_wu125.py)" = "70d926669abe2964aa70ba58d52bec898a1043fe"
+
+      - name: Assert WU-125 lease acquisition and post-hygiene topology
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          r=json.load(open('/tmp/wu125-registry.json'))
+          assert r['generation']==33
+          active=[e for e in r['entries'] if e['state']=='ACTIVE']
+          assert len(active)==1
+          x=active[0]
+          assert x['lease_id']=='27829f63-9bc6-4ba3-b495-4985bb36be32'
+          assert x['work_unit_id']=='PIPE-WU-125'
+          assert x['generation']==33
+          assert x['base_sha']=='7af4f2752ea59c2c79deb78defe04ce912282019'
+          assert x['branch']=='agent/PIPE-WU-125-human-by-exception-readiness-decision-after-lease-hygiene'
+          assert x['expires_at']=='2026-08-30T19:40:00Z'
+          assert not [e for e in r['entries'][:-1] if e['state']=='ACTIVE']
+          wu124=[e for e in r['entries'] if e['lease_id']=='b98a246b-d009-4a64-a798-668feb679ebd']
+          assert len(wu124)==1 and wu124[0]['state']=='RELEASED'
+          PY
+
+      - name: Assert exact bounded WU-125 diff and branch ancestry
+        if: github.event_name == 'pull_request' && github.head_ref == 'agent/PIPE-WU-125-human-by-exception-readiness-decision-after-lease-hygiene'
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$BASE_SHA" = "7af4f2752ea59c2c79deb78defe04ce912282019"
+          test "$(git merge-base "$BASE_SHA" "$HEAD_SHA")" = "$BASE_SHA"
+          FIRST_COMMIT="$(git rev-list --reverse "$BASE_SHA..$HEAD_SHA" | head -n 1)"
+          test -n "$FIRST_COMMIT"
+          test "$(git rev-parse "$FIRST_COMMIT^")" = "$BASE_SHA"
+          git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort > /tmp/actual
+          printf '%s\n' \
+            '.github/workflows/wave5-autonomous-continuation-human-by-exception-readiness-decision-after-lease-hygiene.yml' \
+            '.pncc-dev/contracts/autonomous-continuation-human-by-exception-readiness-decision-after-lease-hygiene-wu125.json' \
+            '.pncc-dev/contracts/governed-frontier-transition-pipe-wu-125.json' \
+            '.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json' \
+            '.pncc-dev/scripts/evaluate_autonomous_continuation_human_by_exception_readiness_decision_after_lease_hygiene.py' \
+            '.pncc-dev/tests/test_autonomous_continuation_human_by_exception_readiness_decision_after_lease_hygiene_wu125.py' | sort > /tmp/expected
+          diff -u /tmp/expected /tmp/actual
+          ! grep -E '^(\.pncc-state/|src/windows-v7/|\.adwf-consumer/|tools/runtime-agent/)' /tmp/actual
+
+      - name: Assert positive decision and successor frontier semantics
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('.pncc-dev/contracts/autonomous-continuation-human-by-exception-readiness-decision-after-lease-hygiene-wu125.json').read_text())
+          f=json.loads(Path('.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json').read_text())
+          t=json.loads(Path('.pncc-dev/contracts/governed-frontier-transition-pipe-wu-125.json').read_text())
+          assert d['decision_outcome']=='APPROVE_HUMAN_BY_EXCEPTION_WITH_EXISTING_AUTHORITY_ONLY'
+          assert d['human_by_exception_operating_mode_approved'] is True
+          assert d['higher_autonomy_authorized'] is False
+          assert d['authority_granted'] is False
+          assert d['lease_hygiene_decision']['stale_active_history_count']==0
+          assert f['frontier_id']=='AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_OPERATIONALIZATION_WITH_EXISTING_AUTHORITY_ONLY'
+          assert f['runtime_required'] is False
+          assert f['higher_autonomy_authority'] is False
+          assert t['predecessor_frontier']['blob_sha']=='15b4985175af740ac1e7f2234b0bd94a59c891a3'
+          assert t['successor_frontier']['blob_sha']=='ae0ba99bb3588b9a75e13789d233ce1379a51047'
+          assert t['decision_grants_authority'] is False
+          assert t['existing_authority_only'] is True
+          PY
+
+      - name: Assert workflow itself is read only
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          t=Path('.github/workflows/wave5-autonomous-continuation-human-by-exception-readiness-decision-after-lease-hygiene.yml').read_text().lower()
+          forbidden=['contents:'+' write','issues:'+' write','pull-requests:'+' write','actions:'+' write','git'+' push','gh'+' pr merge','gh'+' issue close','--method'+' post','--method'+' patch','--method'+' put','--method'+' delete']
+          for token in forbidden: assert token not in t,token
+          PY
+
+      - name: Assert repository remains clean
+        run: test -z "$(git status --porcelain)"

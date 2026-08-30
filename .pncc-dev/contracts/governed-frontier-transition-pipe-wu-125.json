@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "role": "GOVERNED_FRONTIER_TRANSITION",
+  "work_unit_id": "PIPE-WU-125",
+  "transition_state": "DECISION_APPROVED_EXISTING_AUTHORITY_ONLY",
+  "predecessor_frontier": {
+    "frontier_id": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_READINESS_DECISION_AFTER_LEASE_HYGIENE",
+    "path": ".pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json",
+    "blob_sha": "15b4985175af740ac1e7f2234b0bd94a59c891a3"
+  },
+  "decision": {
+    "path": ".pncc-dev/contracts/autonomous-continuation-human-by-exception-readiness-decision-after-lease-hygiene-wu125.json",
+    "blob_sha": "77874740f525739f5f88980ec4d01889f0eb3b61",
+    "outcome": "APPROVE_HUMAN_BY_EXCEPTION_WITH_EXISTING_AUTHORITY_ONLY",
+    "authority_granted": false
+  },
+  "successor_frontier": {
+    "frontier_id": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_OPERATIONALIZATION_WITH_EXISTING_AUTHORITY_ONLY",
+    "path": ".pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json",
+    "blob_sha": "ae0ba99bb3588b9a75e13789d233ce1379a51047"
+  },
+  "human_by_exception_operating_mode_approved": true,
+  "existing_authority_only": true,
+  "higher_autonomy_authorized": false,
+  "decision_grants_authority": false,
+  "runtime_required": false,
+  "next_natural_boundary": "DETERMINED_BY_HUMAN_BY_EXCEPTION_OPERATIONALIZATION_WITH_EXISTING_AUTHORITY_ONLY"
+}

@@ -2,51 +2,45 @@
   "schema_version": 1,
   "role": "WAVE5_NEXT_GOVERNED_WORK_UNIT_FRONTIER",
   "state": "ACTIVE",
-  "frontier_id": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_READINESS_DECISION_AFTER_LEASE_HYGIENE",
-  "title_template": "{work_unit_id} — Human-by-Exception readiness decision after Writer Lease hygiene",
-  "goal": "Make one separate governed decision from the canonical WU-124 post-hygiene reassessment, determining whether Human-by-Exception operation is ready under existing already-canonical authority only, while preserving all owner, runtime, security, release, ruleset, ADWF, WAIT and STOP boundaries and without implicitly creating any new mutation authority.",
-  "conflict_domain": "wave5-autonomous-continuation-human-by-exception-readiness-decision-after-lease-hygiene",
+  "frontier_id": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_OPERATIONALIZATION_WITH_EXISTING_AUTHORITY_ONLY",
+  "title_template": "{work_unit_id} — Operationalize Human-by-Exception within existing authority",
+  "goal": "Operationalize Human-by-Exception continuation using only authority already canonical before PIPE-WU-125, with deterministic escalation, WAIT, STOP and separate-authority behavior and no authority expansion.",
+  "conflict_domain": "wave5-autonomous-continuation-human-by-exception-operationalization-existing-authority-only",
   "runtime_required": false,
-  "assessment_input": {
-    "path": ".pncc-dev/contracts/autonomous-continuation-human-by-exception-readiness-reassessment-wu124.json",
-    "blob_sha": "b63c89ef5b1cd785bbbab934a3ab87cb45e5245a",
-    "required_verdict": "READY_WITH_EXISTING_AUTHORITY_ONLY",
-    "authority_granted": false
+  "decision_input": {
+    "path": ".pncc-dev/contracts/autonomous-continuation-human-by-exception-readiness-decision-after-lease-hygiene-wu125.json",
+    "required_outcome": "APPROVE_HUMAN_BY_EXCEPTION_WITH_EXISTING_AUTHORITY_ONLY",
+    "authority_granted": false,
+    "blob_sha": "77874740f525739f5f88980ec4d01889f0eb3b61"
   },
   "scope": [
-    "fresh-read canonical WU-124 reassessment, current main, provider-state and Writer Lease registry before decision",
-    "verify WU-124 exact-head CI and completion lease lifecycle evidence before relying on the reassessment",
-    "decide readiness only for operation within authority that was already canonical before this decision",
-    "preserve WAIT_ONLY, STOP_ONLY, SEPARATE_AUTHORITY_REQUIRED and OWNER_ESCALATION_REQUIRED classifications exactly",
-    "state explicitly whether Human-by-Exception operating mode is approved, deferred or blocked under existing authority only",
-    "advance only to the next separately governed operationalization or remediation frontier determined by the decision"
+    "map existing control-loop classifications to deterministic Human-by-Exception handling without broadening any authority",
+    "continue automatically only when an already-canonical authority contract authorizes the exact action",
+    "surface OWNER_ESCALATION_REQUIRED to the owner without mutation",
+    "preserve WAIT_ONLY as wait/no-replay and STOP_ONLY as terminal stop",
+    "preserve SEPARATE_AUTHORITY_REQUIRED as fail-closed until a separate governed authority exists",
+    "produce machine-verifiable control-plane evidence for the operationalization boundary"
   ],
   "forbidden_scope": [
-    "interpret READY_WITH_EXISTING_AUTHORITY_ONLY as a grant of provider-state, merge, runtime, product, release, ruleset, ADWF or higher-autonomy mutation authority",
-    "weaken owner escalation or runtime qualification boundaries",
-    "weaken WAIT/STOP/no-replay semantics",
-    "change Writer Lease ownership or historical registry records as a side effect of the decision",
-    "mutate product/runtime source or physical runtime, ADWF binding/repository, release/tag/promotion, ruleset/security policy, PRIVATE evidence or 1080/1081 lifecycle"
+    "create or infer new provider-state, merge, runtime, product, release, ruleset, ADWF or higher-autonomy authority",
+    "weaken owner escalation, runtime qualification, WAIT, STOP or no-replay semantics",
+    "mutate product/runtime source or physical runtime",
+    "mutate ADWF binding/repository, release/tag/promotion, ruleset/security policy, PRIVATE evidence or 1080/1081 lifecycle"
   ],
   "required_checks": [
     "pipeline-state",
     "wave5-provider-work-unit-selection",
     "wave5-writer-lease-registry-topology",
-    "wave5-writer-lease-claim-admission",
-    "wave5-writer-lease-registry-historical-state-reconciliation-execution",
-    "wave5-autonomous-continuation-human-by-exception-readiness-assessment",
-    "wave5-autonomous-continuation-human-by-exception-readiness-decision",
     "wave5-autonomous-continuation-human-by-exception-readiness-reassessment-after-lease-hygiene",
+    "wave5-autonomous-continuation-human-by-exception-readiness-decision-after-lease-hygiene",
     "public-safety",
     "quality-fast",
     "quality-deep"
   ],
   "exit_criteria": [
-    "canonical WU-124 reassessment remains exact and fresh enough for the decision boundary",
-    "post-WU-124 Provider Truth is non-contradictory and current ownership is unambiguous",
-    "decision distinguishes readiness under existing authority from any request for new authority",
-    "all intentional owner/runtime/security/release/ruleset/ADWF and WAIT/STOP boundaries remain explicit",
-    "decision itself grants no direct provider-state, runtime, product, release, ruleset, ADWF or higher-autonomy mutation authority",
+    "automatic continuation is mechanically limited to existing explicit authority",
+    "OWNER_ESCALATION_REQUIRED, WAIT_ONLY, STOP_ONLY and SEPARATE_AUTHORITY_REQUIRED are preserved exactly",
+    "operationalization itself grants no new mutation authority",
     "exact-head hosted CI passes with no product/runtime, ADWF or 1080/1081 mutation"
   ],
   "provider_mutation_authority": false,
@@ -63,5 +57,5 @@
   "reserve_1080_lifecycle_mutation_authority": false,
   "primary_1081_lifecycle_mutation_authority": false,
   "higher_autonomy_authority": false,
-  "next_natural_boundary": "DETERMINED_BY_POST_HYGIENE_HUMAN_BY_EXCEPTION_READINESS_DECISION"
+  "next_natural_boundary": "DETERMINED_BY_HUMAN_BY_EXCEPTION_OPERATIONALIZATION_WITH_EXISTING_AUTHORITY_ONLY"
 }
