@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "role": "GOVERNED_FRONTIER_TRANSITION",
+  "transition_state": "PREPARED_FOR_IN_PR_ADVANCEMENT",
+  "work_unit_id": "PIPE-WU-124",
+  "issue_number": 296,
+  "conflict_domain": "wave5-autonomous-continuation-human-by-exception-readiness-reassessment-after-lease-hygiene",
+  "base_sha": "74706de37286567eaf689337707666ca187e81c3",
+  "branch": "agent/PIPE-WU-124-human-by-exception-readiness-reassessment-after-lease-hygiene",
+  "runtime_required": false,
+  "predecessor_frontier": {
+    "state": "ACTIVE",
+    "frontier_id": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_READINESS_REASSESSMENT_AFTER_LEASE_HYGIENE",
+    "blob_sha": "915ccdd52d1a4d742917cd0d1a6f20174af3a34d"
+  },
+  "successor_frontier": {
+    "state": "ACTIVE",
+    "frontier_id": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_READINESS_DECISION_AFTER_LEASE_HYGIENE",
+    "blob_sha": "15b4985175af740ac1e7f2234b0bd94a59c891a3"
+  },
+  "same_pr_advancement_required": true,
+  "predecessor_replay_forbidden": true,
+  "successor_must_be_canonical_before_merge": true,
+  "reassessment": {
+    "path": ".pncc-dev/contracts/autonomous-continuation-human-by-exception-readiness-reassessment-wu124.json",
+    "blob_sha": "b63c89ef5b1cd785bbbab934a3ab87cb45e5245a",
+    "readiness_verdict": "READY_WITH_EXISTING_AUTHORITY_ONLY",
+    "authority_granted": false
+  },
+  "rubric": {
+    "path": ".pncc-dev/contracts/autonomous-continuation-human-by-exception-readiness-rubric.json",
+    "blob_sha": "8a75facb79773cadd786fd4384324ba984896ee7"
+  },
+  "pre_hygiene_assessment": {
+    "path": ".pncc-dev/contracts/autonomous-continuation-human-by-exception-readiness-assessment-wu119.json",
+    "blob_sha": "ad147299e65cec74f3fc5ef0365376f50f1485aa"
+  },
+  "pre_hygiene_decision": {
+    "path": ".pncc-dev/contracts/autonomous-continuation-human-by-exception-readiness-decision-wu120.json",
+    "blob_sha": "a014f81efa52671bf3f637f7a16dc6332a70091b"
+  },
+  "post_hygiene_execution": {
+    "path": ".pncc-dev/contracts/writer-lease-registry-historical-state-reconciliation-execution-wu123.json",
+    "blob_sha": "b1c3914417ee3d7f12731b6937c11275fe418af8"
+  },
+  "provider_truth_observed": {
+    "pncc_main_sha": "74706de37286567eaf689337707666ca187e81c3",
+    "canonical_work_unit_issue_number": 296,
+    "writer_lease_id": "b98a246b-d009-4a64-a798-668feb679ebd",
+    "writer_lease_generation": 32,
+    "writer_lease_state": "ACTIVE",
+    "writer_lease_branch": "agent/PIPE-WU-124-human-by-exception-readiness-reassessment-after-lease-hygiene",
+    "provider_state_commit_sha": "025420c99dc3feec3af37e71b5aa3513de695ea7",
+    "registry_blob_sha": "29eff68e8aaef1d1f5265cdbaa6deaecf47c10a9",
+    "registry_generation": 32,
+    "stale_active_history_count": 0,
+    "only_active_entry_is_current_writer": true
+  },
+  "stale_history_blocker_removed": true,
+  "assessment_ready_with_existing_authority_only": true,
+  "assessment_authority_granted": false,
+  "provider_state_mutation_performed_in_wu124": false,
+  "historical_writer_lease_mutation_performed_in_wu124": false,
+  "provider_state_mutation_authority": false,
+  "provider_mutation_authority": false,
+  "issue_mutation_authority": false,
+  "branch_mutation_authority": false,
+  "pull_request_mutation_authority": false,
+  "writer_lease_mutation_authority": false,
+  "workflow_rerun_authority": false,
+  "direct_main_write_authority": false,
+  "merge_authority": false,
+  "runtime_action_authority": false,
+  "product_runtime_mutation_authority": false,
+  "adwf_binding_mutation_authority": false,
+  "adwf_repository_mutation_authority": false,
+  "release_tag_promotion_authority": false,
+  "ruleset_policy_mutation_authority": false,
+  "private_evidence_publication_authority": false,
+  "reserve_1080_lifecycle_mutation_authority": false,
+  "primary_1081_lifecycle_mutation_authority": false,
+  "higher_autonomy_granted": false,
+  "next_boundary": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_READINESS_DECISION_AFTER_LEASE_HYGIENE"
+}
