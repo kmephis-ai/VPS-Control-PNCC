@@ -2,21 +2,21 @@
   "schema_version": 1,
   "role": "WAVE5_NEXT_GOVERNED_WORK_UNIT_FRONTIER",
   "state": "ACTIVE",
-  "frontier_id": "AUTONOMOUS_CONTINUATION_CONTROL_LOOP_INTEGRATION",
-  "title_template": "{work_unit_id} — Autonomous continuation control-loop integration",
-  "goal": "Integrate provider-truth continuation, exact-head CI classification and existing reusable execution authorities into one deterministic fail-closed PLAN_ONLY control-loop decision path without creating new mutation authority.",
-  "conflict_domain": "wave5-autonomous-continuation-control-loop-integration",
+  "frontier_id": "AUTONOMOUS_CONTINUATION_CONTROL_LOOP_EXECUTION_ADMISSION",
+  "title_template": "{work_unit_id} — Autonomous continuation control-loop execution admission",
+  "goal": "Add a default-deny PLAN_ONLY execution-admission boundary that validates one control-loop decision against the exact delegated reusable authority and current transaction evidence without executing any mutation.",
+  "conflict_domain": "wave5-autonomous-continuation-control-loop-execution-admission",
   "runtime_required": false,
   "scope": [
-    "consume the exact provider-truth continuation decision for the current canonical Work Unit state",
-    "consume exact-head CI inspection/classification only when a selected Work Unit has an exact bounded PR head",
-    "derive one deterministic next control-loop boundary such as wait, collect evidence, materialization planning, existing Writer Lease path or existing merge eligibility path",
-    "reference existing reusable materialization, Writer Lease and merge/Issue-close authorities without duplicating or broadening them",
-    "keep the control-loop integration PLAN_ONLY and require every mutation to remain gated by its separately authorized existing transaction",
-    "fail closed on stale main, selected Work Unit drift, PR head drift, incomplete CI inventory, authority-anchor drift or contradictory continuation state"
+    "consume one exact autonomous continuation control-loop decision bound to fresh current provider truth",
+    "validate that any proposed mutation path names exactly one existing canonical reusable authority and satisfies its required transaction evidence",
+    "distinguish wait, stop, blocked and separately-authorized recovery states from mutation-admission candidates",
+    "emit only PLAN_ONLY admission evidence with exact target action and authority identity; perform no delegated mutation",
+    "fail closed on authority-anchor drift, stale main, selected Work Unit drift, lease or PR drift, incomplete CI evidence or contradictory control-loop state",
+    "keep any reusable autonomous continuation executor behind a separate explicit Owner Authorization boundary"
   ],
   "forbidden_scope": [
-    "grant Issue-create, Issue-update, branch, pull-request, provider-state, Writer Lease, workflow-rerun, merge or Issue-close authority",
+    "grant or execute Issue-create, Issue-update, branch, pull-request, provider-state, Writer Lease, workflow-rerun, merge or Issue-close authority",
     "mutate product/runtime source or runtime state",
     "mutate ADWF Consumer binding/provenance or the ADWF repository",
     "perform release/tag/promotion, ruleset/policy administration, PRIVATE evidence publication or 1080/1081 lifecycle mutation"
@@ -25,16 +25,18 @@
     "pipeline-state",
     "wave5-provider-work-unit-selection",
     "wave5-exact-head-ci-inspection-classification",
+    "wave5-autonomous-continuation-control-loop",
     "public-safety",
     "quality-fast",
     "quality-deep"
   ],
   "exit_criteria": [
-    "one deterministic PLAN_ONLY control-loop decision is derived from fresh provider truth",
-    "selected Work Unit, NO_WORK, pending CI and classified CI failure paths are mutually exclusive and fail closed",
-    "all executable mutations remain delegated to exact existing reusable authority contracts rather than the control loop itself",
-    "unknown, stale, contradictory or incomplete provider state yields BLOCKED or WAIT rather than guessed recovery",
+    "every control-loop decision maps deterministically to wait, stop, block or one exact existing delegated authority",
+    "admission never converts a PLAN_ONLY decision into mutation authority",
+    "post-merge close recovery remains bound to exact released lease, merged PR and current-main merge readback",
+    "all unknown, stale, contradictory or incomplete inputs fail closed",
+    "a future reusable autonomous executor remains separately prepared and explicitly Owner-authorized",
     "exact-head hosted CI passes with no provider-state, ADWF, product/runtime or 1080/1081 mutation"
   ],
-  "next_natural_boundary": "AUTONOMOUS_CONTINUATION_CONTROL_LOOP_EXECUTION_ADMISSION"
+  "next_natural_boundary": "SEPARATE_REUSABLE_AUTONOMOUS_CONTINUATION_EXECUTOR_AUTHORITY_PREPARATION"
 }
