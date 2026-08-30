@@ -22,117 +22,97 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
 
-      - name: Run adversarial selector and orchestration tests
-        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_provider_work_unit_selector.py' -v
+      - name: Run adversarial selector and continuation tests
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s .pncc-dev/tests -p 'test_provider_work_unit_selector.py' -v
+          python3 -m unittest discover -s .pncc-dev/tests -p 'test_provider_truth_continuation_wu106.py' -v
 
-      - name: Assert selector is bound to current Stable v7.0.1 proof truth
+      - name: Assert immutable selector planner and reusable authority anchors
         shell: bash
         run: |
           set -euo pipefail
           test "$(git hash-object .pncc-dev/scripts/select_provider_work_unit.py)" = "8045a97d5344f058064690cb265b30f88973e2b8"
-          python3 - <<'PY'
-          from pathlib import Path
-          s=Path('.pncc-dev/scripts/select_provider_work_unit.py').read_text(encoding='utf-8')
-          assert 'stable-v7.0.1-completion.json' in s
-          assert '22b843330516e481c467fe5cbe6d1d4c6758510c71bd2c46ebeec337f403ae72' in s
-          assert 'stable-v7.0.0-completion.json' not in s
-          assert '1407f82b15ea2b70ba56b7406bb8dd0d9097c459b630d016d6a7b5f10a49e599' not in s
-          assert 'NONE_BINDING_IS_PROOF_ONLY' in s
-          for disposition in ('EXECUTABLE', 'WAITING_RUNTIME', 'BLOCKED', 'NO_WORK'):
-              assert disposition in s
-          PY
+          test "$(git hash-object .pncc-dev/scripts/plan_governed_work_unit_materialization.py)" = "c561b34dbf3fb7cfefd1a2a9780aba6e857ec78c"
+          test "$(git hash-object .pncc-dev/contracts/governed-work-unit-materialization-policy.json)" = "8b6b6d9116b96a8f4746c22906a522589a9ae6e0"
+          test "$(git hash-object .pncc-dev/contracts/reusable-canonical-work-unit-materialization-authorized.json)" = "39db0554b86932b1beb4bb7250d040c06f9371ea"
+          test "$(git hash-object .pncc-dev/contracts/reusable-writer-lease-bounded-branch-authorized.json)" = "717e1f9081915f40fad2e0620c64245a650ca235"
+          test "$(git hash-object .pncc-dev/contracts/reusable-autonomous-merge-close-authorized.json)" = "baa503d63eaa437545ddcf0a045cf864d1ef36e6"
+          test "$(git hash-object .pncc-dev/schemas/work-unit.schema.json)" = "a6b23c5695262192175216e6293d832f8e835851"
 
-      - name: Read fresh GitHub provider truth or prove governed selector transition block
-        if: github.event_name != 'pull_request'
+      - name: Read fresh GitHub provider truth through continuation integration
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          python3 - "$RUNNER_TEMP/provider-work-unit-selection.json" <<'PY'
-          import importlib.util
-          import json
-          import os
-          import subprocess
-          import sys
-          from pathlib import Path
+          python3 .pncc-dev/scripts/evaluate_provider_truth_continuation.py \
+            --repository "${{ github.repository }}" \
+            --default-branch main \
+            --live-github \
+            --output "$RUNNER_TEMP/provider-truth-continuation.json"
+          cat "$RUNNER_TEMP/provider-truth-continuation.json"
 
-          out=Path(sys.argv[1])
-          root=Path('.')
-          frontier=json.loads((root/'.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json').read_text(encoding='utf-8'))
-          readiness=json.loads((root/'.adwf-consumer/wave5-readiness.json').read_text(encoding='utf-8'))
-          spec=importlib.util.spec_from_file_location('pncc_provider_selector', root/'.pncc-dev/scripts/select_provider_work_unit.py')
-          selector=importlib.util.module_from_spec(spec)
-          assert spec.loader is not None
-          spec.loader.exec_module(selector)
-          transitional=(
-              frontier.get('state') == 'ACTIVE'
-              and frontier.get('frontier_id') == 'PROVIDER_TRUTH_PLANNER_SELECTOR_CONTINUATION_INTEGRATION'
-              and readiness.get('framework', {}).get('source_sha') != selector.EXPECTED_ADWF_SHA
-          )
-          if transitional:
-              try:
-                  selector.validate_readiness_guard(root)
-              except selector.SelectionError as exc:
-                  assert str(exc) == 'WAVE5_ADWF_PIN_DRIFT', str(exc)
-              else:
-                  raise AssertionError('expected selector pin drift during governed transition')
-              result={
-                  'schema_version': 2,
-                  'state': 'READ_ONLY_PROVIDER_TRUTH_SELECTION_BLOCKED_BY_GOVERNED_FRONTIER',
-                  'decision': 'NO_EXECUTABLE_WORK_UNIT',
-                  'orchestration_disposition': 'BLOCKED',
-                  'selected': None,
-                  'mutation_authority': 'NONE_BINDING_IS_PROOF_ONLY',
-                  'provider_mutation_performed': False,
-                  'writer_lease_acquired': False,
-                  'runtime_action_performed': False,
-                  'promotion_or_release_action_performed': False,
-                  'next_boundary': 'PROVIDER_TRUTH_PLANNER_SELECTOR_CONTINUATION_INTEGRATION',
-                  'block_reason': 'WAVE5_ADWF_PIN_DRIFT',
-              }
-              out.write_text(json.dumps(result, sort_keys=True, indent=2)+'\n', encoding='utf-8')
-          else:
-              subprocess.run([
-                  sys.executable,
-                  '.pncc-dev/scripts/select_provider_work_unit.py',
-                  '--repository', os.environ['GITHUB_REPOSITORY'],
-                  '--default-branch', 'main',
-                  '--live-github',
-                  '--output', str(out),
-              ], check=True)
-          PY
-          cat "$RUNNER_TEMP/provider-work-unit-selection.json"
-
-      - name: Assert live orchestration result remains default-deny
-        if: github.event_name != 'pull_request'
+      - name: Assert continuation result remains read only and WU-106 is exact
         shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          HEAD_REF: ${{ github.head_ref }}
         run: |
           set -euo pipefail
-          python3 - "$RUNNER_TEMP/provider-work-unit-selection.json" <<'PY'
-          import json, sys
+          python3 - "$RUNNER_TEMP/provider-truth-continuation.json" <<'PY'
+          import json, os, sys
           d=json.load(open(sys.argv[1], encoding='utf-8'))
-          assert d['schema_version'] == 2
-          assert d['mutation_authority'] == 'NONE_BINDING_IS_PROOF_ONLY'
-          assert d['provider_mutation_performed'] is False
-          assert d['writer_lease_acquired'] is False
-          assert d['runtime_action_performed'] is False
-          assert d['promotion_or_release_action_performed'] is False
-          if d['state'] == 'READ_ONLY_PROVIDER_TRUTH_SELECTION_BLOCKED_BY_GOVERNED_FRONTIER':
-              assert d['decision'] == 'NO_EXECUTABLE_WORK_UNIT'
-              assert d['orchestration_disposition'] == 'BLOCKED'
-              assert d['selected'] is None
-              assert d['block_reason'] == 'WAVE5_ADWF_PIN_DRIFT'
-              assert d['next_boundary'] == 'PROVIDER_TRUTH_PLANNER_SELECTOR_CONTINUATION_INTEGRATION'
-          else:
-              assert d['state'] == 'READ_ONLY_PROVIDER_TRUTH_SELECTION_PASS'
-              assert d['decision'] in {'SELECTED', 'NO_EXECUTABLE_WORK_UNIT'}
-              assert d['orchestration_disposition'] in {'EXECUTABLE', 'WAITING_RUNTIME', 'BLOCKED', 'NO_WORK'}
-              if d['orchestration_disposition'] == 'EXECUTABLE':
-                  assert d['decision'] == 'SELECTED'
-                  assert d['selected']['classification'] == 'EXECUTABLE_READ_ONLY_SELECTION'
-                  assert d['selected']['runtime_required'] is False
-                  assert d['next_boundary'] == 'DESIGN_DEFAULT_DENY_WRITER_LEASE_CLAIM_AUTHORITY'
+          assert d['schema_version'] == 1
+          assert d['role'] == 'PROVIDER_TRUTH_CONTINUATION_DECISION'
+          assert d['decision'] in {
+              'CONTINUE_SELECTED_WORK_UNIT',
+              'PLAN_MATERIALIZATION',
+              'WAITING_RUNTIME',
+              'NO_FRONTIER',
+              'BLOCKED',
+          }
+          for key in (
+              'provider_mutation_performed',
+              'issue_mutation_performed',
+              'writer_lease_mutation_performed',
+              'merge_performed',
+              'runtime_action_performed',
+          ):
+              assert d[key] is False, key
+          assert d['selector_guard_state'] in {'PASS', 'PROVEN_RECONCILED_PIN_DRIFT', None}
+          if os.environ.get('EVENT_NAME') == 'pull_request' and os.environ.get('HEAD_REF') == 'agent/PIPE-WU-106-provider-truth-continuation-integration':
+              assert d['decision'] == 'CONTINUE_SELECTED_WORK_UNIT', d
+              assert d['selector_guard_state'] == 'PROVEN_RECONCILED_PIN_DRIFT'
+              selected=d['selected']
+              assert selected['issue'] == 259
+              assert selected['work_unit_id'] == 'PIPE-WU-106'
+              assert selected['classification'] == 'EXECUTABLE_READ_ONLY_SELECTION'
+              assert selected['base_sha'] == 'f0040ac29aff587e43b227f820131b107424d72e'
+              assert selected['runtime_required'] is False
+              assert d['materialization_plan'] is None
           PY
+
+      - name: Assert exact PIPE-WU-106 bounded diff
+        if: github.event_name == 'pull_request' && github.head_ref == 'agent/PIPE-WU-106-provider-truth-continuation-integration'
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$BASE_SHA" = "f0040ac29aff587e43b227f820131b107424d72e"
+          git fetch --no-tags --depth=1 origin "$BASE_SHA"
+          git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort > /tmp/actual
+          printf '%s\n' \
+            '.github/workflows/wave5-provider-work-unit-selection.yml' \
+            '.pncc-dev/contracts/governed-frontier-transition-pipe-wu-106.json' \
+            '.pncc-dev/contracts/provider-truth-continuation-policy.json' \
+            '.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json' \
+            '.pncc-dev/scripts/evaluate_provider_truth_continuation.py' \
+            '.pncc-dev/tests/test_provider_truth_continuation_wu106.py' \
+            '.pncc-dev/tests/test_provider_work_unit_selector.py' | sort > /tmp/expected
+          diff -u /tmp/expected /tmp/actual
+          ! grep -E '^(\.pncc-state/|src/windows-v7/|\.adwf-consumer/|tools/runtime-agent/)' /tmp/actual
 
       - name: Assert workflow exposes read-only provider permissions only
         shell: bash

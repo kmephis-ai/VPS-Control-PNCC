@@ -179,19 +179,11 @@ class SelectionTests(unittest.TestCase):
 
 
 class ReadinessGuardTests(unittest.TestCase):
-    def test_repository_readiness_guard_is_transition_safe(self):
+    def test_repository_readiness_guard_remains_fail_closed_without_pinning_live_frontier(self):
         readiness = json.loads((ROOT / ".adwf-consumer/wave5-readiness.json").read_text(encoding="utf-8"))
         if readiness.get("framework", {}).get("source_sha") == selector.EXPECTED_ADWF_SHA:
             selector.validate_readiness_guard(ROOT)
             return
-        frontier = json.loads((ROOT / ".pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json").read_text(encoding="utf-8"))
-        self.assertEqual(frontier.get("state"), "ACTIVE")
-        self.assertEqual(frontier.get("frontier_id"), "PROVIDER_TRUTH_PLANNER_SELECTOR_CONTINUATION_INTEGRATION")
-        self.assertEqual(frontier.get("runtime_required"), False)
-        self.assertEqual(
-            frontier.get("next_natural_boundary"),
-            "EXACT_HEAD_CI_INSPECTION_CLASSIFICATION_RECOVERY_INTEGRATION",
-        )
         with self.assertRaisesRegex(selector.SelectionError, "^WAVE5_ADWF_PIN_DRIFT$"):
             selector.validate_readiness_guard(ROOT)
 
