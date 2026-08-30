@@ -44,15 +44,34 @@ jobs:
       - name: Run WU-125 adversarial tests
         run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_autonomous_continuation_human_by_exception_readiness_decision_after_lease_hygiene_wu125.py' -v
 
+      - name: Evaluate WU-125 governed frontier lifecycle
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || '7af4f2752ea59c2c79deb78defe04ce912282019' }}
+          WORK_BRANCH: ${{ github.head_ref || 'agent/PIPE-WU-125-human-by-exception-readiness-decision-after-lease-hygiene' }}
+        run: |
+          set -euo pipefail
+          test "$BASE_SHA" = "7af4f2752ea59c2c79deb78defe04ce912282019"
+          git show "$BASE_SHA:.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json" > /tmp/wu125-predecessor-frontier.json
+          test "$(git hash-object /tmp/wu125-predecessor-frontier.json)" = "15b4985175af740ac1e7f2234b0bd94a59c891a3"
+          python3 .pncc-dev/scripts/evaluate_governed_frontier_lifecycle.py \
+            --transition .pncc-dev/contracts/governed-frontier-transition-pipe-wu-125.json \
+            --predecessor /tmp/wu125-predecessor-frontier.json \
+            --successor .pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json \
+            --work-unit-id PIPE-WU-125 \
+            --base-sha "$BASE_SHA" \
+            --branch "$WORK_BRANCH"
+
       - name: Assert exact immutable WU-125 artifacts
         shell: bash
         run: |
           set -euo pipefail
           test "$(git hash-object .pncc-dev/contracts/autonomous-continuation-human-by-exception-readiness-decision-after-lease-hygiene-wu125.json)" = "77874740f525739f5f88980ec4d01889f0eb3b61"
-          test "$(git hash-object .pncc-dev/contracts/governed-frontier-transition-pipe-wu-125.json)" = "d51f841d64ea9e598322f8d50b5aff949902ad44"
+          test "$(git hash-object .pncc-dev/contracts/governed-frontier-transition-pipe-wu-125.json)" = "b3b5ad9d85380565b6a66600cabe8605048b4ae6"
           test "$(git hash-object .pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json)" = "ae0ba99bb3588b9a75e13789d233ce1379a51047"
           test "$(git hash-object .pncc-dev/scripts/evaluate_autonomous_continuation_human_by_exception_readiness_decision_after_lease_hygiene.py)" = "d725f96ef85ee2de372c5bc61c52068017e5cb4b"
           test "$(git hash-object .pncc-dev/tests/test_autonomous_continuation_human_by_exception_readiness_decision_after_lease_hygiene_wu125.py)" = "70d926669abe2964aa70ba58d52bec898a1043fe"
+          test "$(git hash-object .github/workflows/wave5-autonomous-continuation-human-by-exception-readiness-reassessment-after-lease-hygiene.yml)" = "3db26ce045d54c52e11126c73b968c1ea853bf17"
 
       - name: Assert WU-125 lease acquisition and post-hygiene topology
         shell: bash
@@ -92,6 +111,7 @@ jobs:
           git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort > /tmp/actual
           printf '%s\n' \
             '.github/workflows/wave5-autonomous-continuation-human-by-exception-readiness-decision-after-lease-hygiene.yml' \
+            '.github/workflows/wave5-autonomous-continuation-human-by-exception-readiness-reassessment-after-lease-hygiene.yml' \
             '.pncc-dev/contracts/autonomous-continuation-human-by-exception-readiness-decision-after-lease-hygiene-wu125.json' \
             '.pncc-dev/contracts/governed-frontier-transition-pipe-wu-125.json' \
             '.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json' \
@@ -118,10 +138,13 @@ jobs:
           assert f['frontier_id']=='AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_OPERATIONALIZATION_WITH_EXISTING_AUTHORITY_ONLY'
           assert f['runtime_required'] is False
           assert f['higher_autonomy_authority'] is False
+          assert t['transition_state']=='PREPARED_FOR_IN_PR_ADVANCEMENT'
           assert t['predecessor_frontier']['blob_sha']=='15b4985175af740ac1e7f2234b0bd94a59c891a3'
           assert t['successor_frontier']['blob_sha']=='ae0ba99bb3588b9a75e13789d233ce1379a51047'
           assert t['decision_grants_authority'] is False
           assert t['existing_authority_only'] is True
+          for key in ('provider_mutation_authority','issue_mutation_authority','direct_main_write_authority','merge_authority','runtime_action_authority','product_runtime_mutation_authority','adwf_binding_mutation_authority','adwf_repository_mutation_authority','release_tag_promotion_authority','ruleset_policy_mutation_authority','private_evidence_publication_authority','reserve_1080_lifecycle_mutation_authority','primary_1081_lifecycle_mutation_authority'):
+              assert t[key] is False,key
           PY
 
       - name: Assert workflow itself is read only
