@@ -40,14 +40,12 @@ jobs:
           ]
           assert all(p[k] is False for k in mutation)
           PY
-      - name: Assert no provider-state or protected-surface mutation in PR
+      - name: Assert no provider-state/protected mutation or allow exact WU-105 proof-only provenance
         if: github.event_name == 'pull_request'
         run: |
           set -euo pipefail
           git fetch --no-tags --depth=1 origin "${{ github.event.pull_request.base.sha }}"
-          changed="$(git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}")"
-          printf '%s\n' "$changed"
-          ! printf '%s\n' "$changed" | grep -E '^(\.pncc-state/|src/windows-v7/|\.adwf-consumer/external-binding\.json$|tools/runtime-agent/)'
+          python3 .pncc-dev/scripts/check_wu105_provenance_compatibility.py --base "${{ github.event.pull_request.base.sha }}" --head "${{ github.event.pull_request.head.sha }}"
       - name: Assert workflow is read only
         run: |
           python3 - <<'PY'

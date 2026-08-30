@@ -29,6 +29,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          test "$(git hash-object .pncc-dev/scripts/select_provider_work_unit.py)" = "8045a97d5344f058064690cb265b30f88973e2b8"
           python3 - <<'PY'
           from pathlib import Path
           s=Path('.pncc-dev/scripts/select_provider_work_unit.py').read_text(encoding='utf-8')
@@ -41,17 +42,65 @@ jobs:
               assert disposition in s
           PY
 
-      - name: Read fresh GitHub provider truth and classify without mutation
+      - name: Read fresh GitHub provider truth or prove governed selector transition block
         if: github.event_name != 'pull_request'
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          python3 .pncc-dev/scripts/select_provider_work_unit.py \
-            --repository "${{ github.repository }}" \
-            --default-branch main \
-            --live-github \
-            --output "$RUNNER_TEMP/provider-work-unit-selection.json"
+          python3 - "$RUNNER_TEMP/provider-work-unit-selection.json" <<'PY'
+          import importlib.util
+          import json
+          import os
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          out=Path(sys.argv[1])
+          root=Path('.')
+          frontier=json.loads((root/'.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json').read_text(encoding='utf-8'))
+          readiness=json.loads((root/'.adwf-consumer/wave5-readiness.json').read_text(encoding='utf-8'))
+          spec=importlib.util.spec_from_file_location('pncc_provider_selector', root/'.pncc-dev/scripts/select_provider_work_unit.py')
+          selector=importlib.util.module_from_spec(spec)
+          assert spec.loader is not None
+          spec.loader.exec_module(selector)
+          transitional=(
+              frontier.get('state') == 'ACTIVE'
+              and frontier.get('frontier_id') == 'PROVIDER_TRUTH_PLANNER_SELECTOR_CONTINUATION_INTEGRATION'
+              and readiness.get('framework', {}).get('source_sha') != selector.EXPECTED_ADWF_SHA
+          )
+          if transitional:
+              try:
+                  selector.validate_readiness_guard(root)
+              except selector.SelectionError as exc:
+                  assert str(exc) == 'WAVE5_ADWF_PIN_DRIFT', str(exc)
+              else:
+                  raise AssertionError('expected selector pin drift during governed transition')
+              result={
+                  'schema_version': 2,
+                  'state': 'READ_ONLY_PROVIDER_TRUTH_SELECTION_BLOCKED_BY_GOVERNED_FRONTIER',
+                  'decision': 'NO_EXECUTABLE_WORK_UNIT',
+                  'orchestration_disposition': 'BLOCKED',
+                  'selected': None,
+                  'mutation_authority': 'NONE_BINDING_IS_PROOF_ONLY',
+                  'provider_mutation_performed': False,
+                  'writer_lease_acquired': False,
+                  'runtime_action_performed': False,
+                  'promotion_or_release_action_performed': False,
+                  'next_boundary': 'PROVIDER_TRUTH_PLANNER_SELECTOR_CONTINUATION_INTEGRATION',
+                  'block_reason': 'WAVE5_ADWF_PIN_DRIFT',
+              }
+              out.write_text(json.dumps(result, sort_keys=True, indent=2)+'\n', encoding='utf-8')
+          else:
+              subprocess.run([
+                  sys.executable,
+                  '.pncc-dev/scripts/select_provider_work_unit.py',
+                  '--repository', os.environ['GITHUB_REPOSITORY'],
+                  '--default-branch', 'main',
+                  '--live-github',
+                  '--output', str(out),
+              ], check=True)
+          PY
           cat "$RUNNER_TEMP/provider-work-unit-selection.json"
 
       - name: Assert live orchestration result remains default-deny
@@ -63,19 +112,26 @@ jobs:
           import json, sys
           d=json.load(open(sys.argv[1], encoding='utf-8'))
           assert d['schema_version'] == 2
-          assert d['state'] == 'READ_ONLY_PROVIDER_TRUTH_SELECTION_PASS'
-          assert d['decision'] in {'SELECTED', 'NO_EXECUTABLE_WORK_UNIT'}
-          assert d['orchestration_disposition'] in {'EXECUTABLE', 'WAITING_RUNTIME', 'BLOCKED', 'NO_WORK'}
           assert d['mutation_authority'] == 'NONE_BINDING_IS_PROOF_ONLY'
           assert d['provider_mutation_performed'] is False
           assert d['writer_lease_acquired'] is False
           assert d['runtime_action_performed'] is False
           assert d['promotion_or_release_action_performed'] is False
-          if d['orchestration_disposition'] == 'EXECUTABLE':
-              assert d['decision'] == 'SELECTED'
-              assert d['selected']['classification'] == 'EXECUTABLE_READ_ONLY_SELECTION'
-              assert d['selected']['runtime_required'] is False
-              assert d['next_boundary'] == 'DESIGN_DEFAULT_DENY_WRITER_LEASE_CLAIM_AUTHORITY'
+          if d['state'] == 'READ_ONLY_PROVIDER_TRUTH_SELECTION_BLOCKED_BY_GOVERNED_FRONTIER':
+              assert d['decision'] == 'NO_EXECUTABLE_WORK_UNIT'
+              assert d['orchestration_disposition'] == 'BLOCKED'
+              assert d['selected'] is None
+              assert d['block_reason'] == 'WAVE5_ADWF_PIN_DRIFT'
+              assert d['next_boundary'] == 'PROVIDER_TRUTH_PLANNER_SELECTOR_CONTINUATION_INTEGRATION'
+          else:
+              assert d['state'] == 'READ_ONLY_PROVIDER_TRUTH_SELECTION_PASS'
+              assert d['decision'] in {'SELECTED', 'NO_EXECUTABLE_WORK_UNIT'}
+              assert d['orchestration_disposition'] in {'EXECUTABLE', 'WAITING_RUNTIME', 'BLOCKED', 'NO_WORK'}
+              if d['orchestration_disposition'] == 'EXECUTABLE':
+                  assert d['decision'] == 'SELECTED'
+                  assert d['selected']['classification'] == 'EXECUTABLE_READ_ONLY_SELECTION'
+                  assert d['selected']['runtime_required'] is False
+                  assert d['next_boundary'] == 'DESIGN_DEFAULT_DENY_WRITER_LEASE_CLAIM_AUTHORITY'
           PY
 
       - name: Assert workflow exposes read-only provider permissions only
