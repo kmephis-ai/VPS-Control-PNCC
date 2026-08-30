@@ -104,7 +104,7 @@ jobs:
             '.pncc-dev/contracts/autonomous-continuation-human-by-exception-readiness-rubric.json' \
             '.pncc-dev/contracts/governed-frontier-transition-pipe-wu-119.json' \
             '.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json' \
-            '.pncc-dev/scripts/evaluate_autonomous_continuation_human_by-exception_readiness.py' \
+            '.pncc-dev/scripts/evaluate_autonomous_continuation_human_by_exception_readiness.py' \
             '.pncc-dev/tests/test_autonomous_continuation_human_by_exception_readiness_wu119.py' | sort > /tmp/expected
           diff -u /tmp/expected /tmp/actual
           ! grep -E '^(\.pncc-state/|src/windows-v7/|\.adwf-consumer/|tools/runtime-agent/)' /tmp/actual
