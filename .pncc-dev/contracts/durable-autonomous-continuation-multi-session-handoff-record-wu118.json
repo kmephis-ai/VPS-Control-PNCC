@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "role": "DURABLE_AUTONOMOUS_CONTINUATION_MULTI_SESSION_HANDOFF_RECORD",
+  "record_state": "PERSISTED_HINT_ONLY",
+  "session_sequence": 2,
+  "session_id": "PNCC-SESSION-WU118-MULTI-SESSION-A2",
+  "checkpoint_id": "PNCC-CONTINUATION-CHECKPOINT-WU118-CLEAN-A2",
+  "checkpoint_blob_sha": "b458e310ce54a86e9be0ecc7e1fda4e9530d6e92",
+  "previous_checkpoint_id": "PNCC-CONTINUATION-CHECKPOINT-WU117-CLEAN-A1",
+  "retained_historical_checkpoint_ids": [
+    "PNCC-CONTINUATION-CHECKPOINT-WU115-CLEAN-A1",
+    "PNCC-CONTINUATION-CHECKPOINT-WU117-CLEAN-A1"
+  ],
+  "handoff_class": "CLEAN_ITERATION_BOUNDARY",
+  "recorded_main_sha": "395ed526d845ea7bb084467fe20237b3c5edf92e",
+  "selected_work_unit": {
+    "work_unit_id": "PIPE-WU-118",
+    "issue_number": 284,
+    "base_sha": "395ed526d845ea7bb084467fe20237b3c5edf92e",
+    "runtime_required": false,
+    "provider_open": true
+  },
+  "provider_state": {
+    "state_branch_head_sha": "ba7b057162ebd80aeccdbea1600306929b9d9941",
+    "registry_blob_sha": "a0faf93cd35ffb422003d599677cfe4ea375e77e",
+    "registry_generation": 26
+  },
+  "execution_state": {
+    "lease_state": "ACTIVE",
+    "lease_id": "e5fdaab4-192f-4c88-a4dc-8590f0d4c7f6",
+    "branch_name": "agent/PIPE-WU-118-durable-autonomous-continuation-multi-session-steady-state-execution",
+    "branch_head_sha": "395ed526d845ea7bb084467fe20237b3c5edf92e",
+    "pull_request_state": "NONE",
+    "pull_request_number": null,
+    "ci_state": "NONE",
+    "ci_head_sha": null
+  },
+  "last_completed_iteration": 2,
+  "provider_readback_completed": true,
+  "persisted_decisions": {
+    "control_loop_decision": "PLAN_EXISTING_BOUNDED_BRANCH_CREATE",
+    "execution_admission_decision": "ADMIT_EXISTING_WRITER_LEASE_AUTHORITY",
+    "ci_decision": null,
+    "merge_eligibility_decision": null
+  },
+  "checkpoint_is_mutation_authority": false,
+  "checkpoint_cas_tokens_reusable": false,
+  "checkpoint_ci_success_reusable": false,
+  "checkpoint_admission_reusable": false,
+  "checkpoint_merge_eligibility_reusable": false,
+  "checkpoint_writer_lease_ownership_reusable": false,
+  "contains_private_runtime_payload": false,
+  "contains_credentials": false,
+  "contains_host_identifiers": false,
+  "contains_secret_transport_data": false
+}
