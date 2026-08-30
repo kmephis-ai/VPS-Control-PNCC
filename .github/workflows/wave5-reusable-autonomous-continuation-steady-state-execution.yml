@@ -1,0 +1,127 @@
+name: wave5-reusable-autonomous-continuation-steady-state-execution
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  reusable-autonomous-continuation-steady-state-execution:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate and replay WU-114 evidence
+        run: python3 .pncc-dev/scripts/validate_reusable_autonomous_continuation_steady_state_execution_wu114.py
+
+      - name: Run WU-114 adversarial tests
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_reusable_autonomous_continuation_steady_state_execution_wu114.py' -v
+
+      - name: Assert exact WU-114 artifacts and immutable anchors
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object .pncc-dev/contracts/reusable-autonomous-continuation-steady-state-execution-wu114.json)" = "8384ce0cc7440fe46ce08ba0061233012757cc49"
+          test "$(git hash-object .pncc-dev/scripts/validate_reusable_autonomous_continuation_steady_state_execution_wu114.py)" = "59b2d93593b433e6dbeb0e0b3e5c0d2d286f1fd0"
+          test "$(git hash-object .pncc-dev/tests/test_reusable_autonomous_continuation_steady_state_execution_wu114.py)" = "cc26c2bb39e8241199bdecdb5e6bab830d49b0d0"
+          test "$(git hash-object .pncc-dev/contracts/governed-frontier-transition-pipe-wu-114.json)" = "46ff3f6b30c5d153883ec114807db002b8d24b88"
+          test "$(git hash-object .pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json)" = "335b9f9d6e3c434dcb5bd61905c3cad9ece9fab6"
+          test "$(git hash-object .pncc-dev/contracts/reusable-autonomous-continuation-steady-state-policy.json)" = "6957f09565a66e7b7f7206a640157aac4491bfa8"
+          test "$(git hash-object .pncc-dev/scripts/evaluate_reusable_autonomous_continuation_steady_state.py)" = "66af19669dbd7efff1aa3709d263c590fcec5108"
+          test "$(git hash-object .pncc-dev/contracts/reusable-autonomous-continuation-executor-authorized.json)" = "2c62780720dace54b220cedd42f77f834886e62a"
+          test "$(git hash-object .pncc-dev/contracts/reusable-writer-lease-bounded-branch-authorized.json)" = "717e1f9081915f40fad2e0620c64245a650ca235"
+
+      - name: Assert historical provider-state transaction chain
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin pncc-provider-state
+          git cat-file -e 91f2250b630d1c394a509e0bb97b41a49b46e4fa^{commit}
+          git cat-file -e f766134d7630ce980e40df9932cb7e301e00838b^{commit}
+          test "$(git rev-parse f766134d7630ce980e40df9932cb7e301e00838b^)" = "91f2250b630d1c394a509e0bb97b41a49b46e4fa"
+          git show f766134d7630ce980e40df9932cb7e301e00838b:.pncc-state/writer-lease-registry.json > /tmp/wu114-registry.json
+          test "$(git hash-object /tmp/wu114-registry.json)" = "0f4feb90a9eaa1c0598229d892d24d44a899eb48"
+          python3 - <<'PY'
+          import json
+          r=json.load(open('/tmp/wu114-registry.json'))
+          assert r['generation']==22
+          matches=[e for e in r['entries'] if e['lease_id']=='153462e4-59bb-44ae-9864-f6e35a57ba2d']
+          assert len(matches)==1
+          e=matches[0]
+          assert e['work_unit_id']=='PIPE-WU-114'
+          assert e['state']=='ACTIVE'
+          assert e['generation']==22
+          assert e['base_sha']=='add2818df8551d7f95beee2487f5b0bee57d204a'
+          assert e['branch']=='agent/PIPE-WU-114-reusable-autonomous-continuation-steady-state-execution'
+          PY
+
+      - name: Assert exact bounded diff and branch ancestry
+        if: github.event_name == 'pull_request' && github.head_ref == 'agent/PIPE-WU-114-reusable-autonomous-continuation-steady-state-execution'
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$BASE_SHA" = "add2818df8551d7f95beee2487f5b0bee57d204a"
+          test "$(git merge-base "$BASE_SHA" "$HEAD_SHA")" = "$BASE_SHA"
+          FIRST_COMMIT="$(git rev-list --reverse "$BASE_SHA..$HEAD_SHA" | head -n 1)"
+          test -n "$FIRST_COMMIT"
+          test "$(git rev-parse "$FIRST_COMMIT^")" = "$BASE_SHA"
+          git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort > /tmp/actual
+          printf '%s\n' \
+            '.github/workflows/wave5-reusable-autonomous-continuation-steady-state-execution.yml' \
+            '.pncc-dev/contracts/governed-frontier-transition-pipe-wu-114.json' \
+            '.pncc-dev/contracts/reusable-autonomous-continuation-steady-state-execution-wu114.json' \
+            '.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json' \
+            '.pncc-dev/scripts/validate_reusable_autonomous_continuation_steady_state_execution_wu114.py' \
+            '.pncc-dev/tests/test_reusable_autonomous_continuation_steady_state_execution_wu114.py' | sort > /tmp/expected
+          diff -u /tmp/expected /tmp/actual
+          ! grep -E '^(\.pncc-state/|src/windows-v7/|\.adwf-consumer/|tools/runtime-agent/)' /tmp/actual
+
+      - name: Assert two fresh one-transaction iterations and durable-resume frontier
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          e=json.loads(Path('.pncc-dev/contracts/reusable-autonomous-continuation-steady-state-execution-wu114.json').read_text())
+          f=json.loads(Path('.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json').read_text())
+          assert e['required_iteration_count']==2 and e['completed_iteration_count']==2
+          assert [x['iteration_sequence'] for x in e['iterations']]==[1,2]
+          assert all(x['delegated_transaction_count']==1 for x in e['iterations'])
+          assert all(x['provider_truth_fresh'] for x in e['iterations'])
+          assert all(x['control_loop_fresh_for_iteration'] for x in e['iterations'])
+          assert all(x['execution_admission_fresh_for_iteration'] for x in e['iterations'])
+          assert all(x['fresh_provider_readback_completed'] for x in e['iterations'])
+          assert e['iterations'][1]['previous_iteration_fresh_provider_readback_completed'] is True
+          assert e['stale_control_loop_or_admission_reuse_performed'] is False
+          assert e['batch_provider_mutation_performed'] is False
+          assert e['authority_broadening_performed'] is False
+          assert f['frontier_id']=='DURABLE_AUTONOMOUS_CONTINUATION_SESSION_RESUME'
+          assert f['runtime_required'] is False
+          assert f['next_natural_boundary']=='DURABLE_AUTONOMOUS_CONTINUATION_SESSION_RESUME_EXECUTION'
+          PY
+
+      - name: Assert workflow itself is read only
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          t=Path('.github/workflows/wave5-reusable-autonomous-continuation-steady-state-execution.yml').read_text().lower()
+          forbidden=['contents:'+' write','issues:'+' write','pull-requests:'+' write','actions:'+' write','git'+' push','gh'+' pr merge','gh'+' issue close','--method'+' post','--method'+' patch','--method'+' put','--method'+' delete']
+          for token in forbidden: assert token not in t, token
+          PY
+
+      - name: Assert repository remains clean
+        run: test -z "$(git status --porcelain)"
