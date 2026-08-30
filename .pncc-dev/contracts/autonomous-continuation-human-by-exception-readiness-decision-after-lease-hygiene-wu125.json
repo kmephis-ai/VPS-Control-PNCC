@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "role": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_READINESS_DECISION",
+  "decision_state": "FINAL_APPROVED_WITH_EXISTING_AUTHORITY_ONLY",
+  "decision_outcome": "APPROVE_HUMAN_BY_EXCEPTION_WITH_EXISTING_AUTHORITY_ONLY",
+  "human_by_exception_operating_mode_approved": true,
+  "mode_scope": "EXISTING_CANONICAL_AUTHORITY_ONLY",
+  "higher_autonomy_authorized": false,
+  "authority_granted": false,
+  "repository": "kmephis-ai/VPS-Control-PNCC",
+  "default_branch": "main",
+  "work_unit": {
+    "work_unit_id": "PIPE-WU-125",
+    "issue_number": 298,
+    "base_sha": "7af4f2752ea59c2c79deb78defe04ce912282019",
+    "branch": "agent/PIPE-WU-125-human-by-exception-readiness-decision-after-lease-hygiene",
+    "runtime_required": false
+  },
+  "decision_reference_time": "2026-08-30T18:42:00Z",
+  "assessment_input": {
+    "path": ".pncc-dev/contracts/autonomous-continuation-human-by-exception-readiness-reassessment-wu124.json",
+    "blob_sha": "b63c89ef5b1cd785bbbab934a3ab87cb45e5245a",
+    "required_verdict": "READY_WITH_EXISTING_AUTHORITY_ONLY",
+    "authority_granted": false,
+    "source_head_sha": "56f66ba76f2f1af7ade69433e630eb61c3b4eda6",
+    "merged_main_sha": "7af4f2752ea59c2c79deb78defe04ce912282019"
+  },
+  "provider_snapshot": {
+    "state_branch": "pncc-provider-state",
+    "state_branch_head_sha": "1ccba33253b1c3655d3046baa7021787e7daf12f",
+    "registry_blob_sha": "91216366ba87423ffa8d189927a458c09e6a5738",
+    "registry_generation": 33
+  },
+  "current_writer": {
+    "lease_id": "27829f63-9bc6-4ba3-b495-4985bb36be32",
+    "work_unit_id": "PIPE-WU-125",
+    "generation": 33,
+    "base_sha": "7af4f2752ea59c2c79deb78defe04ce912282019",
+    "branch": "agent/PIPE-WU-125-human-by-exception-readiness-decision-after-lease-hygiene",
+    "state": "ACTIVE",
+    "expires_at": "2026-08-30T19:40:00Z",
+    "current_ownership_eligible": true
+  },
+  "lease_hygiene_decision": {
+    "stale_active_history_count": 0,
+    "residual_blockers": [],
+    "historical_state_reconciliation_required": false,
+    "historical_state_mutation_performed_in_wu125": false,
+    "classification": "CLEAR"
+  },
+  "decision_reasons": [
+    {
+      "id": "POST_HYGIENE_REASSESSMENT_READY",
+      "classification": "PROVEN",
+      "detail": "WU-124 canonical reassessment is READY_WITH_EXISTING_AUTHORITY_ONLY with no residual blockers."
+    },
+    {
+      "id": "EXISTING_AUTHORITY_BOUNDARIES_PRESERVED",
+      "classification": "MANDATORY",
+      "detail": "Human-by-Exception operation is approved only within authority already canonical before WU-125."
+    }
+  ],
+  "classification_boundaries": {
+    "automatic_continuation": "EXISTING_AUTHORITY_ONLY",
+    "wait": "WAIT_ONLY",
+    "stop": "STOP_ONLY",
+    "separate_authority": "SEPARATE_AUTHORITY_REQUIRED",
+    "owner_escalation": "OWNER_ESCALATION_REQUIRED"
+  },
+  "decision_constraints": {
+    "no_authority_expansion": true,
+    "owner_escalation_preserved": true,
+    "runtime_qualification_preserved": true,
+    "wait_stop_no_replay_preserved": true,
+    "writer_lease_history_immutable_in_wu125": true,
+    "product_runtime_out_of_scope": true,
+    "adwf_out_of_scope": true,
+    "release_ruleset_security_out_of_scope": true,
+    "reserve_1080_out_of_scope": true,
+    "primary_1081_out_of_scope": true
+  },
+  "authority_flags": {
+    "provider_mutation_authority": false,
+    "writer_lease_mutation_authority": false,
+    "merge_authority": false,
+    "runtime_mutation_authority": false,
+    "product_mutation_authority": false,
+    "release_tag_authority": false,
+    "ruleset_mutation_authority": false,
+    "adwf_mutation_authority": false,
+    "higher_autonomy_authority": false,
+    "owner_boundary_override": false
+  },
+  "public_safety": {
+    "private_evidence_exposure": false,
+    "credential_exposure": false,
+    "reserve_1080_lifecycle_mutation": false,
+    "primary_1081_lifecycle_mutation": false
+  },
+  "next_boundary": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_OPERATIONALIZATION_WITH_EXISTING_AUTHORITY_ONLY"
+}

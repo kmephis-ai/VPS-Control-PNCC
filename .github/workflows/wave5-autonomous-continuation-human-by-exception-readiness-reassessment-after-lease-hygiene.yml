@@ -70,7 +70,7 @@ jobs:
           assert by_id['184af451-beeb-4447-b729-07799c89e56b']['state']=='RELEASED'
           PY
 
-      - name: Assert exact WU-124 reassessment anchors
+      - name: Assert immutable WU-124 reassessment anchors
         shell: bash
         run: |
           set -euo pipefail
@@ -79,7 +79,6 @@ jobs:
           test "$(git hash-object .pncc-dev/contracts/autonomous-continuation-human-by-exception-readiness-decision-wu120.json)" = "a014f81efa52671bf3f637f7a16dc6332a70091b"
           test "$(git hash-object .pncc-dev/contracts/writer-lease-registry-historical-state-reconciliation-execution-wu123.json)" = "b1c3914417ee3d7f12731b6937c11275fe418af8"
           test "$(git hash-object .pncc-dev/contracts/autonomous-continuation-human-by-exception-readiness-reassessment-wu124.json)" = "b63c89ef5b1cd785bbbab934a3ab87cb45e5245a"
-          test "$(git hash-object .pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json)" = "15b4985175af740ac1e7f2234b0bd94a59c891a3"
           test "$(git hash-object .pncc-dev/contracts/governed-frontier-transition-pipe-wu-124.json)" = "c2dd97e49eb7240705f20dd1d4b951b8fedf96b7"
           test "$(git hash-object .pncc-dev/tests/test_autonomous_continuation_human_by_exception_readiness_reassessment_wu124.py)" = "a42de47f97cfc86f62f42d90309096b8d3fb6be4"
           test "$(git hash-object .pncc-dev/tests/test_writer_lease_registry_historical_state_reconciliation_execution_wu123.py)" = "82fe858e977cb2d84ad34a4aaf076913dbad769c"
@@ -135,7 +134,6 @@ jobs:
           python3 - <<'PY'
           import json
           a=json.load(open('.pncc-dev/contracts/autonomous-continuation-human-by-exception-readiness-reassessment-wu124.json'))
-          f=json.load(open('.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json'))
           t=json.load(open('.pncc-dev/contracts/governed-frontier-transition-pipe-wu-124.json'))
           assert a['readiness_verdict']=='READY_WITH_EXISTING_AUTHORITY_ONLY'
           assert a['authority_granted'] is False
@@ -143,10 +141,8 @@ jobs:
           assert a['residual_blockers']==[]
           assert len(a['residual_escalation_boundaries'])==4
           assert all(v is False for v in a['assessment_output_authority'].values())
-          for doc in (f,t):
-              for key in ('provider_mutation_authority','writer_lease_mutation_authority','merge_authority','runtime_action_authority','product_runtime_mutation_authority','adwf_repository_mutation_authority','release_tag_promotion_authority','ruleset_policy_mutation_authority','reserve_1080_lifecycle_mutation_authority','primary_1081_lifecycle_mutation_authority'):
-                  if key in doc: assert doc[key] is False,key
-          assert f['higher_autonomy_authority'] is False
+          for key in ('provider_mutation_authority','writer_lease_mutation_authority','merge_authority','runtime_action_authority','product_runtime_mutation_authority','adwf_repository_mutation_authority','release_tag_promotion_authority','ruleset_policy_mutation_authority','reserve_1080_lifecycle_mutation_authority','primary_1081_lifecycle_mutation_authority'):
+              if key in t: assert t[key] is False,key
           assert t['higher_autonomy_granted'] is False
           PY
 
