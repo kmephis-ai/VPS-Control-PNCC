@@ -13,7 +13,7 @@
   },
   "framework": {
     "repository": "kmephis-ai/AI-Development-Framework",
-    "source_sha": "c7e0c059a901869d6369864e98d06238484778ec",
+    "source_sha": "8253701aa261d6ddcdfece15f355e407a2de44ef",
     "framework_version": "1.6.0",
     "external_binding_schema_version": 1,
     "external_binding_schema_blob_sha": "c3762053920076ea1ac9ba1865cbfacb6fdcf0c0",

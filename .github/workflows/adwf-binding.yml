@@ -27,7 +27,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: kmephis-ai/AI-Development-Framework
-          ref: c7e0c059a901869d6369864e98d06238484778ec
+          ref: 8253701aa261d6ddcdfece15f355e407a2de44ef
           path: adwf-core
           persist-credentials: false
 
@@ -38,11 +38,17 @@ jobs:
           expected_consumer="${{ github.event.pull_request.head.sha || github.sha }}"
           actual_consumer="$(git -C pncc rev-parse HEAD)"
           actual_framework="$(git -C adwf-core rev-parse HEAD)"
+          actual_pack_blob="$(git -C adwf-core rev-parse HEAD:.adwf/packs/powershell.json)"
+          actual_schema_blob="$(git -C adwf-core rev-parse HEAD:.adwf/schemas/external-consumer-binding.schema.json)"
           test "$actual_consumer" = "$expected_consumer"
-          test "$actual_framework" = "c7e0c059a901869d6369864e98d06238484778ec"
+          test "$actual_framework" = "8253701aa261d6ddcdfece15f355e407a2de44ef"
+          test "$actual_pack_blob" = "b4ad2f2459079039a59c3e687ea269d2c6ca73fe"
+          test "$actual_schema_blob" = "c3762053920076ea1ac9ba1865cbfacb6fdcf0c0"
           test ! -e pncc/.adwf
           echo "PNCC_SHA=$actual_consumer"
           echo "ADWF_SHA=$actual_framework"
+          echo "POWERSHELL_PACK_BLOB=$actual_pack_blob"
+          echo "EXTERNAL_BINDING_SCHEMA_BLOB=$actual_schema_blob"
 
       - name: Validate external thin consumer binding
         shell: bash
