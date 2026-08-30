@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "role": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_OPERATIONALIZATION_POLICY",
+  "state": "READY",
+  "mode": "HUMAN_BY_EXCEPTION_EXISTING_AUTHORITY_ONLY",
+  "repository": "kmephis-ai/VPS-Control-PNCC",
+  "default_branch": "main",
+  "snapshot_role": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_OPERATIONALIZATION_SNAPSHOT",
+  "work_unit": {
+    "work_unit_id": "PIPE-WU-126",
+    "issue_number": 300,
+    "base_sha": "0114ebb9f4e49d24922500803803b5507da7aa7c",
+    "branch": "agent/PIPE-WU-126-human-by-exception-operationalization-existing-authority-only",
+    "runtime_required": false
+  },
+  "provider_snapshot": {
+    "state_branch": "pncc-provider-state",
+    "state_branch_head_sha": "13c8eeb0f91a8e0732c0aa89ea26bfc1199a2a5e",
+    "registry_blob_sha": "91ead615f54e43c6149f99546b7177b6cc7c714f",
+    "registry_generation": 34,
+    "writer_lease_id": "c9f6690a-5db3-486b-b11b-30d300ffc98e"
+  },
+  "decision_input": {
+    "path": ".pncc-dev/contracts/autonomous-continuation-human-by-exception-readiness-decision-after-lease-hygiene-wu125.json",
+    "blob_sha": "77874740f525739f5f88980ec4d01889f0eb3b61",
+    "required_outcome": "APPROVE_HUMAN_BY_EXCEPTION_WITH_EXISTING_AUTHORITY_ONLY",
+    "authority_granted": false,
+    "higher_autonomy_authorized": false
+  },
+  "anchor_paths": {
+    "execution_admission_policy": ".pncc-dev/contracts/autonomous-continuation-execution-admission-policy.json",
+    "execution_admission_evaluator": ".pncc-dev/scripts/evaluate_autonomous_continuation_execution_admission.py",
+    "control_loop_policy": ".pncc-dev/contracts/autonomous-continuation-control-loop-policy.json"
+  },
+  "anchor_blobs": {
+    "execution_admission_policy": "406d78da6250c452bfc7706b57dc51a18ca48977",
+    "execution_admission_evaluator": "cde13515632717b81cef77876e53e9ceef0c46bf",
+    "control_loop_policy": "822bcd1833ff4843b6bd176337b3ef3b742275de"
+  },
+  "admitted_existing_authority_mapping": {
+    "ADMIT_EXISTING_MATERIALIZATION_AUTHORITY": {
+      "delegated_authority": "EXISTING_REUSABLE_CANONICAL_WORK_UNIT_MATERIALIZATION_AUTHORITY",
+      "outcome": "CONTINUE_UNDER_EXISTING_AUTHORITY_ONLY"
+    },
+    "ADMIT_EXISTING_WRITER_LEASE_AUTHORITY": {
+      "delegated_authority": "EXISTING_REUSABLE_WRITER_LEASE_BOUNDED_BRANCH_AUTHORITY",
+      "outcome": "CONTINUE_UNDER_EXISTING_AUTHORITY_ONLY"
+    },
+    "ADMIT_EXISTING_MERGE_CLOSE_AUTHORITY": {
+      "delegated_authority": "EXISTING_REUSABLE_AUTONOMOUS_MERGE_CLOSE_AUTHORITY",
+      "outcome": "CONTINUE_UNDER_EXISTING_AUTHORITY_ONLY"
+    }
+  },
+  "non_mutating_mapping": {
+    "WAIT_ONLY": "WAIT_ONLY",
+    "STOP_ONLY": "STOP_ONLY",
+    "SEPARATE_AUTHORITY_REQUIRED": "SEPARATE_AUTHORITY_REQUIRED",
+    "BLOCKED": "BLOCKED"
+  },
+  "owner_exception_mapping": {
+    "classification": "OWNER_ESCALATION_REQUIRED",
+    "outcome": "OWNER_ESCALATION_REQUIRED",
+    "mutation_permitted": false,
+    "automatic_replay_permitted": false
+  },
+  "outcomes": [
+    "CONTINUE_UNDER_EXISTING_AUTHORITY_ONLY",
+    "OWNER_ESCALATION_REQUIRED",
+    "WAIT_ONLY",
+    "STOP_ONLY",
+    "SEPARATE_AUTHORITY_REQUIRED",
+    "BLOCKED"
+  ],
+  "semantics": {
+    "continue_requires_exact_existing_delegated_authority": true,
+    "owner_escalation_requires_explicit_exception_classification": true,
+    "wait_is_no_mutation_no_replay": true,
+    "stop_is_terminal": true,
+    "separate_authority_is_fail_closed": true,
+    "blocked_is_fail_closed": true,
+    "fresh_provider_truth_required": true,
+    "exact_current_main_binding_required": true
+  },
+  "authority_flags": {
+    "provider_mutation_authority": false,
+    "issue_create_authority": false,
+    "issue_update_authority": false,
+    "issue_close_authority": false,
+    "branch_mutation_authority": false,
+    "pull_request_mutation_authority": false,
+    "writer_lease_mutation_authority": false,
+    "workflow_rerun_authority": false,
+    "merge_authority": false,
+    "runtime_action_authority": false,
+    "product_runtime_mutation_authority": false,
+    "adwf_binding_mutation_authority": false,
+    "adwf_repository_mutation_authority": false,
+    "release_tag_promotion_authority": false,
+    "ruleset_policy_mutation_authority": false,
+    "private_evidence_publication_authority": false,
+    "reserve_1080_lifecycle_mutation_authority": false,
+    "primary_1081_lifecycle_mutation_authority": false,
+    "higher_autonomy_authority": false,
+    "owner_boundary_override": false
+  },
+  "next_boundary": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_OPERATIONALIZATION_EXECUTION_WITH_EXISTING_AUTHORITY_ONLY"
+}
