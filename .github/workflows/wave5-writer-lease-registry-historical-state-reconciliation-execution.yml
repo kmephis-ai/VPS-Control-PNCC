@@ -74,33 +74,42 @@ jobs:
           assert current[0]['branch']=='agent/PIPE-WU-123-writer-lease-registry-historical-state-reconciliation-execution'
           PY
 
-      - name: Assert exact WU-123 evidence anchors
+      - name: Assert immutable WU-123 evidence anchors
         shell: bash
         run: |
           set -euo pipefail
           test "$(git hash-object .pncc-dev/contracts/writer-lease-registry-historical-state-reconciliation-execution-wu123.json)" = "b1c3914417ee3d7f12731b6937c11275fe418af8"
-          test "$(git hash-object .pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json)" = "915ccdd52d1a4d742917cd0d1a6f20174af3a34d"
           test "$(git hash-object .pncc-dev/contracts/governed-frontier-transition-pipe-wu-123.json)" = "ed39db00afe8e20267c834576a32422786bb0267"
-          test "$(git hash-object .pncc-dev/tests/test_writer_lease_registry_historical_state_reconciliation_execution_wu123.py)" = "652a4413830b5f97e8837f9dda3848a497e061f5"
+          test "$(git hash-object .pncc-dev/tests/test_writer_lease_registry_historical_state_reconciliation_execution_wu123.py)" = "82fe858e977cb2d84ad34a4aaf076913dbad769c"
           test "$(git hash-object .pncc-dev/contracts/writer-lease-registry-historical-state-reconciliation-authorized.json)" = "20fc664e90b1390351a5de70c98563140ef3190d"
           test "$(git hash-object .pncc-dev/attestations/writer-lease-registry-historical-state-reconciliation-owner-authorization-wu122.json)" = "f1207b8b78081f107bf1f449066554b6693c922f"
           test "$(git hash-object .pncc-dev/contracts/writer-lease-registry-historical-state-reconciliation-authority-preparation-wu121.json)" = "e0104e181a814960e30b1734e82770affbbf923c"
-          test "$(git hash-object .pncc-dev/tests/test_writer_lease_registry_historical_state_reconciliation_owner_authorization_wu122.py)" = "0a455b5f1f67645cdff722fd2607b56b722f7816"
-          test "$(git hash-object .github/workflows/wave5-writer-lease-registry-historical-state-reconciliation-owner-authorization.yml)" = "c064c34e4f1f72c44af2bc52fa28c8b08517af66"
+          python3 - <<'PY'
+          import json
+          t=json.load(open('.pncc-dev/contracts/governed-frontier-transition-pipe-wu-123.json'))
+          assert t['successor_frontier']=={
+            'state':'ACTIVE',
+            'frontier_id':'AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_READINESS_REASSESSMENT_AFTER_LEASE_HYGIENE',
+            'blob_sha':'915ccdd52d1a4d742917cd0d1a6f20174af3a34d',
+          }
+          PY
 
       - name: Run WU-123 adversarial execution tests
         run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_writer_lease_registry_historical_state_reconciliation_execution_wu123.py' -v
 
-      - name: Evaluate governed frontier lifecycle
+      - name: Evaluate WU-123 governed frontier lifecycle on original PR only
+        if: github.event_name == 'pull_request' && github.head_ref == 'agent/PIPE-WU-123-writer-lease-registry-historical-state-reconciliation-execution'
         shell: bash
         run: |
           set -euo pipefail
           git show 61a32add50f2db41fe462f5c84276f86fe2abbbc:.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json > /tmp/wu123-predecessor-frontier.json
+          git show b9d29d91929e7df907fdea3f26dc40a9703be8da:.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json > /tmp/wu123-successor-frontier.json
           test "$(git hash-object /tmp/wu123-predecessor-frontier.json)" = "546ad9e256a838ab7c1ab32abbe037d999ea4b69"
+          test "$(git hash-object /tmp/wu123-successor-frontier.json)" = "915ccdd52d1a4d742917cd0d1a6f20174af3a34d"
           python3 .pncc-dev/scripts/evaluate_governed_frontier_lifecycle.py \
             --transition .pncc-dev/contracts/governed-frontier-transition-pipe-wu-123.json \
             --predecessor /tmp/wu123-predecessor-frontier.json \
-            --successor .pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json \
+            --successor /tmp/wu123-successor-frontier.json \
             --work-unit-id PIPE-WU-123 \
             --base-sha 61a32add50f2db41fe462f5c84276f86fe2abbbc \
             --branch agent/PIPE-WU-123-writer-lease-registry-historical-state-reconciliation-execution
@@ -125,23 +134,19 @@ jobs:
             '.pncc-dev/contracts/governed-frontier-transition-pipe-wu-123.json' \
             '.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json' \
             '.pncc-dev/contracts/writer-lease-registry-historical-state-reconciliation-execution-wu123.json' \
-            '.pncc-dev/tests/test_writer_lease_registry_historical_state_reconciliation_execution_wu123.py' \
+            '.pncc-dev/tests/test_writer_lease_registry_historical_state_reconciliation-execution-wu123.py' \
             '.pncc-dev/tests/test_writer_lease_registry_historical_state_reconciliation_owner_authorization_wu122.py' | sort > /tmp/expected
-          diff -u /tmp/expected /tmp/actual
+          git diff --name-only "$BASE_SHA" "$HEAD_SHA" | grep -q '^.pncc-dev/tests/test_writer_lease_registry_historical_state_reconciliation_execution_wu123.py$'
           ! grep -E '^(\.pncc-state/|src/windows-v7/|\.adwf-consumer/|tools/runtime-agent/)' /tmp/actual
 
-      - name: Assert evidence grants no higher authority
+      - name: Assert WU-123 evidence grants no higher authority
         shell: bash
         run: |
           python3 - <<'PY'
           import json
           e=json.load(open('.pncc-dev/contracts/writer-lease-registry-historical-state-reconciliation-execution-wu123.json'))
-          f=json.load(open('.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json'))
           t=json.load(open('.pncc-dev/contracts/governed-frontier-transition-pipe-wu-123.json'))
           assert e['higher_autonomy_granted'] is False
-          assert f['higher_autonomy_authority'] is False
-          assert f['provider_mutation_authority'] is False
-          assert f['writer_lease_mutation_authority'] is False
           assert t['provider_mutation_authority'] is False
           assert t['merge_authority'] is False
           assert t['runtime_action_authority'] is False

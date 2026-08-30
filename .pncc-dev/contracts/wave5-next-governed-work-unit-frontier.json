@@ -2,51 +2,59 @@
   "schema_version": 1,
   "role": "WAVE5_NEXT_GOVERNED_WORK_UNIT_FRONTIER",
   "state": "ACTIVE",
-  "frontier_id": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_READINESS_REASSESSMENT_AFTER_LEASE_HYGIENE",
-  "title_template": "{work_unit_id} — Human-by-Exception readiness reassessment after Writer Lease hygiene",
-  "goal": "Reassess, without granting new authority, Human-by-Exception readiness after the exact WU-123 historical Writer Lease hygiene transaction has removed the four stale ACTIVE records that blocked the prior readiness decision, using fresh canonical and provider truth rather than reusing the pre-hygiene assessment.",
-  "conflict_domain": "wave5-autonomous-continuation-human-by-exception-readiness-reassessment-after-lease-hygiene",
+  "frontier_id": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_READINESS_DECISION_AFTER_LEASE_HYGIENE",
+  "title_template": "{work_unit_id} — Human-by-Exception readiness decision after Writer Lease hygiene",
+  "goal": "Make one separate governed decision from the canonical WU-124 post-hygiene reassessment, determining whether Human-by-Exception operation is ready under existing already-canonical authority only, while preserving all owner, runtime, security, release, ruleset, ADWF, WAIT and STOP boundaries and without implicitly creating any new mutation authority.",
+  "conflict_domain": "wave5-autonomous-continuation-human-by-exception-readiness-decision-after-lease-hygiene",
   "runtime_required": false,
+  "assessment_input": {
+    "path": ".pncc-dev/contracts/autonomous-continuation-human-by-exception-readiness-reassessment-wu124.json",
+    "blob_sha": "b63c89ef5b1cd785bbbab934a3ab87cb45e5245a",
+    "required_verdict": "READY_WITH_EXISTING_AUTHORITY_ONLY",
+    "authority_granted": false
+  },
   "scope": [
-    "fresh-read canonical WU-119 assessment, WU-120 decision, WU-121 preparation, WU-122 Owner Authorization and WU-123 execution evidence",
-    "recompute Writer Lease registry hygiene from fresh provider-state truth and prove no stale historical ACTIVE records remain outside the current governed writer",
-    "reassess every Human-by-Exception rubric criterion previously blocked or conditioned by Writer Lease hygiene",
-    "distinguish proven autonomous capability from owner-controlled, runtime-controlled and separately authorized boundaries",
-    "produce a fresh machine-readable readiness reassessment without converting reassessment success into mutation authority",
-    "advance only to a separately governed post-hygiene readiness decision"
+    "fresh-read canonical WU-124 reassessment, current main, provider-state and Writer Lease registry before decision",
+    "verify WU-124 exact-head CI and completion lease lifecycle evidence before relying on the reassessment",
+    "decide readiness only for operation within authority that was already canonical before this decision",
+    "preserve WAIT_ONLY, STOP_ONLY, SEPARATE_AUTHORITY_REQUIRED and OWNER_ESCALATION_REQUIRED classifications exactly",
+    "state explicitly whether Human-by-Exception operating mode is approved, deferred or blocked under existing authority only",
+    "advance only to the next separately governed operationalization or remediation frontier determined by the decision"
   ],
   "forbidden_scope": [
-    "reuse the pre-hygiene WU-119 assessment as current truth without fresh recomputation",
-    "automatically grant Human-by-Exception or higher-autonomy execution authority from WU-123 reconciliation success",
-    "broaden Writer Lease, merge, Issue-close, continuation, session-resume or provider-state authority",
-    "weaken owner escalation, runtime qualification, promotion, ruleset or security boundaries",
-    "mutate product/runtime source or physical runtime, ADWF binding/repository, release/tag/promotion, PRIVATE evidence or 1080/1081 lifecycle",
-    "reinterpret current Writer Lease ownership without fresh provider-state readback"
+    "interpret READY_WITH_EXISTING_AUTHORITY_ONLY as a grant of provider-state, merge, runtime, product, release, ruleset, ADWF or higher-autonomy mutation authority",
+    "weaken owner escalation or runtime qualification boundaries",
+    "weaken WAIT/STOP/no-replay semantics",
+    "change Writer Lease ownership or historical registry records as a side effect of the decision",
+    "mutate product/runtime source or physical runtime, ADWF binding/repository, release/tag/promotion, ruleset/security policy, PRIVATE evidence or 1080/1081 lifecycle"
   ],
   "required_checks": [
     "pipeline-state",
     "wave5-provider-work-unit-selection",
     "wave5-writer-lease-registry-topology",
     "wave5-writer-lease-claim-admission",
-    "wave5-writer-lease-registry-historical-state-reconciliation-owner-authorization",
     "wave5-writer-lease-registry-historical-state-reconciliation-execution",
     "wave5-autonomous-continuation-human-by-exception-readiness-assessment",
     "wave5-autonomous-continuation-human-by-exception-readiness-decision",
+    "wave5-autonomous-continuation-human-by-exception-readiness-reassessment-after-lease-hygiene",
     "public-safety",
     "quality-fast",
     "quality-deep"
   ],
   "exit_criteria": [
-    "fresh provider truth proves historical Writer Lease hygiene remains reconciled and current ownership is unambiguous",
-    "every prior Human-by-Exception blocker is freshly re-evaluated against post-hygiene truth",
-    "reassessment explicitly records any remaining owner, runtime, policy, security or promotion escalation boundary",
-    "reassessment grants no direct provider-state, merge, runtime, release, ruleset, ADWF or higher-autonomy authority",
-    "exact-head hosted CI passes with no product/runtime, ADWF or 1080/1081 mutation",
-    "next frontier is a separately governed post-hygiene readiness decision"
+    "canonical WU-124 reassessment remains exact and fresh enough for the decision boundary",
+    "post-WU-124 Provider Truth is non-contradictory and current ownership is unambiguous",
+    "decision distinguishes readiness under existing authority from any request for new authority",
+    "all intentional owner/runtime/security/release/ruleset/ADWF and WAIT/STOP boundaries remain explicit",
+    "decision itself grants no direct provider-state, runtime, product, release, ruleset, ADWF or higher-autonomy mutation authority",
+    "exact-head hosted CI passes with no product/runtime, ADWF or 1080/1081 mutation"
   ],
   "provider_mutation_authority": false,
   "writer_lease_mutation_authority": false,
+  "branch_mutation_authority": false,
+  "pull_request_mutation_authority": false,
   "merge_authority": false,
+  "issue_close_authority": false,
   "runtime_action_authority": false,
   "product_runtime_mutation_authority": false,
   "adwf_repository_mutation_authority": false,
@@ -55,5 +63,5 @@
   "reserve_1080_lifecycle_mutation_authority": false,
   "primary_1081_lifecycle_mutation_authority": false,
   "higher_autonomy_authority": false,
-  "next_natural_boundary": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_READINESS_DECISION_AFTER_LEASE_HYGIENE"
+  "next_natural_boundary": "DETERMINED_BY_POST_HYGIENE_HUMAN_BY_EXCEPTION_READINESS_DECISION"
 }
