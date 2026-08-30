@@ -1,0 +1,150 @@
+name: wave5-durable-autonomous-continuation-session-resume
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  durable-autonomous-continuation-session-resume:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Run WU-115 adversarial tests
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_durable_autonomous_continuation_session_resume_wu115.py' -v
+
+      - name: Validate canonical clean-boundary checkpoint and fresh resume
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import importlib.util, json, sys
+          from pathlib import Path
+          root=Path('.')
+          mod_path=root/'.pncc-dev/scripts/evaluate_durable_autonomous_continuation_session_resume.py'
+          spec=importlib.util.spec_from_file_location('resume115',mod_path)
+          m=importlib.util.module_from_spec(spec); sys.modules[spec.name]=m; spec.loader.exec_module(m)
+          p=json.loads((root/'.pncc-dev/contracts/durable-autonomous-continuation-session-resume-policy.json').read_text())
+          cp=json.loads((root/'.pncc-dev/contracts/durable-autonomous-continuation-session-checkpoint-wu115.json').read_text())
+          m.validate_checkpoint(cp,p)
+          snap={'schema_version':1,'role':'DURABLE_AUTONOMOUS_CONTINUATION_SESSION_RESUME_SNAPSHOT','repository':'kmephis-ai/VPS-Control-PNCC','default_branch':'main','provider_truth_fresh':True,'contradictory_provider_truth':False,'current_main_sha':'f9e03320d815cc870836067f24cce14ecba1cc62','selected_work_unit':cp['selected_work_unit'],'provider_state':cp['provider_state'],'execution_state':cp['execution_state'],'classified_failure_detected':False,'fresh_provider_readback_completed':True,'checkpoint':cp}
+          r=m.evaluate(snap,policy=p)
+          assert r['decision']=='RECOMPUTE_FRESH_CONTINUATION',r
+          assert r['checkpoint_authority_used'] is False
+          assert r['persisted_admission_reused'] is False
+          assert r['persisted_ci_reused'] is False
+          assert r['persisted_cas_reused'] is False
+          assert r['fresh_wu108_recomputation_required'] is True
+          assert r['fresh_wu109_recomputation_required_before_mutation'] is True
+          PY
+
+      - name: Assert exact WU-115 artifacts and immutable anchors
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object .pncc-dev/schemas/durable-autonomous-continuation-session-checkpoint.schema.json)" = "0695dd02643642d5fded34096bfa8415a8ee6a4b"
+          test "$(git hash-object .pncc-dev/contracts/durable-autonomous-continuation-session-resume-policy.json)" = "4305cd65c2ed7eaf67a6a6df24d3b4bb4d612446"
+          test "$(git hash-object .pncc-dev/scripts/evaluate_durable_autonomous_continuation_session_resume.py)" = "f55d7d4de713e75f13a726292f61dad035c0a2a7"
+          test "$(git hash-object .pncc-dev/tests/test_durable_autonomous_continuation_session_resume_wu115.py)" = "087799b5c654c5f17a46c8f572fa4a87b28d98a3"
+          test "$(git hash-object .pncc-dev/contracts/durable-autonomous-continuation-session-checkpoint-wu115.json)" = "aa7b7e7cf2fa9657bb3897d47055971466975965"
+          test "$(git hash-object .pncc-dev/contracts/governed-frontier-transition-pipe-wu-115.json)" = "71b882042f5a5426f792fc916e6b399f49283028"
+          test "$(git hash-object .pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json)" = "61fd1e5c450652874b5ff19c7370771bca88d0e5"
+          test "$(git hash-object .pncc-dev/contracts/reusable-autonomous-continuation-steady-state-execution-wu114.json)" = "8384ce0cc7440fe46ce08ba0061233012757cc49"
+          test "$(git hash-object .pncc-dev/scripts/validate_reusable_autonomous_continuation_steady_state_execution_wu114.py)" = "59b2d93593b433e6dbeb0e0b3e5c0d2d286f1fd0"
+          test "$(git hash-object .pncc-dev/contracts/autonomous-continuation-control-loop-policy.json)" = "822bcd1833ff4843b6bd176337b3ef3b742275de"
+          test "$(git hash-object .pncc-dev/contracts/autonomous-continuation-execution-admission-policy.json)" = "406d78da6250c452bfc7706b57dc51a18ca48977"
+          test "$(git hash-object .pncc-dev/contracts/reusable-writer-lease-bounded-branch-authorized.json)" = "717e1f9081915f40fad2e0620c64245a650ca235"
+
+      - name: Assert WU-115 provider-state acquisition ancestry
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin pncc-provider-state
+          git cat-file -e 56c4026b1502661c8bbd2cdc60d0f4319e51f528^{commit}
+          git cat-file -e 1f76a1247c0f8757c28b18aac10b7d8ad5b6d6ad^{commit}
+          test "$(git rev-parse 1f76a1247c0f8757c28b18aac10b7d8ad5b6d6ad^)" = "56c4026b1502661c8bbd2cdc60d0f4319e51f528"
+          git show 1f76a1247c0f8757c28b18aac10b7d8ad5b6d6ad:.pncc-state/writer-lease-registry.json > /tmp/wu115-registry.json
+          test "$(git hash-object /tmp/wu115-registry.json)" = "a254843017e09e4170d914476f756cd008254177"
+          python3 - <<'PY'
+          import json
+          r=json.load(open('/tmp/wu115-registry.json'))
+          assert r['generation']==23
+          x=[e for e in r['entries'] if e['lease_id']=='509b6d46-6999-4cae-b586-2f1e6e86ff43']
+          assert len(x)==1
+          e=x[0]
+          assert e['work_unit_id']=='PIPE-WU-115'
+          assert e['state']=='ACTIVE'
+          assert e['generation']==23
+          assert e['base_sha']=='f9e03320d815cc870836067f24cce14ecba1cc62'
+          assert e['branch']=='agent/PIPE-WU-115-durable-autonomous-continuation-session-resume'
+          PY
+
+      - name: Assert exact bounded WU-115 diff and branch ancestry
+        if: github.event_name == 'pull_request' && github.head_ref == 'agent/PIPE-WU-115-durable-autonomous-continuation-session-resume'
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$BASE_SHA" = "f9e03320d815cc870836067f24cce14ecba1cc62"
+          test "$(git merge-base "$BASE_SHA" "$HEAD_SHA")" = "$BASE_SHA"
+          FIRST_COMMIT="$(git rev-list --reverse "$BASE_SHA..$HEAD_SHA" | head -n 1)"
+          test -n "$FIRST_COMMIT"
+          test "$(git rev-parse "$FIRST_COMMIT^")" = "$BASE_SHA"
+          git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort > /tmp/actual
+          printf '%s\n' \
+            '.github/workflows/wave5-durable-autonomous-continuation-session-resume.yml' \
+            '.pncc-dev/contracts/durable-autonomous-continuation-session-checkpoint-wu115.json' \
+            '.pncc-dev/contracts/durable-autonomous-continuation-session-resume-policy.json' \
+            '.pncc-dev/contracts/governed-frontier-transition-pipe-wu-115.json' \
+            '.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json' \
+            '.pncc-dev/schemas/durable-autonomous-continuation-session-checkpoint.schema.json' \
+            '.pncc-dev/scripts/evaluate_durable_autonomous_continuation_session_resume.py' \
+            '.pncc-dev/tests/test_durable_autonomous_continuation_session_resume_wu115.py' | sort > /tmp/expected
+          diff -u /tmp/expected /tmp/actual
+          ! grep -E '^(\.pncc-state/|src/windows-v7/|\.adwf-consumer/|tools/runtime-agent/)' /tmp/actual
+
+      - name: Assert checkpoint is hint-only and public-safe
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          cp=json.loads(Path('.pncc-dev/contracts/durable-autonomous-continuation-session-checkpoint-wu115.json').read_text())
+          p=json.loads(Path('.pncc-dev/contracts/durable-autonomous-continuation-session-resume-policy.json').read_text())
+          f=json.loads(Path('.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json').read_text())
+          for key in ('checkpoint_is_mutation_authority','checkpoint_cas_tokens_reusable','checkpoint_ci_success_reusable','checkpoint_admission_reusable','contains_private_runtime_payload','contains_credentials','contains_host_identifiers','contains_secret_transport_data'):
+              assert cp[key] is False,key
+          assert p['checkpoint_never_grants_mutation_authority'] is True
+          assert p['provider_truth_supersedes_checkpoint'] is True
+          assert p['fresh_wu108_recomputation_required_before_mutation'] is True
+          assert p['fresh_wu109_recomputation_required_before_mutation'] is True
+          assert f['frontier_id']=='DURABLE_AUTONOMOUS_CONTINUATION_SESSION_RESUME_EXECUTION'
+          assert f['next_natural_boundary']=='DURABLE_AUTONOMOUS_CONTINUATION_MULTI_SESSION_STEADY_STATE'
+          PY
+
+      - name: Assert workflow itself is read only
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          t=Path('.github/workflows/wave5-durable-autonomous-continuation-session-resume.yml').read_text().lower()
+          forbidden=['contents:'+' write','issues:'+' write','pull-requests:'+' write','actions:'+' write','git'+' push','gh'+' pr merge','gh'+' issue close','--method'+' post','--method'+' patch','--method'+' put','--method'+' delete']
+          for token in forbidden: assert token not in t,token
+          PY
+
+      - name: Assert repository remains clean
+        run: test -z "$(git status --porcelain)"
