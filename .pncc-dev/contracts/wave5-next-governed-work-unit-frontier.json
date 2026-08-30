@@ -2,41 +2,35 @@
   "schema_version": 1,
   "role": "WAVE5_NEXT_GOVERNED_WORK_UNIT_FRONTIER",
   "state": "ACTIVE",
-  "frontier_id": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_STEADY_STATE_WITH_EXISTING_AUTHORITY_ONLY",
-  "title_template": "{work_unit_id} — Human-by-Exception steady-state policy under existing authority only",
-  "goal": "Define and validate a fail-closed Human-by-Exception steady-state policy that re-evaluates fresh Provider Truth, control-loop, execution admission and operationalization for every iteration, permits at most one delegated existing-authority transaction per iteration, and requires exact readback before any next iteration.",
-  "conflict_domain": "wave5-autonomous-continuation-human-by-exception-steady-state-existing-authority-only",
+  "frontier_id": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_STEADY_STATE_EXECUTION_WITH_EXISTING_AUTHORITY_ONLY",
+  "title_template": "{work_unit_id} — Execute Human-by-Exception steady-state under existing authority only",
+  "goal": "Execute and validate at least two fresh Human-by-Exception steady-state iterations using only already-canonical delegated authority, with at most one delegated transaction per iteration, exact cross-iteration Provider Truth/readback chaining, and no replay or authority expansion.",
+  "conflict_domain": "wave5-autonomous-continuation-human-by-exception-steady-state-execution-existing-authority-only",
   "runtime_required": false,
-  "controlled_execution_input": {
-    "path": ".pncc-dev/contracts/autonomous-continuation-human-by-exception-controlled-execution-wu127.json",
-    "blob_sha": "50a64906687a4f36c076893400fc34e3b7c32da7",
-    "required_transaction_kind": "BOUNDED_BRANCH_CREATE",
-    "required_transaction_count": 1,
-    "required_next_boundary": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_STEADY_STATE_WITH_EXISTING_AUTHORITY_ONLY"
-  },
-  "operationalization_input": {
-    "path": ".pncc-dev/contracts/autonomous-continuation-human-by-exception-operationalization-policy-wu126.json",
-    "blob_sha": "5084d908bd84cd3660e8e57478f8fdf21a76ba58",
-    "required_mode": "HUMAN_BY_EXCEPTION_EXISTING_AUTHORITY_ONLY",
-    "authority_granted": false
+  "steady_state_policy_input": {
+    "path": ".pncc-dev/contracts/autonomous-continuation-human-by-exception-steady-state-policy-wu128.json",
+    "blob_sha": "d229b6a7453447364ded12d8a349b6d5e15b5f98",
+    "evaluator_path": ".pncc-dev/scripts/evaluate_autonomous_continuation_human_by_exception_steady_state.py",
+    "evaluator_blob_sha": "4a6ce0f528c879804723dd5c75d673f908188b19",
+    "maximum_delegated_transactions_per_iteration": 1
   },
   "scope": [
-    "define per-iteration fresh Provider Truth, control-loop, execution-admission and Human-by-Exception operationalization requirements",
+    "execute at least two fresh Human-by-Exception steady-state iterations",
+    "re-evaluate fresh Provider Truth, control-loop, execution admission and operationalization for every iteration",
     "permit at most one delegated transaction per iteration and only through an exact already-canonical authority",
-    "require fresh exact readback after a delegated transaction before any subsequent iteration",
-    "forbid stale control-loop, admission or operationalization reuse across iterations",
-    "preserve OWNER_ESCALATION_REQUIRED as owner-visible no-mutation no-replay behavior",
+    "prove exact fresh readback after each delegated transaction before any next iteration",
+    "prove cross-iteration Provider Truth chaining without stale decision reuse",
+    "preserve OWNER_ESCALATION_REQUIRED as out-of-band owner-visible no-mutation no-replay behavior",
     "preserve WAIT_ONLY as no-mutation no-replay behavior",
     "preserve STOP_ONLY as terminal behavior",
-    "preserve SEPARATE_AUTHORITY_REQUIRED and BLOCKED as fail-closed behavior",
-    "prepare machine-verifiable steady-state execution criteria without granting new authority"
+    "preserve SEPARATE_AUTHORITY_REQUIRED and BLOCKED as fail-closed behavior"
   ],
   "forbidden_scope": [
     "create, infer or broaden provider-state, issue, branch, pull-request, merge, runtime, product, release, ruleset, ADWF or higher-autonomy authority",
-    "batch multiple delegated mutations into one iteration",
+    "batch multiple delegated transactions into one iteration",
+    "advance to a next iteration before exact fresh readback is complete",
     "reuse stale Provider Truth, control-loop, execution admission or operationalization decisions",
-    "weaken exact Writer Lease, branch, pull-request, CI, provider-state or canonical-main binding requirements",
-    "weaken OWNER_ESCALATION_REQUIRED, WAIT_ONLY, STOP_ONLY, SEPARATE_AUTHORITY_REQUIRED, BLOCKED or no-replay semantics",
+    "automatically replay owner escalation, WAIT, STOP, separate-authority or BLOCKED outcomes",
     "mutate product/runtime source or physical runtime",
     "mutate ADWF binding/repository, release/tag/promotion, ruleset/security policy, PRIVATE evidence or 1080/1081 lifecycle"
   ],
@@ -44,19 +38,20 @@
     "pipeline-state",
     "wave5-provider-work-unit-selection",
     "wave5-writer-lease-registry-topology",
-    "wave5-autonomous-continuation-human-by-exception-operationalization-existing-authority-only",
     "wave5-autonomous-continuation-human-by-exception-controlled-execution-existing-authority-only",
+    "wave5-autonomous-continuation-human-by-exception-steady-state-existing-authority-only",
     "public-safety",
     "quality-fast",
     "quality-deep"
   ],
   "exit_criteria": [
-    "steady-state policy deterministically requires fresh inputs for every iteration",
-    "maximum delegated transaction count remains one per iteration",
-    "fresh exact readback is mandatory before a next iteration",
+    "at least two iterations are evidenced with fresh per-iteration inputs",
+    "no iteration contains more than one delegated transaction",
+    "every performed delegated transaction has exact fresh readback before the next iteration",
+    "cross-iteration Provider Truth chain is exact and stale reuse is absent",
     "automatic continuation remains limited to explicit already-canonical delegated authority",
     "owner escalation, WAIT, STOP, separate-authority and BLOCKED remain distinct no-mutation/fail-closed outcomes",
-    "steady-state policy grants no new mutation authority",
+    "execution grants no new mutation authority",
     "exact-head hosted CI passes with no product/runtime, ADWF or 1080/1081 mutation"
   ],
   "provider_mutation_authority": false,
@@ -79,5 +74,5 @@
   "primary_1081_lifecycle_mutation_authority": false,
   "higher_autonomy_authority": false,
   "owner_boundary_override": false,
-  "next_natural_boundary": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_STEADY_STATE_EXECUTION_WITH_EXISTING_AUTHORITY_ONLY"
+  "next_natural_boundary": "DETERMINED_BY_HUMAN_BY_EXCEPTION_STEADY_STATE_EXECUTION_WITH_EXISTING_AUTHORITY_ONLY"
 }
