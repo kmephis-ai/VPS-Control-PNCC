@@ -102,6 +102,7 @@
     "external_ip_addresses"
   ],
   "anchor_paths": {
+    "multi_session_handoff_schema": ".pncc-dev/schemas/durable-autonomous-continuation-multi-session-handoff-record.schema.json",
     "wu115_checkpoint_schema": ".pncc-dev/schemas/durable-autonomous-continuation-session-checkpoint.schema.json",
     "wu115_resume_policy": ".pncc-dev/contracts/durable-autonomous-continuation-session-resume-policy.json",
     "wu115_resume_evaluator": ".pncc-dev/scripts/evaluate_durable_autonomous_continuation_session_resume.py",
@@ -119,6 +120,7 @@
     "materialization_grant": ".pncc-dev/contracts/reusable-canonical-work-unit-materialization-authorized.json"
   },
   "anchor_blobs": {
+    "multi_session_handoff_schema": "8795398b1059e65fd716d12e77ac7387d952e36a",
     "wu115_checkpoint_schema": "0695dd02643642d5fded34096bfa8415a8ee6a4b",
     "wu115_resume_policy": "4305cd65c2ed7eaf67a6a6df24d3b4bb4d612446",
     "wu115_resume_evaluator": "f55d7d4de713e75f13a726292f61dad035c0a2a7",
