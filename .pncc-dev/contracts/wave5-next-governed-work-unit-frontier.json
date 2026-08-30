@@ -2,40 +2,40 @@
   "schema_version": 1,
   "role": "WAVE5_NEXT_GOVERNED_WORK_UNIT_FRONTIER",
   "state": "ACTIVE",
-  "frontier_id": "ADWF_CONSUMER_PROJECT_PACK_PROVENANCE_RECONCILIATION",
-  "title_template": "{work_unit_id} — ADWF Consumer Project Pack provenance reconciliation",
-  "goal": "Reconcile PNCC proof-only ADWF Consumer Project Pack provenance to fresh ADWF provider truth while preserving Project Pack bytes, native safety gates and zero mutation authority.",
-  "conflict_domain": "wave5-adwf-consumer-project-pack-provenance-reconciliation",
+  "frontier_id": "PROVIDER_TRUTH_PLANNER_SELECTOR_CONTINUATION_INTEGRATION",
+  "title_template": "{work_unit_id} — Provider Truth planner/selector continuation integration",
+  "goal": "Integrate the existing provider-truth Work Unit selector and governed materialization planner into one deterministic fail-closed continuation decision path without broadening mutation authority.",
+  "conflict_domain": "wave5-provider-truth-planner-selector-continuation-integration",
   "runtime_required": false,
   "scope": [
-    "fresh-read ADWF provider main before any reconciliation mutation and fail closed if it differs from the WU-104 observed source aad3aba5ccb5f37882b8d51e89ff2c66da6e2822 until the reconciliation target is re-derived",
-    "reconcile PNCC .adwf-consumer external-binding framework source provenance from historical c7e0c059a901869d6369864e98d06238484778ec to the fresh validated ADWF source without adopting managed surfaces",
-    "prove the PowerShell Project Pack blob b4ad2f2459079039a59c3e687ea269d2c6ca73fe, external binding schema blob c3762053920076ea1ac9ba1865cbfacb6fdcf0c0 and Project Pack digest fbe69c4e93ff8b07e7d0dc6f0cbd1f9ceb80617f472f1fbe5a1ce181279a0c8c remain unchanged",
-    "recompute binding_sha256 deterministically; for source aad3aba5ccb5f37882b8d51e89ff2c66da6e2822 with otherwise unchanged binding fields the expected digest is 5f7622683832f14d935974d5c90ba48ab5cf4709136ae602da77eb61c1dc3a34",
-    "reconcile wave5 readiness framework provenance while preserving NONE_BINDING_IS_PROOF_ONLY, managed_surface_adopted=false and provider_ops_consumer_authority_granted=false",
-    "keep all validation hosted and read only with no ADWF repository mutation"
+    "consume fresh provider truth and the canonical selector outcome before deriving any continuation decision",
+    "when exactly one canonical executable Work Unit is selected, deterministically continue that selected Work Unit without materializing a second Work Unit",
+    "when the selector returns NO_WORK and the governed frontier is ACTIVE, derive only the exact PLAN_ONLY materialization proposal and leave Issue creation to the separately authorized reusable materialization transaction",
+    "fail closed on stale base SHA, incomplete or ambiguous provider truth, selector/planner disagreement, or frontier drift",
+    "preserve the reusable canonical materialization grant, Writer Lease grant, merge/Issue-close grant and all immutable materialization anchor bytes unchanged",
+    "keep continuation evaluation hosted and read only; no provider mutation is performed by the planner/selector integration itself"
   ],
   "forbidden_scope": [
-    "mutate the ADWF repository",
-    "change PowerShell Project Pack bytes, Project Pack digest or external binding schema without separate governed authority",
-    "grant ADWF/provider mutation authority or adopt ADWF managed surfaces",
-    "mutate provider-state or Writer Lease semantics",
+    "grant new Issue-create, branch, pull-request, Writer Lease, merge or Issue-close authority",
+    "mutate provider-state, Writer Lease semantics or reusable authority grants",
+    "mutate ADWF Consumer binding/provenance or the ADWF repository",
     "perform runtime or product/runtime source mutation",
     "perform release/tag/promotion, ruleset/policy administration, PRIVATE evidence publication or 1080/1081 lifecycle mutation"
   ],
   "required_checks": [
-    "adwf-binding",
-    "wave5-adwf-readiness",
+    "pipeline-state",
+    "wave5-provider-work-unit-selection",
+    "wave5-governed-work-unit-materialization",
     "public-safety",
     "quality-fast",
     "quality-deep"
   ],
   "exit_criteria": [
-    "external binding framework source_sha equals the fresh ADWF source validated during the Work Unit",
-    "PowerShell Project Pack blob, external binding schema blob and Project Pack digest remain exact and unchanged",
-    "binding_sha256 is deterministically recomputed and the external binding validates against the exact ADWF checkout",
-    "wave5 readiness provenance is reconciled without authority broadening or managed-surface adoption",
-    "exact-head hosted CI passes with no product/runtime, provider-state, ADWF repository or 1080/1081 mutation"
+    "fresh provider truth deterministically yields either one exact selected canonical Work Unit or NO_WORK",
+    "selected-Work-Unit and NO_WORK continuation paths are mutually exclusive and fail closed on stale or contradictory inputs",
+    "NO_WORK can produce only the exact PLAN_ONLY planner proposal while Issue creation remains governed by the existing reusable materialization grant",
+    "selector, planner, materialization policy, reusable materialization grant and Work Unit schema immutable anchors remain byte-exact",
+    "exact-head hosted CI passes with no provider-state, ADWF, product/runtime or 1080/1081 mutation"
   ],
-  "next_natural_boundary": "PROVIDER_TRUTH_PLANNER_SELECTOR_CONTINUATION_INTEGRATION"
+  "next_natural_boundary": "EXACT_HEAD_CI_INSPECTION_CLASSIFICATION_RECOVERY_INTEGRATION"
 }

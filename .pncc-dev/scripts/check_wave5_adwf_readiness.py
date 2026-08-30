@@ -10,11 +10,13 @@ STABLE = ROOT / '.pncc-dev' / 'attestations' / 'stable-v7.0.1-completion.json'
 ADWF_WORKFLOW = ROOT / '.github' / 'workflows' / 'adwf-binding.yml'
 PACK_MARKER = ROOT / '.adwf-powershell.json'
 
-EXPECTED_ADWF = 'c7e0c059a901869d6369864e98d06238484778ec'
+EXPECTED_ADWF = '2e3b284d975ce0fe5707c8b24175f0ef184db780'
 EXPECTED_PACK = 'fbe69c4e93ff8b07e7d0dc6f0cbd1f9ceb80617f472f1fbe5a1ce181279a0c8c'
+EXPECTED_PACK_BLOB = 'b4ad2f2459079039a59c3e687ea269d2c6ca73fe'
+EXPECTED_SCHEMA_BLOB = 'c3762053920076ea1ac9ba1865cbfacb6fdcf0c0'
 EXPECTED_STABLE = '22b843330516e481c467fe5cbe6d1d4c6758510c71bd2c46ebeec337f403ae72'
-EXPECTED_BINDING_SHA = '1e2939e25526df1832dbd650a8c78024a729063d485aa983b503985dae7a9b1d'
-EXPECTED_BINDING_BLOB = 'f64c7d294e99c4ea44e68eae5c9f9b68733088a1'
+EXPECTED_BINDING_SHA = '0d76b669a225a60d66410b7a0d7b772c4a81f9ea77ff975bad3f9f543b3e59de'
+EXPECTED_BINDING_BLOB = 'd522b5f9b9e2370a9f172c9c9406eae785ab6335'
 EXPECTED_GATES = ['repo-integrity', 'powershell-static', 'truth-contract']
 
 
@@ -110,6 +112,10 @@ if readiness.get('stable_baseline') != expected_baseline:
     fail('readiness_stable_baseline')
 if readiness.get('framework', {}).get('source_sha') != EXPECTED_ADWF:
     fail('readiness_framework_pin')
+if readiness.get('framework', {}).get('powershell_pack_blob_sha') != EXPECTED_PACK_BLOB:
+    fail('readiness_pack_blob')
+if readiness.get('framework', {}).get('external_binding_schema_blob_sha') != EXPECTED_SCHEMA_BLOB:
+    fail('readiness_schema_blob')
 if readiness.get('consumer', {}).get('project_pack_digest') != EXPECTED_PACK:
     fail('readiness_pack_digest')
 if readiness.get('consumer', {}).get('mutation_authority') != 'NONE_BINDING_IS_PROOF_ONLY':
@@ -145,6 +151,10 @@ if readiness.get('next_boundary') != 'BOUNDED_PROVIDER_TRUTH_READ_ONLY_ORCHESTRA
 
 if workflow.count(EXPECTED_ADWF) != 2:
     fail('adwf_workflow_pin')
+if workflow.count(EXPECTED_PACK_BLOB) != 1:
+    fail('adwf_workflow_pack_blob_pin')
+if workflow.count(EXPECTED_SCHEMA_BLOB) != 1:
+    fail('adwf_workflow_schema_blob_pin')
 if 'contents: read' not in workflow:
     fail('adwf_workflow_read_permission')
 for token in ('contents: write', 'git push', 'git tag', 'gh release'):

@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "role": "GOVERNED_FRONTIER_TRANSITION",
+  "transition_state": "PREPARED_FOR_IN_PR_ADVANCEMENT",
+  "work_unit_id": "PIPE-WU-105",
+  "issue_number": 257,
+  "conflict_domain": "wave5-adwf-consumer-project-pack-provenance-reconciliation",
+  "base_sha": "083d999647e1c6c43f5a088849b7ef60edaa9c66",
+  "branch": "agent/PIPE-WU-105-adwf-consumer-provenance-reconciliation",
+  "runtime_required": false,
+  "predecessor_frontier": {
+    "state": "ACTIVE",
+    "frontier_id": "ADWF_CONSUMER_PROJECT_PACK_PROVENANCE_RECONCILIATION",
+    "blob_sha": "ebc619943a66dd5030b0299cab35c430bf530e7a"
+  },
+  "successor_frontier": {
+    "state": "ACTIVE",
+    "frontier_id": "PROVIDER_TRUTH_PLANNER_SELECTOR_CONTINUATION_INTEGRATION",
+    "blob_sha": "8c1a000211ea336aba672357f39d4b6400c75ec4"
+  },
+  "same_pr_advancement_required": true,
+  "predecessor_replay_forbidden": true,
+  "successor_must_be_canonical_before_merge": true,
+  "provider_truth_observed": {
+    "pncc_main_sha": "083d999647e1c6c43f5a088849b7ef60edaa9c66",
+    "adwf_repository": "kmephis-ai/AI-Development-Framework",
+    "adwf_main_sha": "2e3b284d975ce0fe5707c8b24175f0ef184db780",
+    "pncc_external_binding_predecessor_blob_sha": "f64c7d294e99c4ea44e68eae5c9f9b68733088a1",
+    "pncc_wave5_readiness_predecessor_blob_sha": "678b63f1ba872ae71278ad04705f6fc0553b182b",
+    "powershell_pack_blob_sha": "b4ad2f2459079039a59c3e687ea269d2c6ca73fe",
+    "external_binding_schema_blob_sha": "c3762053920076ea1ac9ba1865cbfacb6fdcf0c0",
+    "external_binding_implementation_blob_sha": "dad9901d879331203a882b465fff08a9467356d8",
+    "project_pack_digest": "fbe69c4e93ff8b07e7d0dc6f0cbd1f9ceb80617f472f1fbe5a1ce181279a0c8c",
+    "reconciled_binding_sha256": "0d76b669a225a60d66410b7a0d7b772c4a81f9ea77ff975bad3f9f543b3e59de",
+    "reconciled_external_binding_blob_sha": "d522b5f9b9e2370a9f172c9c9406eae785ab6335",
+    "reconciled_wave5_readiness_blob_sha": "68ce73e311e3d8a2798557244c6f8f9129c020fc"
+  },
+  "provider_mutation_authority": false,
+  "issue_mutation_authority": false,
+  "direct_main_write_authority": false,
+  "merge_authority": false,
+  "runtime_action_authority": false,
+  "product_runtime_mutation_authority": false,
+  "adwf_binding_mutation_authority": false,
+  "adwf_repository_mutation_authority": false,
+  "release_tag_promotion_authority": false,
+  "ruleset_policy_mutation_authority": false,
+  "private_evidence_publication_authority": false,
+  "reserve_1080_lifecycle_mutation_authority": false,
+  "primary_1081_lifecycle_mutation_authority": false
+}
