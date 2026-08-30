@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kmephis-ai/VPS-Control-PNCC/.pncc-dev/schemas/durable-autonomous-continuation-multi-session-handoff-record.schema.json",
+  "title": "PNCC Durable Autonomous Continuation Multi-Session Handoff Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "role",
+    "record_state",
+    "session_sequence",
+    "session_id",
+    "checkpoint_id",
+    "checkpoint_blob_sha",
+    "previous_checkpoint_id",
+    "retained_historical_checkpoint_ids",
+    "handoff_class",
+    "recorded_main_sha",
+    "selected_work_unit",
+    "provider_state",
+    "execution_state",
+    "last_completed_iteration",
+    "provider_readback_completed",
+    "persisted_decisions",
+    "checkpoint_is_mutation_authority",
+    "checkpoint_cas_tokens_reusable",
+    "checkpoint_ci_success_reusable",
+    "checkpoint_admission_reusable",
+    "checkpoint_merge_eligibility_reusable",
+    "checkpoint_writer_lease_ownership_reusable",
+    "contains_private_runtime_payload",
+    "contains_credentials",
+    "contains_host_identifiers",
+    "contains_secret_transport_data"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "role": {"const": "DURABLE_AUTONOMOUS_CONTINUATION_MULTI_SESSION_HANDOFF_RECORD"},
+    "record_state": {"const": "PERSISTED_HINT_ONLY"},
+    "session_sequence": {"type": "integer", "minimum": 1},
+    "session_id": {"type": "string", "pattern": "^PNCC-SESSION-[A-Za-z0-9._-]+$", "minLength": 20, "maxLength": 160},
+    "checkpoint_id": {"type": "string", "pattern": "^PNCC-CONTINUATION-CHECKPOINT-[A-Za-z0-9._-]+$", "minLength": 32, "maxLength": 160},
+    "checkpoint_blob_sha": {"$ref": "#/$defs/sha40"},
+    "previous_checkpoint_id": {
+      "oneOf": [
+        {"type": "null"},
+        {"type": "string", "pattern": "^PNCC-CONTINUATION-CHECKPOINT-[A-Za-z0-9._-]+$", "minLength": 32, "maxLength": 160}
+      ]
+    },
+    "retained_historical_checkpoint_ids": {
+      "type": "array",
+      "maxItems": 8,
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^PNCC-CONTINUATION-CHECKPOINT-[A-Za-z0-9._-]+$", "minLength": 32, "maxLength": 160}
+    },
+    "handoff_class": {"enum": ["CLEAN_ITERATION_BOUNDARY", "TRANSACTION_OUTCOME_UNKNOWN", "PROVIDER_READBACK_PENDING"]},
+    "recorded_main_sha": {"$ref": "#/$defs/sha40"},
+    "selected_work_unit": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["work_unit_id", "issue_number", "base_sha", "runtime_required", "provider_open"],
+          "properties": {
+            "work_unit_id": {"type": "string", "pattern": "^PIPE-WU-[0-9]+$"},
+            "issue_number": {"type": "integer", "minimum": 1},
+            "base_sha": {"$ref": "#/$defs/sha40"},
+            "runtime_required": {"type": "boolean"},
+            "provider_open": {"type": "boolean"}
+          }
+        }
+      ]
+    },
+    "provider_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state_branch_head_sha", "registry_blob_sha", "registry_generation"],
+      "properties": {
+        "state_branch_head_sha": {"$ref": "#/$defs/sha40"},
+        "registry_blob_sha": {"$ref": "#/$defs/sha40"},
+        "registry_generation": {"type": "integer", "minimum": 0}
+      }
+    },
+    "execution_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lease_state", "lease_id", "branch_name", "branch_head_sha", "pull_request_state", "pull_request_number", "ci_state", "ci_head_sha"],
+      "properties": {
+        "lease_state": {"enum": ["NONE", "ACTIVE", "RELEASED", "EXPIRED", "UNKNOWN"]},
+        "lease_id": {"type": ["string", "null"], "maxLength": 128},
+        "branch_name": {"type": ["string", "null"], "maxLength": 256},
+        "branch_head_sha": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/sha40"}]},
+        "pull_request_state": {"enum": ["NONE", "OPEN", "MERGED", "CLOSED", "UNKNOWN"]},
+        "pull_request_number": {"type": ["integer", "null"], "minimum": 1},
+        "ci_state": {"enum": ["NONE", "SUCCESS", "PENDING", "FAILED", "AMBIGUOUS", "UNKNOWN"]},
+        "ci_head_sha": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/sha40"}]}
+      }
+    },
+    "last_completed_iteration": {"type": "integer", "minimum": 0},
+    "provider_readback_completed": {"type": "boolean"},
+    "persisted_decisions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["control_loop_decision", "execution_admission_decision", "ci_decision", "merge_eligibility_decision"],
+      "properties": {
+        "control_loop_decision": {"type": ["string", "null"], "maxLength": 128},
+        "execution_admission_decision": {"type": ["string", "null"], "maxLength": 128},
+        "ci_decision": {"type": ["string", "null"], "maxLength": 128},
+        "merge_eligibility_decision": {"type": ["string", "null"], "maxLength": 128}
+      }
+    },
+    "checkpoint_is_mutation_authority": {"const": false},
+    "checkpoint_cas_tokens_reusable": {"const": false},
+    "checkpoint_ci_success_reusable": {"const": false},
+    "checkpoint_admission_reusable": {"const": false},
+    "checkpoint_merge_eligibility_reusable": {"const": false},
+    "checkpoint_writer_lease_ownership_reusable": {"const": false},
+    "contains_private_runtime_payload": {"const": false},
+    "contains_credentials": {"const": false},
+    "contains_host_identifiers": {"const": false},
+    "contains_secret_transport_data": {"const": false}
+  },
+  "$defs": {
+    "sha40": {"type": "string", "pattern": "^[0-9a-f]{40}$"}
+  }
+}
