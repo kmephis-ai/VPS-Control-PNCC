@@ -104,7 +104,8 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           t=Path('.github/workflows/wave5-autonomous-continuation-human-by-exception-controlled-execution-existing-authority-only.yml').read_text().lower()
-          for x in ('contents: write','issues: write','pull-requests: write','actions: write','git push','gh pr merge','gh issue close'):
-              assert x not in t,x
+          forbidden=['contents:'+' write','issues:'+' write','pull-requests:'+' write','actions:'+' write','git'+' push','gh'+' pr merge','gh'+' issue close']
+          for token in forbidden:
+              assert token not in t,token
           PY
           test -z "$(git status --porcelain)"
