@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "role": "GOVERNED_FRONTIER_TRANSITION",
+  "work_unit_id": "PIPE-WU-122",
+  "issue_number": 292,
+  "conflict_domain": "wave5-writer-lease-registry-historical-state-reconciliation-owner-authorization",
+  "base_sha": "badbcec4ce77195283febf5c853b470255565ba9",
+  "branch": "agent/PIPE-WU-122-writer-lease-registry-historical-state-reconciliation-owner-authorization",
+  "runtime_required": false,
+  "predecessor_frontier": {
+    "path": ".pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json",
+    "blob_sha": "c3c33fd1504400bf2e48f6bc1024a7ad9a174d2c",
+    "frontier_id": "EXPLICIT_OWNER_AUTHORIZATION_FOR_WRITER_LEASE_REGISTRY_HISTORICAL_STATE_RECONCILIATION"
+  },
+  "successor_frontier": {
+    "path": ".pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json",
+    "blob_sha": "546ad9e256a838ab7c1ab32abbe037d999ea4b69",
+    "frontier_id": "CONTROLLED_WRITER_LEASE_REGISTRY_HISTORICAL_STATE_RECONCILIATION_EXECUTION"
+  },
+  "owner_authorization_receipt": {
+    "path": ".pncc-dev/attestations/writer-lease-registry-historical-state-reconciliation-owner-authorization-wu122.json",
+    "blob_sha": "f1207b8b78081f107bf1f449066554b6693c922f",
+    "scope": "EXACT_FOUR_STALE_WRITER_LEASE_STATE_FIELDS_ACTIVE_TO_RELEASED_ONLY"
+  },
+  "authorized_grant": {
+    "path": ".pncc-dev/contracts/writer-lease-registry-historical-state-reconciliation-authorized.json",
+    "blob_sha": "20fc664e90b1390351a5de70c98563140ef3190d",
+    "scope": "EXACT_FOUR_STALE_WRITER_LEASE_STATE_FIELDS_ACTIVE_TO_RELEASED_ONLY"
+  },
+  "preparation_contract": {
+    "path": ".pncc-dev/contracts/writer-lease-registry-historical-state-reconciliation-authority-preparation-wu121.json",
+    "blob_sha": "e0104e181a814960e30b1734e82770affbbf923c",
+    "preparation_merge_main_sha": "badbcec4ce77195283febf5c853b470255565ba9"
+  },
+  "owner_authorization_present": true,
+  "authorization_scope_exact": true,
+  "historical_reconciliation_execution_performed_in_wu122": false,
+  "provider_state_mutation_performed_in_wu122": false,
+  "historical_reconciliation_execution_deferred_to_successor_work_unit": true,
+  "higher_autonomy_granted": false,
+  "product_runtime_mutation_performed": false,
+  "adwf_mutation_performed": false,
+  "release_tag_promotion_performed": false,
+  "ruleset_policy_mutation_performed": false,
+  "reserve_1080_lifecycle_mutation_performed": false,
+  "primary_1081_lifecycle_mutation_performed": false,
+  "next_boundary": "CONTROLLED_WRITER_LEASE_REGISTRY_HISTORICAL_STATE_RECONCILIATION_EXECUTION"
+}
