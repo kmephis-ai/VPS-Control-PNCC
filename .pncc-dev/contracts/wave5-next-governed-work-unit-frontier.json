@@ -2,23 +2,30 @@
   "schema_version": 1,
   "role": "WAVE5_NEXT_GOVERNED_WORK_UNIT_FRONTIER",
   "state": "ACTIVE",
-  "frontier_id": "WRITER_LEASE_REGISTRY_HISTORICAL_STATE_RECONCILIATION",
-  "title_template": "{work_unit_id} — Writer Lease registry historical state reconciliation",
-  "goal": "Reconcile the exact historical expired ACTIVE writer-lease records identified by WU-119 and deferred by WU-120 under a separately governed provider-state hygiene boundary, without treating stale history as current ownership or broadening mutation authority.",
-  "conflict_domain": "wave5-writer-lease-registry-historical-state-reconciliation",
+  "frontier_id": "EXPLICIT_OWNER_AUTHORIZATION_FOR_WRITER_LEASE_REGISTRY_HISTORICAL_STATE_RECONCILIATION",
+  "title_template": "{work_unit_id} — Explicit Owner Authorization for Writer Lease registry historical state reconciliation",
+  "goal": "Bind an explicit Owner Authorization to the canonical WU-121 historical-state reconciliation preparation merge SHA and exact preparation contract blob, then create only the narrowly scoped authorization receipt and grant; do not execute the historical provider-state mutation in the authorization Work Unit.",
+  "conflict_domain": "wave5-writer-lease-registry-historical-state-reconciliation-owner-authorization",
   "runtime_required": false,
+  "preparation_contract": {
+    "path": ".pncc-dev/contracts/writer-lease-registry-historical-state-reconciliation-authority-preparation-wu121.json",
+    "blob_sha": "e0104e181a814960e30b1734e82770affbbf923c",
+    "required_state": "WAITING_EXPLICIT_OWNER_AUTHORIZATION",
+    "required_future_scope": "EXACT_FOUR_STALE_WRITER_LEASE_STATE_FIELDS_ACTIVE_TO_RELEASED_ONLY"
+  },
   "scope": [
-    "fresh-read canonical WU-120 decision, current main, provider-state head and exact writer-lease registry blob before every transaction",
-    "bind reconciliation to the exact four stale historical lease IDs proven by WU-119 and WU-120 and revalidate their expiry/current-ownership ineligibility against fresh provider truth",
-    "define a deterministic bounded historical-state reconciliation that cannot alter current writer ownership, registry generation semantics, lease identity, base, branch, timestamps or unrelated entries",
-    "require explicit separate reconciliation authority before any provider-state mutation beyond ordinary acquire/heartbeat/release authority",
-    "prove post-reconciliation registry validity and absence of collateral provider-state drift before any later Human-by-Exception readiness reassessment"
+    "require explicit Owner Authorization text that is distinguishable from generic continuation and binds the exact WU-121 preparation contract blob and actual post-merge preparation main SHA",
+    "create an immutable Owner Authorization receipt and an authorized reconciliation grant whose scope is exactly four historical Writer Lease state fields ACTIVE to RELEASED",
+    "keep provider-state mutation, historical reconciliation execution and current Writer Lease lifecycle mutation out of the Owner Authorization Work Unit",
+    "preserve the exact four stale lease IDs and all field-level immutability constraints established by WU-121 preparation",
+    "advance only to a separately governed controlled reconciliation execution Work Unit after authorization is canonical"
   ],
   "forbidden_scope": [
-    "treat any expired historical ACTIVE entry as current ownership",
-    "silently normalize stale lease history without separately established reconciliation authority",
-    "modify current or future lease ownership semantics, generation ordering, unrelated provider-state files or unrelated lease records",
-    "grant Human-by-Exception or higher-autonomy execution authority as a side effect of registry hygiene",
+    "treat generic Continue or Продолжай text as Owner Authorization",
+    "execute or simulate provider-state write as authorization evidence",
+    "change the stale lease set, permitted post-state, registry generation semantics, entry order or immutable lease fields",
+    "grant reusable/general provider-state hygiene authority or current Writer Lease lifecycle authority",
+    "grant Human-by-Exception or higher-autonomy authority",
     "mutate product/runtime source or physical runtime, ADWF binding/repository, release/tag/promotion, ruleset/security policy, PRIVATE evidence or 1080/1081 lifecycle"
   ],
   "required_checks": [
@@ -27,18 +34,29 @@
     "wave5-writer-lease-registry-topology",
     "wave5-writer-lease-claim-admission",
     "wave5-writer-lease-bounded-branch-execution",
-    "wave5-autonomous-continuation-human-by-exception-readiness-assessment",
-    "wave5-autonomous-continuation-human-by-exception-readiness-decision",
+    "wave5-writer-lease-registry-historical-state-reconciliation-authority-preparation",
     "public-safety",
     "quality-fast",
     "quality-deep"
   ],
   "exit_criteria": [
-    "the exact stale historical lease set is revalidated against fresh Provider Truth and remains ineligible for current ownership",
-    "any historical state mutation is covered by a separately explicit bounded reconciliation authority and cannot be inferred from WU-120 decision success",
-    "only the exact authorized historical state fields may change and all unrelated registry/provider-state content remains byte-for-byte semantically unchanged",
-    "post-transaction provider readback proves registry validity, current ownership semantics and no collateral drift",
-    "higher autonomy remains deferred until a later fresh readiness reassessment after reconciliation"
+    "Owner Authorization is explicit and cryptographically/semantically bound to exact WU-121 preparation blob and its actual canonical post-merge main SHA",
+    "authorized grant permits only the exact four state-field transitions ACTIVE to RELEASED and no other provider-state or lease lifecycle mutation",
+    "authorization Work Unit performs no provider-state mutation",
+    "all unrelated authority flags remain false",
+    "next frontier is controlled historical-state reconciliation execution, not readiness reassessment or higher-autonomy grant"
   ],
-  "next_natural_boundary": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_READINESS_REASSESSMENT_AFTER_LEASE_HYGIENE"
+  "owner_authorization_required": true,
+  "generic_continuation_is_owner_authorization": false,
+  "provider_mutation_authority": false,
+  "writer_lease_historical_mutation_authority": false,
+  "runtime_action_authority": false,
+  "product_runtime_mutation_authority": false,
+  "adwf_repository_mutation_authority": false,
+  "release_tag_promotion_authority": false,
+  "ruleset_policy_mutation_authority": false,
+  "reserve_1080_lifecycle_mutation_authority": false,
+  "primary_1081_lifecycle_mutation_authority": false,
+  "higher_autonomy_authority": false,
+  "next_natural_boundary": "CONTROLLED_WRITER_LEASE_REGISTRY_HISTORICAL_STATE_RECONCILIATION_EXECUTION"
 }

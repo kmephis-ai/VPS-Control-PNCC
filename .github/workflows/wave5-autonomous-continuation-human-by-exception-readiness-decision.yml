@@ -46,7 +46,6 @@ jobs:
           test "$(git hash-object .pncc-dev/scripts/evaluate_autonomous_continuation_human_by_exception_readiness_decision.py)" = "6102968fb5c4cf265fe59ccd7673c4d710cfc371"
           test "$(git hash-object .pncc-dev/tests/test_autonomous_continuation_human_by_exception_readiness_decision_wu120.py)" = "ad2f92cc731e475a1200fb1a422a90dd0d273d23"
           test "$(git hash-object .pncc-dev/contracts/governed-frontier-transition-pipe-wu-120.json)" = "0f0193611722f794906fd362a70e57d92f68eef4"
-          test "$(git hash-object .pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json)" = "a6bb097dcc210c7cd64154565808c16015c74b86"
           test "$(git hash-object .pncc-dev/contracts/autonomous-continuation-human-by-exception-readiness-assessment-wu119.json)" = "ad147299e65cec74f3fc5ef0365376f50f1485aa"
           test "$(git hash-object .pncc-dev/contracts/autonomous-continuation-human-by-exception-readiness-rubric.json)" = "8a75facb79773cadd786fd4384324ba984896ee7"
           test "$(git hash-object .pncc-dev/contracts/governed-frontier-transition-pipe-wu-119.json)" = "ba49439c212ccf41cfc86b4d40075db550e0d096"

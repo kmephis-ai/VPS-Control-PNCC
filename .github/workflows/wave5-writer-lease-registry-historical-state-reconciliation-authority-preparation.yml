@@ -1,0 +1,167 @@
+name: wave5-writer-lease-registry-historical-state-reconciliation-authority-preparation
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  writer-lease-registry-historical-state-reconciliation-authority-preparation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Fetch immutable WU-121 Provider Truth acquisition snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin pncc-provider-state
+          git cat-file -e ee533b6c1d9af426458f163f5ec0a3fff27a797a^{commit}
+          git cat-file -e c1212a395366dff49b8fcaaf627797cad33a12c1^{commit}
+          test "$(git rev-parse c1212a395366dff49b8fcaaf627797cad33a12c1^)" = "ee533b6c1d9af426458f163f5ec0a3fff27a797a"
+          git show ee533b6c1d9af426458f163f5ec0a3fff27a797a:.pncc-state/writer-lease-registry.json > /tmp/wu121-before.json
+          git show c1212a395366dff49b8fcaaf627797cad33a12c1:.pncc-state/writer-lease-registry.json > /tmp/wu121-registry.json
+          test "$(git hash-object /tmp/wu121-before.json)" = "36482aa000541449e4050df29af10ad64eb62649"
+          test "$(git hash-object /tmp/wu121-registry.json)" = "10342c16ed3aff3c8c8f0b94e3a80500d48e0403"
+
+      - name: Validate WU-121 preparation and observed registry
+        run: python3 .pncc-dev/scripts/validate_writer_lease_registry_historical_state_reconciliation_authority_preparation.py --registry /tmp/wu121-registry.json
+
+      - name: Run WU-121 adversarial preparation tests
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_writer_lease_registry_historical_state_reconciliation_authority_preparation_wu121.py' -v
+
+      - name: Assert exact WU-121 preparation blobs and immutable anchors
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object .pncc-dev/contracts/writer-lease-registry-historical-state-reconciliation-authority-preparation-wu121.json)" = "e0104e181a814960e30b1734e82770affbbf923c"
+          test "$(git hash-object .pncc-dev/scripts/validate_writer_lease_registry_historical_state_reconciliation_authority_preparation.py)" = "c5826ab87527465b36166a79ee87fdfdb99ab4ea"
+          test "$(git hash-object .pncc-dev/tests/test_writer_lease_registry_historical_state_reconciliation_authority_preparation_wu121.py)" = "9f14171938f55fe72a270c02388ff6781a931159"
+          test "$(git hash-object .pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json)" = "c3c33fd1504400bf2e48f6bc1024a7ad9a174d2c"
+          test "$(git hash-object .github/workflows/wave5-autonomous-continuation-human-by-exception-readiness-decision.yml)" = "1903a056d7fe0ae20c1754584dadff83b432b4e5"
+          test "$(git hash-object .pncc-dev/contracts/autonomous-continuation-human-by-exception-readiness-assessment-wu119.json)" = "ad147299e65cec74f3fc5ef0365376f50f1485aa"
+          test "$(git hash-object .pncc-dev/contracts/autonomous-continuation-human-by-exception-readiness-decision-wu120.json)" = "a014f81efa52671bf3f637f7a16dc6332a70091b"
+          test "$(git hash-object .pncc-dev/contracts/writer-lease-registry-topology.json)" = "2b9dec3f2b28aadb80ac8edbb09bdc9d453115a1"
+          test "$(git hash-object .pncc-dev/contracts/writer-lease-lifecycle-autonomous-execution-policy.json)" = "942492b4ffe2c2a8c4369b15b617ad9f7f795643"
+          test "$(git hash-object .pncc-dev/contracts/reusable-writer-lease-bounded-branch-authorized.json)" = "717e1f9081915f40fad2e0620c64245a650ca235"
+          test "$(git hash-object .pncc-dev/contracts/provider-truth-continuation-policy.json)" = "4c6fe2895d41ed9282e9209223a5dd27b209a2fc"
+          test "$(git hash-object .pncc-dev/contracts/governed-frontier-lifecycle-policy.json)" = "a9d04f0c8611f29cb1cd1929719dbec6f7434c52"
+
+      - name: Assert WU-121 lease acquisition append-only and stale history unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          before=json.load(open('/tmp/wu121-before.json'))
+          after=json.load(open('/tmp/wu121-registry.json'))
+          assert before['generation']==28
+          assert after['generation']==29
+          assert before['entries']==after['entries'][:-1]
+          current=after['entries'][-1]
+          assert current['lease_id']=='08e426fc-4bc5-40e6-a408-da4d7d06e97b'
+          assert current['work_unit_id']=='PIPE-WU-121'
+          assert current['state']=='ACTIVE'
+          assert current['generation']==29
+          assert current['base_sha']=='4bf295f43f46850b0a74341066b9d3719d862353'
+          assert current['branch']=='agent/PIPE-WU-121-writer-lease-registry-historical-state-reconciliation'
+          stale_expected={
+              '3bf7a003-1e8e-4ab2-910d-0c1d4aba9b03',
+              'ee8b93cb-c629-4f69-82c6-25793fd10d8f',
+              '38a86545-e9b7-47eb-9b6e-3c9974bbd020',
+              '9c2dcb40-26dc-4dce-aa4f-c1be79a66983',
+          }
+          stale={x['lease_id'] for x in after['entries'] if x['state']=='ACTIVE' and x['expires_at'] <= '2026-08-30T16:14:00Z'}
+          assert stale==stale_expected
+          assert all(next(x for x in before['entries'] if x['lease_id']==lease_id)==next(x for x in after['entries'] if x['lease_id']==lease_id) for lease_id in stale_expected)
+          PY
+
+      - name: Assert predecessor frontier came from exact WU-121 base
+        shell: bash
+        run: |
+          set -euo pipefail
+          git show 4bf295f43f46850b0a74341066b9d3719d862353:.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json > /tmp/wu121-predecessor-frontier.json
+          test "$(git hash-object /tmp/wu121-predecessor-frontier.json)" = "a6bb097dcc210c7cd64154565808c16015c74b86"
+          python3 - <<'PY'
+          import json
+          p=json.load(open('/tmp/wu121-predecessor-frontier.json'))
+          assert p['frontier_id']=='WRITER_LEASE_REGISTRY_HISTORICAL_STATE_RECONCILIATION'
+          assert p['runtime_required'] is False
+          PY
+
+      - name: Assert exact bounded WU-121 preparation diff and branch ancestry
+        if: github.event_name == 'pull_request' && github.head_ref == 'agent/PIPE-WU-121-writer-lease-registry-historical-state-reconciliation'
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$BASE_SHA" = "4bf295f43f46850b0a74341066b9d3719d862353"
+          test "$(git merge-base "$BASE_SHA" "$HEAD_SHA")" = "$BASE_SHA"
+          FIRST_COMMIT="$(git rev-list --reverse "$BASE_SHA..$HEAD_SHA" | head -n 1)"
+          test -n "$FIRST_COMMIT"
+          test "$(git rev-parse "$FIRST_COMMIT^")" = "$BASE_SHA"
+          git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort > /tmp/actual
+          printf '%s\n' \
+            '.github/workflows/wave5-autonomous-continuation-human-by-exception-readiness-decision.yml' \
+            '.github/workflows/wave5-writer-lease-registry-historical-state-reconciliation-authority-preparation.yml' \
+            '.pncc-dev/contracts/governed-frontier-transition-pipe-wu-121.json' \
+            '.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json' \
+            '.pncc-dev/contracts/writer-lease-registry-historical-state-reconciliation-authority-preparation-wu121.json' \
+            '.pncc-dev/scripts/validate_writer_lease_registry_historical_state_reconciliation_authority_preparation.py' \
+            '.pncc-dev/tests/test_writer_lease_registry_historical_state_reconciliation_authority_preparation_wu121.py' | sort > /tmp/expected
+          diff -u /tmp/expected /tmp/actual
+          ! grep -E '^(\.pncc-state/|src/windows-v7/|\.adwf-consumer/|tools/runtime-agent/|\.pncc-dev/attestations/)' /tmp/actual
+          ! grep -E 'writer-lease-registry-historical-state-reconciliation-authorized\.json$' /tmp/actual
+
+      - name: Assert successor frontier requires explicit Owner Authorization and no execution
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          c=json.loads(Path('.pncc-dev/contracts/writer-lease-registry-historical-state-reconciliation-authority-preparation-wu121.json').read_text())
+          f=json.loads(Path('.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json').read_text())
+          assert c['preparation_state']=='WAITING_EXPLICIT_OWNER_AUTHORIZATION'
+          assert c['generic_continuation_text_is_owner_authorization'] is False
+          assert c['owner_authorization_present'] is False
+          assert c['historical_state_mutation_performed_in_preparation'] is False
+          assert c['historical_reconciliation_authority_granted'] is False
+          assert f['frontier_id']=='EXPLICIT_OWNER_AUTHORIZATION_FOR_WRITER_LEASE_REGISTRY_HISTORICAL_STATE_RECONCILIATION'
+          assert f['owner_authorization_required'] is True
+          assert f['generic_continuation_is_owner_authorization'] is False
+          assert f['provider_mutation_authority'] is False
+          assert f['writer_lease_historical_mutation_authority'] is False
+          assert f['next_natural_boundary']=='CONTROLLED_WRITER_LEASE_REGISTRY_HISTORICAL_STATE_RECONCILIATION_EXECUTION'
+          PY
+
+      - name: Assert preparation workflow itself is read only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          t=Path('.github/workflows/wave5-writer-lease-registry-historical-state-reconciliation-authority-preparation.yml').read_text(encoding='utf-8').lower()
+          forbidden=[
+              'contents:'+' write','actions:'+' write','issues:'+' write','pull-requests:'+' write',
+              'git'+' push','gh'+' pr merge','gh'+' issue close',
+              '--method'+' post','--method'+' patch','--method'+' put','--method'+' delete'
+          ]
+          for token in forbidden:
+              assert token not in t, token
+          PY
+
+      - name: Assert repository remains clean
+        run: test -z "$(git status --porcelain)"
