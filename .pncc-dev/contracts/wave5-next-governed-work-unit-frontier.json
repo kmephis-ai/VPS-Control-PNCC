@@ -2,48 +2,43 @@
   "schema_version": 1,
   "role": "WAVE5_NEXT_GOVERNED_WORK_UNIT_FRONTIER",
   "state": "ACTIVE",
-  "frontier_id": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_READINESS_DECISION",
-  "title_template": "{work_unit_id} — Autonomous continuation Human-by-Exception readiness decision",
-  "goal": "Consume the canonical WU-119 assessment under fresh Provider Truth and make an explicit fail-closed readiness decision without automatically granting new authority; if stale lease hygiene remains unresolved, defer higher autonomy and route to separately authorized registry reconciliation.",
-  "conflict_domain": "wave5-autonomous-continuation-human-by-exception-readiness-decision",
+  "frontier_id": "WRITER_LEASE_REGISTRY_HISTORICAL_STATE_RECONCILIATION",
+  "title_template": "{work_unit_id} — Writer Lease registry historical state reconciliation",
+  "goal": "Reconcile the exact historical expired ACTIVE writer-lease records identified by WU-119 and deferred by WU-120 under a separately governed provider-state hygiene boundary, without treating stale history as current ownership or broadening mutation authority.",
+  "conflict_domain": "wave5-writer-lease-registry-historical-state-reconciliation",
   "runtime_required": false,
   "scope": [
-    "fresh-read canonical WU-119 assessment, main, provider-state, current lease, branch/PR/CI truth and immutable WU-108 through WU-118 anchors",
-    "decide among existing-authority-only readiness, defer-and-remediate, separate-authority-required or owner-escalation-required outcomes",
-    "require stale expired ACTIVE lease history to remain ineligible for current ownership and explicitly decide whether separate registry hygiene is mandatory before any higher-autonomy proposal",
-    "preserve all runtime/product/release/ruleset/security/ADWF and 1080/1081 boundaries",
-    "record a machine-readable decision whose success is not itself a mutation authority grant"
+    "fresh-read canonical WU-120 decision, current main, provider-state head and exact writer-lease registry blob before every transaction",
+    "bind reconciliation to the exact four stale historical lease IDs proven by WU-119 and WU-120 and revalidate their expiry/current-ownership ineligibility against fresh provider truth",
+    "define a deterministic bounded historical-state reconciliation that cannot alter current writer ownership, registry generation semantics, lease identity, base, branch, timestamps or unrelated entries",
+    "require explicit separate reconciliation authority before any provider-state mutation beyond ordinary acquire/heartbeat/release authority",
+    "prove post-reconciliation registry validity and absence of collateral provider-state drift before any later Human-by-Exception readiness reassessment"
   ],
   "forbidden_scope": [
-    "convert WU-119 assessment success into Human-by-Exception execution authority",
-    "silently rewrite or normalize stale lease history inside the readiness decision transaction",
-    "broaden Writer Lease, merge/Issue-close, continuation, runtime, product, release, ruleset, security or ADWF authority",
-    "mutate product/runtime source or physical runtime",
-    "perform release/tag/promotion, ruleset/policy administration, PRIVATE evidence publication or 1080/1081 lifecycle mutation"
+    "treat any expired historical ACTIVE entry as current ownership",
+    "silently normalize stale lease history without separately established reconciliation authority",
+    "modify current or future lease ownership semantics, generation ordering, unrelated provider-state files or unrelated lease records",
+    "grant Human-by-Exception or higher-autonomy execution authority as a side effect of registry hygiene",
+    "mutate product/runtime source or physical runtime, ADWF binding/repository, release/tag/promotion, ruleset/security policy, PRIVATE evidence or 1080/1081 lifecycle"
   ],
   "required_checks": [
     "pipeline-state",
     "wave5-provider-work-unit-selection",
-    "wave5-exact-head-ci-inspection-classification",
-    "wave5-autonomous-continuation-control-loop",
-    "wave5-autonomous-continuation-execution-admission",
-    "wave5-reusable-autonomous-continuation-steady-state",
-    "wave5-reusable-autonomous-continuation-steady-state-execution",
-    "wave5-durable-autonomous-continuation-session-resume",
-    "wave5-durable-autonomous-continuation-session-resume-execution",
-    "wave5-durable-autonomous-continuation-multi-session-steady-state",
-    "wave5-durable-autonomous-continuation-multi-session-steady-state-execution",
+    "wave5-writer-lease-registry-topology",
+    "wave5-writer-lease-claim-admission",
+    "wave5-writer-lease-bounded-branch-execution",
     "wave5-autonomous-continuation-human-by-exception-readiness-assessment",
+    "wave5-autonomous-continuation-human-by-exception-readiness-decision",
     "public-safety",
     "quality-fast",
     "quality-deep"
   ],
   "exit_criteria": [
-    "a canonical fail-closed readiness decision references fresh WU-119 assessment and Provider Truth",
-    "stale historical ACTIVE leases cannot satisfy current writer ownership and are either routed to separate hygiene remediation or explicitly proven irrelevant by fresh canonical evidence",
-    "no decision result implicitly grants provider/runtime/product/release/ruleset/security/ADWF authority",
-    "owner-escalation and separate-authority boundaries remain explicit",
-    "exact-head hosted CI passes with no product/runtime, ADWF or 1080/1081 mutation"
+    "the exact stale historical lease set is revalidated against fresh Provider Truth and remains ineligible for current ownership",
+    "any historical state mutation is covered by a separately explicit bounded reconciliation authority and cannot be inferred from WU-120 decision success",
+    "only the exact authorized historical state fields may change and all unrelated registry/provider-state content remains byte-for-byte semantically unchanged",
+    "post-transaction provider readback proves registry validity, current ownership semantics and no collateral drift",
+    "higher autonomy remains deferred until a later fresh readiness reassessment after reconciliation"
   ],
-  "next_natural_boundary": "WRITER_LEASE_REGISTRY_HISTORICAL_STATE_RECONCILIATION"
+  "next_natural_boundary": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_READINESS_REASSESSMENT_AFTER_LEASE_HYGIENE"
 }
