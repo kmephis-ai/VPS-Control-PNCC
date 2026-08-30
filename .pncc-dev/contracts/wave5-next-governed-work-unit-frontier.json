@@ -2,25 +2,25 @@
   "schema_version": 1,
   "role": "WAVE5_NEXT_GOVERNED_WORK_UNIT_FRONTIER",
   "state": "ACTIVE",
-  "frontier_id": "REUSABLE_AUTONOMOUS_CONTINUATION_STEADY_STATE_EXECUTION",
-  "title_template": "{work_unit_id} — Reusable autonomous continuation steady-state execution",
-  "goal": "Exercise the canonical WU-113 steady-state contract across multiple sequential admitted delegated provider transactions, with a fresh provider readback and fresh WU-108/WU-109 decisions between every mutation iteration.",
-  "conflict_domain": "wave5-reusable-autonomous-continuation-steady-state-execution",
+  "frontier_id": "DURABLE_AUTONOMOUS_CONTINUATION_SESSION_RESUME",
+  "title_template": "{work_unit_id} — Durable autonomous continuation session resume",
+  "goal": "Define and prove a provider-truth-backed durable session resume contract so a later ChatGPT/Codex session can resume autonomous PNCC continuation from fresh canonical state without replaying stale admissions, transactions, leases, branch state or CI conclusions.",
+  "conflict_domain": "wave5-durable-autonomous-continuation-session-resume",
   "runtime_required": false,
   "scope": [
-    "fresh-read canonical WU-113 steady-state policy/evaluator, WU-112 first-transaction evidence, reusable executor grant and all bound delegated-authority anchors",
-    "execute at least two sequential admitted delegated provider transactions under the exact WU-113 one-transaction-per-iteration contract",
-    "perform mandatory fresh provider readback after each delegated transaction before any next iteration",
-    "obtain one fresh WU-108 control-loop decision and one fresh WU-109 execution admission for every mutation iteration",
-    "record machine-verifiable iteration evidence proving no stale admission reuse, no batched mutation and no authority broadening",
-    "preserve wait, stop, blocked, interruption and separate-authority-required paths as mutation-free fail-closed states"
+    "define one machine-readable durable resume checkpoint identity bound to fresh current main, selected canonical Work Unit, provider-state head/registry generation, Writer Lease state, bounded branch/PR/CI state and last completed steady-state iteration",
+    "require every resumed session to fresh-read provider truth and recompute WU-108 control-loop plus WU-109 execution admission before any mutation",
+    "distinguish clean iteration boundary, interrupted transaction, pending provider readback, expired or released lease, branch/PR drift and completed Work Unit states without guessing",
+    "forbid replay of a prior session control-loop decision, execution admission, CAS token, branch-head assumption, CI classification or merge eligibility result",
+    "define fail-closed reconciliation when durable checkpoint and fresh provider truth disagree, including explicit separate-authority routing for classified failures",
+    "keep checkpoint contents public-safe and free of credentials, private runtime evidence, host identifiers or secret-bearing transport data"
   ],
   "forbidden_scope": [
-    "batch multiple delegated provider mutations in one iteration or reuse prior control-loop/admission evidence",
-    "infer, broaden, replace or bypass the canonical reusable materialization, Writer Lease or merge/Issue-close authorities",
-    "guess recovery after classified failure, interruption, stale state, contradiction, revocation or anchor drift",
-    "mutate product/runtime source or runtime state",
-    "mutate ADWF Consumer binding/provenance or the ADWF repository",
+    "treat a persisted checkpoint as mutation authority or as a substitute for fresh provider truth",
+    "resume an interrupted mutation by assuming whether it completed; mandatory provider readback/reconciliation is required first",
+    "reuse expired Writer Lease ownership, stale registry CAS tokens, stale PR head or stale CI success after session handoff",
+    "broaden existing reusable materialization, Writer Lease, autonomous merge/Issue-close or continuation executor authority",
+    "mutate product/runtime source or physical runtime, ADWF Consumer binding/provenance or the ADWF repository",
     "perform release/tag/promotion, ruleset/policy administration, PRIVATE evidence publication or 1080/1081 lifecycle mutation"
   ],
   "required_checks": [
@@ -32,17 +32,18 @@
     "wave5-reusable-autonomous-continuation-executor-owner-authorization",
     "wave5-reusable-autonomous-continuation-executor-first-transaction",
     "wave5-reusable-autonomous-continuation-steady-state",
+    "wave5-reusable-autonomous-continuation-steady-state-execution",
     "public-safety",
     "quality-fast",
     "quality-deep"
   ],
   "exit_criteria": [
-    "at least two sequential delegated provider transactions are proven under separate fresh steady-state iterations",
-    "each mutation iteration has fresh provider truth, one fresh WU-108 decision, one fresh WU-109 admission and the exact matching delegated authority",
-    "each delegated transaction is followed by mandatory fresh provider readback before the next iteration",
-    "no stale admission reuse, batch mutation, inferred authority or silent recovery occurs",
-    "wait, stop, blocked, classified failure and interruption paths remain fail closed and mutation free",
+    "one durable checkpoint schema/policy and fail-closed resume evaluator are machine readable and adversarially tested",
+    "fresh provider truth is mandatory at session resume and stale persisted decisions/CAS tokens cannot authorize mutation",
+    "clean-boundary resume and interrupted-transaction reconciliation are deterministic and mutually exclusive",
+    "expired/released lease, branch/PR drift, pending/failed CI and post-merge states route to the exact current canonical continuation boundary rather than replaying old state",
+    "checkpoint contains no private runtime payload, credentials or secret-bearing local evidence",
     "exact-head hosted CI passes with no product/runtime, ADWF or 1080/1081 mutation"
   ],
-  "next_natural_boundary": "DURABLE_AUTONOMOUS_CONTINUATION_SESSION_RESUME"
+  "next_natural_boundary": "DURABLE_AUTONOMOUS_CONTINUATION_SESSION_RESUME_EXECUTION"
 }
