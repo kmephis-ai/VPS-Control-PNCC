@@ -2,30 +2,31 @@
   "schema_version": 1,
   "role": "WAVE5_NEXT_GOVERNED_WORK_UNIT_FRONTIER",
   "state": "ACTIVE",
-  "frontier_id": "EXPLICIT_OWNER_AUTHORIZATION_FOR_WRITER_LEASE_REGISTRY_HISTORICAL_STATE_RECONCILIATION",
-  "title_template": "{work_unit_id} — Explicit Owner Authorization for Writer Lease registry historical state reconciliation",
-  "goal": "Bind an explicit Owner Authorization to the canonical WU-121 historical-state reconciliation preparation merge SHA and exact preparation contract blob, then create only the narrowly scoped authorization receipt and grant; do not execute the historical provider-state mutation in the authorization Work Unit.",
-  "conflict_domain": "wave5-writer-lease-registry-historical-state-reconciliation-owner-authorization",
+  "frontier_id": "CONTROLLED_WRITER_LEASE_REGISTRY_HISTORICAL_STATE_RECONCILIATION_EXECUTION",
+  "title_template": "{work_unit_id} — Controlled Writer Lease registry historical state reconciliation execution",
+  "goal": "Execute one atomic CAS-bound historical Writer Lease registry reconciliation under the canonical WU-122 grant, changing only the exact four authorized historical state fields from ACTIVE to RELEASED, then prove post-transaction provider truth before any readiness reassessment.",
+  "conflict_domain": "wave5-writer-lease-registry-historical-state-reconciliation-execution",
   "runtime_required": false,
-  "preparation_contract": {
-    "path": ".pncc-dev/contracts/writer-lease-registry-historical-state-reconciliation-authority-preparation-wu121.json",
-    "blob_sha": "e0104e181a814960e30b1734e82770affbbf923c",
-    "required_state": "WAITING_EXPLICIT_OWNER_AUTHORIZATION",
-    "required_future_scope": "EXACT_FOUR_STALE_WRITER_LEASE_STATE_FIELDS_ACTIVE_TO_RELEASED_ONLY"
+  "authorization_grant": {
+    "path": ".pncc-dev/contracts/writer-lease-registry-historical-state-reconciliation-authorized.json",
+    "blob_sha": "20fc664e90b1390351a5de70c98563140ef3190d",
+    "required_scope": "EXACT_FOUR_STALE_WRITER_LEASE_STATE_FIELDS_ACTIVE_TO_RELEASED_ONLY"
   },
   "scope": [
-    "require explicit Owner Authorization text that is distinguishable from generic continuation and binds the exact WU-121 preparation contract blob and actual post-merge preparation main SHA",
-    "create an immutable Owner Authorization receipt and an authorized reconciliation grant whose scope is exactly four historical Writer Lease state fields ACTIVE to RELEASED",
-    "keep provider-state mutation, historical reconciliation execution and current Writer Lease lifecycle mutation out of the Owner Authorization Work Unit",
-    "preserve the exact four stale lease IDs and all field-level immutability constraints established by WU-121 preparation",
-    "advance only to a separately governed controlled reconciliation execution Work Unit after authorization is canonical"
+    "fresh-read canonical WU-122 grant, current main, provider-state head and exact registry before execution",
+    "require all four exact historical entries to remain ACTIVE and expired before one atomic registry CAS",
+    "change only the four exact state fields ACTIVE to RELEASED in one transaction",
+    "preserve registry generation, entry count/order and every immutable field of every entry",
+    "perform mandatory provider readback proving exact post-state and no collateral drift",
+    "advance only after proven reconciliation to a fresh Human-by-Exception readiness reassessment"
   ],
   "forbidden_scope": [
-    "treat generic Continue or Продолжай text as Owner Authorization",
-    "execute or simulate provider-state write as authorization evidence",
-    "change the stale lease set, permitted post-state, registry generation semantics, entry order or immutable lease fields",
-    "grant reusable/general provider-state hygiene authority or current Writer Lease lifecycle authority",
-    "grant Human-by-Exception or higher-autonomy authority",
+    "partial or superset reconciliation",
+    "change registry generation or entry ordering/count",
+    "change lease identity, work-unit/conflict-domain/holder/base/branch/generation/timestamps",
+    "change current Writer Lease lifecycle semantics or unrelated provider-state",
+    "infer success after unknown provider outcome or replay ambiguous CAS",
+    "grant Human-by-Exception or higher autonomy as a side effect",
     "mutate product/runtime source or physical runtime, ADWF binding/repository, release/tag/promotion, ruleset/security policy, PRIVATE evidence or 1080/1081 lifecycle"
   ],
   "required_checks": [
@@ -34,22 +35,20 @@
     "wave5-writer-lease-registry-topology",
     "wave5-writer-lease-claim-admission",
     "wave5-writer-lease-bounded-branch-execution",
-    "wave5-writer-lease-registry-historical-state-reconciliation-authority-preparation",
+    "wave5-writer-lease-registry-historical-state-reconciliation-owner-authorization",
     "public-safety",
     "quality-fast",
     "quality-deep"
   ],
   "exit_criteria": [
-    "Owner Authorization is explicit and cryptographically/semantically bound to exact WU-121 preparation blob and its actual canonical post-merge main SHA",
-    "authorized grant permits only the exact four state-field transitions ACTIVE to RELEASED and no other provider-state or lease lifecycle mutation",
-    "authorization Work Unit performs no provider-state mutation",
-    "all unrelated authority flags remain false",
-    "next frontier is controlled historical-state reconciliation execution, not readiness reassessment or higher-autonomy grant"
+    "canonical WU-122 grant and receipt remain exact and not revoked",
+    "all four exact stale historical state fields are RELEASED after one atomic CAS",
+    "registry generation and all unrelated semantics remain unchanged",
+    "fresh post-transaction provider readback proves no collateral drift",
+    "next frontier is Human-by-Exception readiness reassessment after lease hygiene"
   ],
-  "owner_authorization_required": true,
-  "generic_continuation_is_owner_authorization": false,
-  "provider_mutation_authority": false,
-  "writer_lease_historical_mutation_authority": false,
+  "provider_mutation_authority": "EXACT_WU122_GRANT_ONLY",
+  "writer_lease_historical_mutation_authority": "EXACT_WU122_GRANT_ONLY",
   "runtime_action_authority": false,
   "product_runtime_mutation_authority": false,
   "adwf_repository_mutation_authority": false,
@@ -58,5 +57,5 @@
   "reserve_1080_lifecycle_mutation_authority": false,
   "primary_1081_lifecycle_mutation_authority": false,
   "higher_autonomy_authority": false,
-  "next_natural_boundary": "CONTROLLED_WRITER_LEASE_REGISTRY_HISTORICAL_STATE_RECONCILIATION_EXECUTION"
+  "next_natural_boundary": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_READINESS_REASSESSMENT_AFTER_LEASE_HYGIENE"
 }
