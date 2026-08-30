@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "role": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_READINESS_RUBRIC",
+  "mode": "ASSESSMENT_ONLY_FAIL_CLOSED",
+  "repository": "kmephis-ai/VPS-Control-PNCC",
+  "default_branch": "main",
+  "classifications": [
+    "AUTONOMOUS_SAFE",
+    "WAIT_ONLY",
+    "STOP_ONLY",
+    "SEPARATE_AUTHORITY_REQUIRED",
+    "OWNER_ESCALATION_REQUIRED"
+  ],
+  "readiness_states": [
+    "READY_WITH_EXISTING_AUTHORITY_ONLY",
+    "NOT_READY_FOR_HIGHER_AUTONOMY",
+    "BLOCKED_BY_CONTRADICTORY_PROVIDER_TRUTH"
+  ],
+  "principles": {
+    "fresh_provider_truth_mandatory": true,
+    "current_writer_requires_latest_registry_generation": true,
+    "current_writer_requires_selected_work_unit_match": true,
+    "current_writer_requires_current_base_and_branch_match": true,
+    "current_writer_requires_unexpired_active_lease": true,
+    "historical_active_entry_never_current_by_state_alone": true,
+    "expired_active_entry_is_stale_history": true,
+    "stale_history_requires_separate_hygiene_authority": true,
+    "assessment_success_never_grants_authority": true,
+    "unknown_provider_outcome_replay_forbidden": true,
+    "mandatory_readback_after_delegated_mutation": true
+  },
+  "criteria": [
+    {"id":"PROVIDER_TRUTH_FRESH","classification":"AUTONOMOUS_SAFE","requirement":"Fresh canonical main, Work Unit, provider-state, branch/PR/CI truth before every mutation."},
+    {"id":"BOUNDED_SINGLE_TRANSACTION","classification":"AUTONOMOUS_SAFE","requirement":"At most one delegated provider transaction per admitted iteration under existing authority."},
+    {"id":"POST_TRANSACTION_READBACK","classification":"AUTONOMOUS_SAFE","requirement":"Fresh provider readback is mandatory before next iteration or checkpoint refresh."},
+    {"id":"EXACT_HEAD_CI_CLASSIFICATION","classification":"AUTONOMOUS_SAFE","requirement":"Exact-head CI inspection/classification is recomputed and immutable successes are never reused across changed heads."},
+    {"id":"CLEAN_MULTI_SESSION_RESUME","classification":"AUTONOMOUS_SAFE","requirement":"Clean persisted checkpoints are hint-only and fresh provider truth supersedes prior session authority."},
+    {"id":"PROVIDER_READBACK_PENDING","classification":"WAIT_ONLY","requirement":"No new mutation until fresh provider readback completes."},
+    {"id":"UNKNOWN_TRANSACTION_OUTCOME","classification":"STOP_ONLY","requirement":"Do not replay; reconcile provider truth before any new mutation."},
+    {"id":"CLASSIFIED_FAILURE","classification":"SEPARATE_AUTHORITY_REQUIRED","requirement":"Recovery that exceeds existing bounded authority requires a separately authorized Work Unit."},
+    {"id":"EXPIRED_ACTIVE_LEASE_HISTORY","classification":"STOP_ONLY","requirement":"Expired ACTIVE registry entries are stale historical records and cannot satisfy current writer ownership."},
+    {"id":"STALE_LEASE_HYGIENE_REMEDIATION","classification":"SEPARATE_AUTHORITY_REQUIRED","requirement":"Changing historical stale lease state requires a distinct provider-state maintenance authority."},
+    {"id":"RUNTIME_NODE_UNAVAILABLE","classification":"WAIT_ONLY","requirement":"Runtime-dependent execution waits for a qualified runtime rather than guessing success."},
+    {"id":"PHYSICAL_RUNTIME_OR_PRODUCT_MUTATION","classification":"OWNER_ESCALATION_REQUIRED","requirement":"Physical runtime or product source mutation remains outside this assessment."},
+    {"id":"RELEASE_TAG_RULESET_SECURITY_ADWF","classification":"OWNER_ESCALATION_REQUIRED","requirement":"Release, tag, ruleset, security-boundary or ADWF mutations remain owner-controlled/separately governed."}
+  ],
+  "authority_flags": {
+    "provider_mutation_authority": false,
+    "writer_lease_mutation_authority": false,
+    "branch_mutation_authority": false,
+    "pull_request_mutation_authority": false,
+    "workflow_rerun_authority": false,
+    "merge_authority": false,
+    "issue_close_authority": false,
+    "runtime_action_authority": false,
+    "product_runtime_mutation_authority": false,
+    "release_tag_promotion_authority": false,
+    "ruleset_policy_mutation_authority": false,
+    "adwf_repository_mutation_authority": false,
+    "private_evidence_publication_authority": false,
+    "reserve_1080_lifecycle_mutation_authority": false,
+    "primary_1081_lifecycle_mutation_authority": false
+  },
+  "next_boundary": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_READINESS_DECISION"
+}
