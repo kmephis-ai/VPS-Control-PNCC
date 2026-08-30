@@ -7,20 +7,26 @@ EVAL=ROOT/'.pncc-dev/scripts/evaluate_autonomous_continuation_human_by_exception
 spec=importlib.util.spec_from_file_location('wu128_eval',EVAL); mod=importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
 POLICY=mod.load_json(ROOT/'.pncc-dev/contracts/autonomous-continuation-human-by-exception-steady-state-policy-wu128.json')
 MAIN='71e9d6a07f6a15dabb5d358d58a7293eb5f96eec'
+BASE_NON={'WAIT_ONLY':'NO_MUTATION','STOP_ONLY':'NO_MUTATION','SEPARATE_AUTHORITY_REQUIRED':'NO_MUTATION_AND_SEPARATE_EXPLICIT_AUTHORITY_REQUIRED','BLOCKED':'NO_MUTATION_FAIL_CLOSED'}
+OP_NON={'WAIT_ONLY':'NONE_WAIT_ONLY','STOP_ONLY':'NONE_TERMINAL','SEPARATE_AUTHORITY_REQUIRED':'NONE_SEPARATE_RECOVERY_AUTHORITY_REQUIRED','BLOCKED':'NONE_FAIL_CLOSED'}
 
 def control(decision='PLAN_EXISTING_BOUNDED_BRANCH_CREATE'):
  return {'schema_version':1,'role':'AUTONOMOUS_CONTINUATION_CONTROL_LOOP_DECISION','state':'PLAN_ONLY_CONTROL_LOOP_PASS','decision':decision,'provider_mutation_performed':False,'issue_mutation_performed':False,'branch_mutation_performed':False,'pull_request_mutation_performed':False,'writer_lease_mutation_performed':False,'workflow_rerun_performed':False,'merge_performed':False,'runtime_action_performed':False,'product_runtime_mutation_performed':False}
 
-def admission(decision='ADMIT_EXISTING_WRITER_LEASE_AUTHORITY',delegated='EXISTING_REUSABLE_WRITER_LEASE_BOUNDED_BRANCH_AUTHORITY',target='BOUNDED_NON_MAIN_BRANCH_CREATE_PATH',control_decision='PLAN_EXISTING_BOUNDED_BRANCH_CREATE'):
+def admission(decision,delegated,target,control_decision):
  return {'schema_version':1,'role':'AUTONOMOUS_CONTINUATION_EXECUTION_ADMISSION_DECISION','state':'PLAN_ONLY_ADMISSION_BLOCKED' if decision=='BLOCKED' else 'PLAN_ONLY_ADMISSION_PASS','decision':decision,'reasons':[],'control_loop_decision':control_decision,'delegated_authority':delegated,'target_action':target,'provider_mutation_performed':False,'issue_mutation_performed':False,'branch_mutation_performed':False,'pull_request_mutation_performed':False,'writer_lease_mutation_performed':False,'workflow_rerun_performed':False,'merge_performed':False,'runtime_action_performed':False}
 
-def snapshot(*,seq=1,txn_state='NOT_STARTED',txn_count=0,readback=False,provider_mutation=False,decision='ADMIT_EXISTING_WRITER_LEASE_AUTHORITY',delegated='EXISTING_REUSABLE_WRITER_LEASE_BOUNDED_BRANCH_AUTHORITY',target='BOUNDED_NON_MAIN_BRANCH_CREATE_PATH'):
- ctl='PLAN_EXISTING_BOUNDED_BRANCH_CREATE' if decision=='ADMIT_EXISTING_WRITER_LEASE_AUTHORITY' else {'WAIT_ONLY':'WAIT_ONLY','STOP_ONLY':'STOP_ONLY','SEPARATE_AUTHORITY_REQUIRED':'SEPARATE_AUTHORITY_REQUIRED','BLOCKED':'BLOCKED'}[decision]
- c=control(ctl); a=admission(decision,delegated,target,ctl)
- txn={'delegated_transaction_count':txn_count,'state':txn_state,'delegated_authority_identity':delegated,'target_action':target,'provider_mutation_performed':provider_mutation,'fresh_provider_readback_completed':readback}
+def snapshot(*,seq=1,txn_state='NOT_STARTED',txn_count=0,readback=False,provider_mutation=False,decision='ADMIT_EXISTING_WRITER_LEASE_AUTHORITY'):
+ ctl='PLAN_EXISTING_BOUNDED_BRANCH_CREATE' if decision=='ADMIT_EXISTING_WRITER_LEASE_AUTHORITY' else decision
+ if decision=='ADMIT_EXISTING_WRITER_LEASE_AUTHORITY':
+  base_delegated=op_delegated='EXISTING_REUSABLE_WRITER_LEASE_BOUNDED_BRANCH_AUTHORITY'; target='BOUNDED_NON_MAIN_BRANCH_CREATE_PATH'
+ else:
+  base_delegated=BASE_NON[decision]; op_delegated=OP_NON[decision]; target=None
+ c=control(ctl); base_a=admission(decision,base_delegated,target,ctl); op_a=admission(decision,op_delegated,target,ctl)
+ txn={'delegated_transaction_count':txn_count,'state':txn_state,'delegated_authority_identity':base_delegated,'target_action':target,'provider_mutation_performed':provider_mutation,'fresh_provider_readback_completed':readback}
  if txn_state=='PERFORMED_READBACK_COMPLETE': txn['provider_state_after']={'fresh':True,'identity':'wu128-test-readback'}
- base={'schema_version':1,'role':'REUSABLE_AUTONOMOUS_CONTINUATION_STEADY_STATE_SNAPSHOT','repository':'kmephis-ai/VPS-Control-PNCC','default_branch':'main','provider_truth_fresh':True,'current_main_sha':MAIN,'iteration_sequence':seq,'control_loop_fresh_for_iteration':True,'execution_admission_fresh_for_iteration':True,'control_loop_reused_from_prior_iteration':False,'execution_admission_reused_from_prior_iteration':False,'previous_iteration_fresh_provider_readback_completed':True if seq>1 else False,'interrupted':False,'stale_state':False,'contradiction_detected':False,'anchor_drift_detected':False,'revocation_detected':False,'classified_failure_detected':False,'control_loop_decision':c,'execution_admission_decision':a,'delegated_transaction':txn}
- ops={'schema_version':1,'role':'AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_OPERATIONALIZATION_SNAPSHOT','repository':'kmephis-ai/VPS-Control-PNCC','default_branch':'main','provider_truth_fresh':True,'current_main_sha':MAIN,'admission_current_main_sha':MAIN,'input_mode':'EXECUTION_ADMISSION','owner_exception':None,'execution_admission_decision':copy.deepcopy(a)}
+ base={'schema_version':1,'role':'REUSABLE_AUTONOMOUS_CONTINUATION_STEADY_STATE_SNAPSHOT','repository':'kmephis-ai/VPS-Control-PNCC','default_branch':'main','provider_truth_fresh':True,'current_main_sha':MAIN,'iteration_sequence':seq,'control_loop_fresh_for_iteration':True,'execution_admission_fresh_for_iteration':True,'control_loop_reused_from_prior_iteration':False,'execution_admission_reused_from_prior_iteration':False,'previous_iteration_fresh_provider_readback_completed':True if seq>1 else False,'interrupted':False,'stale_state':False,'contradiction_detected':False,'anchor_drift_detected':False,'revocation_detected':False,'classified_failure_detected':False,'control_loop_decision':c,'execution_admission_decision':base_a,'delegated_transaction':txn}
+ ops={'schema_version':1,'role':'AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_OPERATIONALIZATION_SNAPSHOT','repository':'kmephis-ai/VPS-Control-PNCC','default_branch':'main','provider_truth_fresh':True,'current_main_sha':MAIN,'admission_current_main_sha':MAIN,'input_mode':'EXECUTION_ADMISSION','owner_exception':None,'execution_admission_decision':op_a}
  return {'schema_version':1,'role':'AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_STEADY_STATE_SNAPSHOT','repository':'kmephis-ai/VPS-Control-PNCC','default_branch':'main','provider_truth_fresh':True,'current_main_sha':MAIN,'input_mode':'ITERATION','iteration_sequence':seq,'control_loop_fresh_for_iteration':True,'execution_admission_fresh_for_iteration':True,'operationalization_fresh_for_iteration':True,'control_loop_reused_from_prior_iteration':False,'execution_admission_reused_from_prior_iteration':False,'operationalization_reused_from_prior_iteration':False,'previous_iteration_fresh_provider_readback_completed':True if seq>1 else False,'reusable_steady_state_snapshot':base,'operationalization_snapshot':ops}
 
 class WU128Tests(unittest.TestCase):
@@ -35,10 +41,16 @@ class WU128Tests(unittest.TestCase):
   r=self.ev(snapshot(txn_state='PERFORMED_READBACK_COMPLETE',txn_count=2,readback=True,provider_mutation=True)); self.assertEqual(r['outcome'],'BLOCKED')
  def test_stale_operationalization_reuse_blocks(self):
   s=snapshot(); s['operationalization_reused_from_prior_iteration']=True; self.assertEqual(self.ev(s)['outcome'],'BLOCKED')
- def test_admission_operationalization_binding_mismatch_blocks(self):
-  s=snapshot(); s['operationalization_snapshot']['execution_admission_decision']['target_action']='DIFFERENT'; self.assertEqual(self.ev(s)['outcome'],'BLOCKED')
- def test_wait_only_stays_no_mutation(self):
-  s=snapshot(decision='WAIT_ONLY',delegated='NONE_WAIT_ONLY',target=None); r=self.ev(s); self.assertEqual(r['outcome'],'WAIT_ONLY'); self.assertFalse(r['automatic_continuation_permitted'])
+ def test_mutating_admission_delegation_mismatch_blocks(self):
+  s=snapshot(); s['operationalization_snapshot']['execution_admission_decision']['delegated_authority']='DIFFERENT'; self.assertEqual(self.ev(s)['outcome'],'BLOCKED')
+ def test_wait_projection_is_canonical_and_no_mutation(self):
+  r=self.ev(snapshot(decision='WAIT_ONLY')); self.assertEqual(r['outcome'],'WAIT_ONLY'); self.assertFalse(r['automatic_continuation_permitted']); self.assertFalse(r['automatic_replay_permitted'])
+ def test_stop_projection_is_terminal(self):
+  r=self.ev(snapshot(decision='STOP_ONLY')); self.assertEqual(r['outcome'],'STOP_ONLY'); self.assertTrue(r['terminal_stop'])
+ def test_separate_authority_projection_remains_fail_closed(self):
+  r=self.ev(snapshot(decision='SEPARATE_AUTHORITY_REQUIRED')); self.assertEqual(r['outcome'],'SEPARATE_AUTHORITY_REQUIRED'); self.assertTrue(r['separate_authority_required'])
+ def test_non_mutating_projection_drift_blocks(self):
+  s=snapshot(decision='WAIT_ONLY'); s['operationalization_snapshot']['execution_admission_decision']['delegated_authority']='NO_MUTATION'; self.assertEqual(self.ev(s)['outcome'],'BLOCKED')
  def test_owner_escalation_is_out_of_band_no_replay(self):
   ops={'schema_version':1,'role':'AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_OPERATIONALIZATION_SNAPSHOT','repository':'kmephis-ai/VPS-Control-PNCC','default_branch':'main','provider_truth_fresh':True,'current_main_sha':MAIN,'admission_current_main_sha':MAIN,'input_mode':'OWNER_EXCEPTION','execution_admission_decision':None,'owner_exception':{'classification':'OWNER_ESCALATION_REQUIRED','reason_classification_present':True,'mutation_permitted':False,'automatic_replay_permitted':False}}
   s={'schema_version':1,'role':'AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_STEADY_STATE_SNAPSHOT','repository':'kmephis-ai/VPS-Control-PNCC','default_branch':'main','provider_truth_fresh':True,'current_main_sha':MAIN,'input_mode':'OWNER_EXCEPTION','reusable_steady_state_snapshot':None,'operationalization_fresh_for_iteration':True,'operationalization_reused_from_prior_iteration':False,'operationalization_snapshot':ops}

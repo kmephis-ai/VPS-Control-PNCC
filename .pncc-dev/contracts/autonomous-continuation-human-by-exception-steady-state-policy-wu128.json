@@ -49,7 +49,9 @@
     "fresh_execution_admission_each_iteration": true,
     "fresh_operationalization_each_iteration": true,
     "same_iteration_control_admission_binding": true,
-    "same_iteration_admission_operationalization_binding": true,
+    "same_iteration_admission_operationalization_semantic_binding": true,
+    "mutating_delegated_authority_identity_must_match_exactly": true,
+    "non_mutating_delegated_authority_projection_must_match_policy": true,
     "previous_iteration_readback_before_next_iteration": true,
     "fresh_exact_readback_after_delegated_transaction": true,
     "maximum_delegated_transactions_per_iteration": 1,
@@ -58,6 +60,24 @@
     "stale_operationalization_reuse_forbidden": true,
     "batch_mutation_forbidden": true,
     "inferred_or_fallback_authority_forbidden": true
+  },
+  "non_mutating_admission_projection": {
+    "WAIT_ONLY": {
+      "reusable_steady_state_delegated_authority": "NO_MUTATION",
+      "operationalization_delegated_authority": "NONE_WAIT_ONLY"
+    },
+    "STOP_ONLY": {
+      "reusable_steady_state_delegated_authority": "NO_MUTATION",
+      "operationalization_delegated_authority": "NONE_TERMINAL"
+    },
+    "SEPARATE_AUTHORITY_REQUIRED": {
+      "reusable_steady_state_delegated_authority": "NO_MUTATION_AND_SEPARATE_EXPLICIT_AUTHORITY_REQUIRED",
+      "operationalization_delegated_authority": "NONE_SEPARATE_RECOVERY_AUTHORITY_REQUIRED"
+    },
+    "BLOCKED": {
+      "reusable_steady_state_delegated_authority": "NO_MUTATION_FAIL_CLOSED",
+      "operationalization_delegated_authority": "NONE_FAIL_CLOSED"
+    }
   },
   "outcome_mapping": {
     "EXECUTE_ONE_DELEGATED_TRANSACTION": "CONTINUE_UNDER_EXISTING_AUTHORITY_ONLY",

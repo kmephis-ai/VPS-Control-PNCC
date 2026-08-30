@@ -83,11 +83,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git hash-object .pncc-dev/contracts/autonomous-continuation-human-by-exception-steady-state-policy-wu128.json)" = "332cb80ebeeb3dbabb4f3cfc8dd0548941c1f3ba"
-          test "$(git hash-object .pncc-dev/scripts/evaluate_autonomous_continuation_human_by_exception_steady_state.py)" = "8a167c41959f0bfd230f80df502a981e0099a107"
-          test "$(git hash-object .pncc-dev/tests/test_autonomous_continuation_human_by_exception_steady_state_wu128.py)" = "b21bc02fdb7886b1cee4f9f21e0b981cc008e45f"
-          test "$(git hash-object .pncc-dev/contracts/governed-frontier-transition-pipe-wu-128.json)" = "4464741087828325c85a45b97596cc3202180b39"
-          test "$(git hash-object .pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json)" = "62b71225245a85fdc04dcdaad67f33f8cd566289"
+          test "$(git hash-object .pncc-dev/contracts/autonomous-continuation-human-by-exception-steady-state-policy-wu128.json)" = "d229b6a7453447364ded12d8a349b6d5e15b5f98"
+          test "$(git hash-object .pncc-dev/scripts/evaluate_autonomous_continuation_human_by_exception_steady_state.py)" = "4a6ce0f528c879804723dd5c75d673f908188b19"
+          test "$(git hash-object .pncc-dev/tests/test_autonomous_continuation_human_by_exception_steady_state_wu128.py)" = "3f9e59eb0bc3c16d7fbf3d0f5efd462cbb7a17df"
+          test "$(git hash-object .pncc-dev/contracts/governed-frontier-transition-pipe-wu-128.json)" = "2dc280ed074297ebbd53ac41ca0e77c8a83d8ce2"
+          test "$(git hash-object .pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json)" = "320f76f278bd7464e8a755e0a2982236e5e25c00"
 
       - name: Enforce exact bounded WU-128 diff and ancestry
         if: github.event_name == 'pull_request' && github.head_ref == 'agent/PIPE-WU-128-human-by-exception-steady-state-existing-authority-only'

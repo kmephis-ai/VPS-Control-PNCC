@@ -9,9 +9,9 @@
   "runtime_required": false,
   "steady_state_policy_input": {
     "path": ".pncc-dev/contracts/autonomous-continuation-human-by-exception-steady-state-policy-wu128.json",
-    "blob_sha": "332cb80ebeeb3dbabb4f3cfc8dd0548941c1f3ba",
+    "blob_sha": "d229b6a7453447364ded12d8a349b6d5e15b5f98",
     "evaluator_path": ".pncc-dev/scripts/evaluate_autonomous_continuation_human_by_exception_steady_state.py",
-    "evaluator_blob_sha": "8a167c41959f0bfd230f80df502a981e0099a107",
+    "evaluator_blob_sha": "4a6ce0f528c879804723dd5c75d673f908188b19",
     "maximum_delegated_transactions_per_iteration": 1
   },
   "scope": [

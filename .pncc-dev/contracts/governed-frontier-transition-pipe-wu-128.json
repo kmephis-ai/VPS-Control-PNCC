@@ -16,11 +16,11 @@
   "successor_frontier": {
     "state": "ACTIVE",
     "frontier_id": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_STEADY_STATE_EXECUTION_WITH_EXISTING_AUTHORITY_ONLY",
-    "blob_sha": "62b71225245a85fdc04dcdaad67f33f8cd566289"
+    "blob_sha": "320f76f278bd7464e8a755e0a2982236e5e25c00"
   },
-  "steady_state_policy_blob_sha": "332cb80ebeeb3dbabb4f3cfc8dd0548941c1f3ba",
-  "steady_state_evaluator_blob_sha": "8a167c41959f0bfd230f80df502a981e0099a107",
-  "steady_state_test_blob_sha": "b21bc02fdb7886b1cee4f9f21e0b981cc008e45f",
+  "steady_state_policy_blob_sha": "d229b6a7453447364ded12d8a349b6d5e15b5f98",
+  "steady_state_evaluator_blob_sha": "4a6ce0f528c879804723dd5c75d673f908188b19",
+  "steady_state_test_blob_sha": "3f9e59eb0bc3c16d7fbf3d0f5efd462cbb7a17df",
   "decision_grants_authority": false,
   "existing_authority_only": true,
   "higher_autonomy_authorized": false,
