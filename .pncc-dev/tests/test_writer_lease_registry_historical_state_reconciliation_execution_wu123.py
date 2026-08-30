@@ -6,7 +6,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 EVIDENCE = ROOT / '.pncc-dev/contracts/writer-lease-registry-historical-state-reconciliation-execution-wu123.json'
 GRANT = ROOT / '.pncc-dev/contracts/writer-lease-registry-historical-state-reconciliation-authorized.json'
-FRONTIER = ROOT / '.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json'
 TRANSITION = ROOT / '.pncc-dev/contracts/governed-frontier-transition-pipe-wu-123.json'
 SCOPE = 'EXACT_FOUR_STALE_WRITER_LEASE_STATE_FIELDS_ACTIVE_TO_RELEASED_ONLY'
 IDS = [
@@ -21,7 +20,7 @@ def load(path):
     return json.loads(path.read_text())
 
 
-def validate(e, g, f, t):
+def validate(e, g, t):
     assert e['evidence_state'] == 'RECORDED'
     assert e['work_unit_id'] == 'PIPE-WU-123'
     assert e['authorization_scope'] == SCOPE
@@ -53,14 +52,19 @@ def validate(e, g, f, t):
     assert g['general_provider_state_write_authority'] is False
     assert g['all_four_transitions_in_one_atomic_registry_cas_required'] is True
 
-    assert f['frontier_id'] == 'AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_READINESS_REASSESSMENT_AFTER_LEASE_HYGIENE'
-    assert f['runtime_required'] is False
-    assert f['higher_autonomy_authority'] is False
-    assert f['provider_mutation_authority'] is False
-
+    # WU-123's successor is immutable in its transition. The repository's live
+    # frontier is intentionally advanced by later governed Work Units.
     assert t['work_unit_id'] == 'PIPE-WU-123'
-    assert t['predecessor_frontier']['blob_sha'] == '546ad9e256a838ab7c1ab32abbe037d999ea4b69'
-    assert t['successor_frontier']['blob_sha'] == '915ccdd52d1a4d742917cd0d1a6f20174af3a34d'
+    assert t['predecessor_frontier'] == {
+        'state': 'ACTIVE',
+        'frontier_id': 'CONTROLLED_WRITER_LEASE_REGISTRY_HISTORICAL_STATE_RECONCILIATION_EXECUTION',
+        'blob_sha': '546ad9e256a838ab7c1ab32abbe037d999ea4b69',
+    }
+    assert t['successor_frontier'] == {
+        'state': 'ACTIVE',
+        'frontier_id': 'AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_READINESS_REASSESSMENT_AFTER_LEASE_HYGIENE',
+        'blob_sha': '915ccdd52d1a4d742917cd0d1a6f20174af3a34d',
+    }
     assert t['execution_evidence']['blob_sha'] == 'b1c3914417ee3d7f12731b6937c11275fe418af8'
     assert t['historical_reconciliation_execution_performed_in_wu123'] is True
     assert t['provider_state_mutation_already_completed_and_evidenced'] is True
@@ -72,39 +76,38 @@ class WU123ExecutionTests(unittest.TestCase):
     def setUp(self):
         self.e = load(EVIDENCE)
         self.g = load(GRANT)
-        self.f = load(FRONTIER)
         self.t = load(TRANSITION)
 
     def test_canonical_documents_validate(self):
-        validate(self.e, self.g, self.f, self.t)
+        validate(self.e, self.g, self.t)
 
     def test_partial_set_fails(self):
         x = deepcopy(self.e); x['exact_historical_set'] = x['exact_historical_set'][:-1]
-        with self.assertRaises(AssertionError): validate(x, self.g, self.f, self.t)
+        with self.assertRaises(AssertionError): validate(x, self.g, self.t)
 
     def test_superset_fails(self):
         x = deepcopy(self.e); x['exact_historical_set'].append({'lease_id':'extra','pre_state':'ACTIVE','post_state':'RELEASED'})
-        with self.assertRaises(AssertionError): validate(x, self.g, self.f, self.t)
+        with self.assertRaises(AssertionError): validate(x, self.g, self.t)
 
     def test_generation_drift_fails(self):
         x = deepcopy(self.e); x['historical_reconciliation_transaction']['registry_generation_after'] = 32
-        with self.assertRaises(AssertionError): validate(x, self.g, self.f, self.t)
+        with self.assertRaises(AssertionError): validate(x, self.g, self.t)
 
     def test_current_writer_changed_fails(self):
         x = deepcopy(self.e); x['current_writer_entry_semantically_identical_during_historical_cas'] = False
-        with self.assertRaises(AssertionError): validate(x, self.g, self.f, self.t)
+        with self.assertRaises(AssertionError): validate(x, self.g, self.t)
 
     def test_unknown_outcome_fails(self):
         x = deepcopy(self.e); x['historical_reconciliation_transaction']['unknown_provider_outcome'] = True
-        with self.assertRaises(AssertionError): validate(x, self.g, self.f, self.t)
+        with self.assertRaises(AssertionError): validate(x, self.g, self.t)
 
     def test_replay_fails(self):
         x = deepcopy(self.e); x['historical_reconciliation_transaction']['cas_replay_performed'] = True
-        with self.assertRaises(AssertionError): validate(x, self.g, self.f, self.t)
+        with self.assertRaises(AssertionError): validate(x, self.g, self.t)
 
     def test_higher_autonomy_side_effect_fails(self):
-        x = deepcopy(self.f); x['higher_autonomy_authority'] = True
-        with self.assertRaises(AssertionError): validate(self.e, self.g, x, self.t)
+        x = deepcopy(self.t); x['higher_autonomy_granted'] = True
+        with self.assertRaises(AssertionError): validate(self.e, self.g, x)
 
 
 if __name__ == '__main__':
