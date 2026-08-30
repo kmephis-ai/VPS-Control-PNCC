@@ -2,25 +2,23 @@
   "schema_version": 1,
   "role": "WAVE5_NEXT_GOVERNED_WORK_UNIT_FRONTIER",
   "state": "ACTIVE",
-  "frontier_id": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_READINESS_ASSESSMENT",
-  "title_template": "{work_unit_id} — Autonomous continuation Human-by-Exception readiness assessment",
-  "goal": "Assess, without granting new authority, whether the accumulated provider-backed WU-108 through WU-118 continuation evidence is sufficient for a bounded Human-by-Exception readiness decision, explicitly identifying residual owner-escalation boundaries, unresolved stale-lease hygiene, required runtime/provider exceptions and any evidence gaps that still prevent higher autonomy.",
-  "conflict_domain": "wave5-autonomous-continuation-human-by-exception-readiness-assessment",
+  "frontier_id": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_READINESS_DECISION",
+  "title_template": "{work_unit_id} — Autonomous continuation Human-by-Exception readiness decision",
+  "goal": "Consume the canonical WU-119 assessment under fresh Provider Truth and make an explicit fail-closed readiness decision without automatically granting new authority; if stale lease hygiene remains unresolved, defer higher autonomy and route to separately authorized registry reconciliation.",
+  "conflict_domain": "wave5-autonomous-continuation-human-by-exception-readiness-decision",
   "runtime_required": false,
   "scope": [
-    "reconcile canonical continuation authority, provider-truth, exact-head CI, durable resume and multi-session execution evidence from WU-108 through WU-118",
-    "define measurable Human-by-Exception readiness criteria covering fresh provider truth, bounded mutation, deterministic recovery, session continuity, CI classification and escalation boundaries",
-    "classify every residual condition as autonomous-safe, wait-only, stop-only, separate-authority-required or owner-escalation-required",
-    "explicitly assess historical expired or apparently ACTIVE stale lease records so stale registry history cannot be mistaken for current mutation authority",
-    "produce a machine-readable readiness assessment and evidence matrix without converting assessment success into mutation authority",
-    "preserve provider/runtime/product/ADWF/security boundaries and identify the smallest next decision boundary"
+    "fresh-read canonical WU-119 assessment, main, provider-state, current lease, branch/PR/CI truth and immutable WU-108 through WU-118 anchors",
+    "decide among existing-authority-only readiness, defer-and-remediate, separate-authority-required or owner-escalation-required outcomes",
+    "require stale expired ACTIVE lease history to remain ineligible for current ownership and explicitly decide whether separate registry hygiene is mandatory before any higher-autonomy proposal",
+    "preserve all runtime/product/release/ruleset/security/ADWF and 1080/1081 boundaries",
+    "record a machine-readable decision whose success is not itself a mutation authority grant"
   ],
   "forbidden_scope": [
-    "automatically grant Human-by-Exception execution authority based on assessment output",
-    "reinterpret historical or expired ACTIVE lease records as current ownership without fresh provider reconciliation",
-    "broaden reusable materialization, Writer Lease, merge/Issue-close, continuation or session-resume authority",
-    "weaken owner escalation, ruleset, security, runtime qualification or promotion boundaries",
-    "mutate product/runtime source or physical runtime, ADWF Consumer binding/provenance or the ADWF repository",
+    "convert WU-119 assessment success into Human-by-Exception execution authority",
+    "silently rewrite or normalize stale lease history inside the readiness decision transaction",
+    "broaden Writer Lease, merge/Issue-close, continuation, runtime, product, release, ruleset, security or ADWF authority",
+    "mutate product/runtime source or physical runtime",
     "perform release/tag/promotion, ruleset/policy administration, PRIVATE evidence publication or 1080/1081 lifecycle mutation"
   ],
   "required_checks": [
@@ -35,17 +33,17 @@
     "wave5-durable-autonomous-continuation-session-resume-execution",
     "wave5-durable-autonomous-continuation-multi-session-steady-state",
     "wave5-durable-autonomous-continuation-multi-session-steady-state-execution",
+    "wave5-autonomous-continuation-human-by-exception-readiness-assessment",
     "public-safety",
     "quality-fast",
     "quality-deep"
   ],
   "exit_criteria": [
-    "a machine-readable readiness rubric distinguishes proven autonomous capability from owner-controlled or separately authorized boundaries",
-    "WU-108 through WU-118 evidence is reconciled against fresh canonical provider truth and exact immutable anchor identities",
-    "stale, expired and historical lease records are explicitly classified and cannot satisfy current-writer ownership criteria",
-    "failure, interruption, unavailable-runtime and provider-contradiction paths have deterministic escalation semantics",
-    "assessment output grants no direct mutation, merge, runtime, release, ruleset or ADWF authority",
+    "a canonical fail-closed readiness decision references fresh WU-119 assessment and Provider Truth",
+    "stale historical ACTIVE leases cannot satisfy current writer ownership and are either routed to separate hygiene remediation or explicitly proven irrelevant by fresh canonical evidence",
+    "no decision result implicitly grants provider/runtime/product/release/ruleset/security/ADWF authority",
+    "owner-escalation and separate-authority boundaries remain explicit",
     "exact-head hosted CI passes with no product/runtime, ADWF or 1080/1081 mutation"
   ],
-  "next_natural_boundary": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_READINESS_DECISION"
+  "next_natural_boundary": "WRITER_LEASE_REGISTRY_HISTORICAL_STATE_RECONCILIATION"
 }

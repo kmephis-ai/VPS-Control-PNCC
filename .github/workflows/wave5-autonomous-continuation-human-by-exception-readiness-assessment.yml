@@ -1,0 +1,149 @@
+name: wave5-autonomous-continuation-human-by-exception-readiness-assessment
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  autonomous-continuation-human-by-exception-readiness-assessment:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Fetch immutable WU-119 Provider Truth snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin pncc-provider-state
+          git cat-file -e b267269e27eac5dc09ed045f227b95cd93beed2b^{commit}
+          git cat-file -e 779085e68a22b225ffaa2ad2ed4957c65d889ab9^{commit}
+          test "$(git rev-parse 779085e68a22b225ffaa2ad2ed4957c65d889ab9^)" = "b267269e27eac5dc09ed045f227b95cd93beed2b"
+          git show 779085e68a22b225ffaa2ad2ed4957c65d889ab9:.pncc-state/writer-lease-registry.json > /tmp/wu119-registry.json
+          test "$(git hash-object /tmp/wu119-registry.json)" = "732278a9ec581a10d2e501c60c87318fd5328be7"
+
+      - name: Evaluate canonical WU-119 readiness assessment
+        run: python3 .pncc-dev/scripts/evaluate_autonomous_continuation_human_by_exception_readiness.py --registry /tmp/wu119-registry.json
+
+      - name: Run WU-119 adversarial tests
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_autonomous_continuation_human_by_exception_readiness_wu119.py' -v
+
+      - name: Assert exact immutable WU-119 artifacts and anchors
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object .pncc-dev/contracts/autonomous-continuation-human-by-exception-readiness-rubric.json)" = "8a75facb79773cadd786fd4384324ba984896ee7"
+          test "$(git hash-object .pncc-dev/contracts/autonomous-continuation-human-by-exception-readiness-assessment-wu119.json)" = "ad147299e65cec74f3fc5ef0365376f50f1485aa"
+          test "$(git hash-object .pncc-dev/scripts/evaluate_autonomous_continuation_human_by_exception_readiness.py)" = "8cb4752b062362a16da3d94d07873eafaf0e04f7"
+          test "$(git hash-object .pncc-dev/tests/test_autonomous_continuation_human_by_exception_readiness_wu119.py)" = "46286649fe1aaa984578b8b7fb6b40b264d35643"
+          test "$(git hash-object .pncc-dev/contracts/governed-frontier-transition-pipe-wu-119.json)" = "ba49439c212ccf41cfc86b4d40075db550e0d096"
+          test "$(git hash-object .pncc-dev/contracts/autonomous-continuation-control-loop-policy.json)" = "822bcd1833ff4843b6bd176337b3ef3b742275de"
+          test "$(git hash-object .pncc-dev/contracts/autonomous-continuation-execution-admission-policy.json)" = "406d78da6250c452bfc7706b57dc51a18ca48977"
+          test "$(git hash-object .pncc-dev/contracts/durable-autonomous-continuation-multi-session-steady-state-execution-wu118.json)" = "33c887d92e4f7e2fde384f5946a3240142a6bd4a"
+          test "$(git hash-object .pncc-dev/contracts/durable-autonomous-continuation-multi-session-handoff-record-wu118.json)" = "19fa9c3d93f007651574be484b1fb2963164efcd"
+          test "$(git hash-object .pncc-dev/contracts/reusable-writer-lease-bounded-branch-authorized.json)" = "717e1f9081915f40fad2e0620c64245a650ca235"
+
+      - name: Assert WU-119 lease acquisition and stale-history classification inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          git show b267269e27eac5dc09ed045f227b95cd93beed2b:.pncc-state/writer-lease-registry.json > /tmp/wu119-before.json
+          test "$(git hash-object /tmp/wu119-before.json)" = "f659679f024f9f74c3e69f71b49c3ce75ad0c421"
+          python3 - <<'PY'
+          import json
+          before=json.load(open('/tmp/wu119-before.json'))
+          after=json.load(open('/tmp/wu119-registry.json'))
+          assert before['generation']==26
+          assert after['generation']==27
+          wu118=[e for e in before['entries'] if e['lease_id']=='e5fdaab4-192f-4c88-a4dc-8590f0d4c7f6']
+          assert len(wu118)==1 and wu118[0]['work_unit_id']=='PIPE-WU-118' and wu118[0]['state']=='RELEASED'
+          assert not [e for e in before['entries'] if e['lease_id']=='46d88f55-b9a4-4587-8499-5a26655ceb9b']
+          current=[e for e in after['entries'] if e['lease_id']=='46d88f55-b9a4-4587-8499-5a26655ceb9b']
+          assert len(current)==1
+          e=current[0]
+          assert e['work_unit_id']=='PIPE-WU-119' and e['state']=='ACTIVE' and e['generation']==27
+          assert e['base_sha']=='1e028aff8f67d8f438f78dadf6036a2875e2a989'
+          assert e['branch']=='agent/PIPE-WU-119-autonomous-continuation-human-by-exception-readiness-assessment'
+          stale_expected={
+            '3bf7a003-1e8e-4ab2-910d-0c1d4aba9b03',
+            'ee8b93cb-c629-4f69-82c6-25793fd10d8f',
+            '38a86545-e9b7-47eb-9b6e-3c9974bbd020',
+            '9c2dcb40-26dc-4dce-aa4f-c1be79a66983',
+          }
+          stale={x['lease_id'] for x in after['entries'] if x['state']=='ACTIVE' and x['expires_at'] <= '2026-08-30T15:25:00Z'}
+          assert stale==stale_expected
+          PY
+
+      - name: Assert exact bounded WU-119 diff and branch ancestry
+        if: github.event_name == 'pull_request' && github.head_ref == 'agent/PIPE-WU-119-autonomous-continuation-human-by-exception-readiness-assessment'
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$BASE_SHA" = "1e028aff8f67d8f438f78dadf6036a2875e2a989"
+          test "$(git merge-base "$BASE_SHA" "$HEAD_SHA")" = "$BASE_SHA"
+          FIRST_COMMIT="$(git rev-list --reverse "$BASE_SHA..$HEAD_SHA" | head -n 1)"
+          test -n "$FIRST_COMMIT"
+          test "$(git rev-parse "$FIRST_COMMIT^")" = "$BASE_SHA"
+          git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort > /tmp/actual
+          printf '%s\n' \
+            '.github/workflows/wave5-autonomous-continuation-human-by-exception-readiness-assessment.yml' \
+            '.pncc-dev/contracts/autonomous-continuation-human-by-exception-readiness-assessment-wu119.json' \
+            '.pncc-dev/contracts/autonomous-continuation-human-by-exception-readiness-rubric.json' \
+            '.pncc-dev/contracts/governed-frontier-transition-pipe-wu-119.json' \
+            '.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json' \
+            '.pncc-dev/scripts/evaluate_autonomous_continuation_human_by_exception_readiness.py' \
+            '.pncc-dev/tests/test_autonomous_continuation_human_by_exception_readiness_wu119.py' | sort > /tmp/expected
+          diff -u /tmp/expected /tmp/actual
+          ! grep -E '^(\.pncc-state/|src/windows-v7/|\.adwf-consumer/|tools/runtime-agent/)' /tmp/actual
+
+      - name: Assert consumed WU-119 successor frontier on original PR only
+        if: github.event_name == 'pull_request' && github.head_ref == 'agent/PIPE-WU-119-autonomous-continuation-human-by-exception-readiness-assessment'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object .pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json)" = "9679248f4bbeb334ce89f2e083d15dba18c8330e"
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          a=json.loads(Path('.pncc-dev/contracts/autonomous-continuation-human-by-exception-readiness-assessment-wu119.json').read_text())
+          f=json.loads(Path('.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json').read_text())
+          t=json.loads(Path('.pncc-dev/contracts/governed-frontier-transition-pipe-wu-119.json').read_text())
+          assert a['assessment_state']=='COMPLETE_WITH_BLOCKERS'
+          assert a['readiness_verdict']=='NOT_READY_FOR_HIGHER_AUTONOMY'
+          assert a['authority_granted'] is False
+          assert len(a['stale_active_history'])==4
+          assert all(x['current_ownership_eligible'] is False for x in a['stale_active_history'])
+          assert f['frontier_id']=='AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_READINESS_DECISION'
+          assert f['runtime_required'] is False
+          assert f['next_natural_boundary']=='WRITER_LEASE_REGISTRY_HISTORICAL_STATE_RECONCILIATION'
+          assert t['predecessor_frontier']['blob_sha']=='9eb493c22a2b11f01345f26d95d306e49882f78b'
+          assert t['successor_frontier']['blob_sha']=='9679248f4bbeb334ce89f2e083d15dba18c8330e'
+          assert t['assessment_grants_authority'] is False
+          assert t['stale_historical_active_is_current_ownership'] is False
+          PY
+
+      - name: Assert workflow itself is read only
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          t=Path('.github/workflows/wave5-autonomous-continuation-human-by-exception-readiness-assessment.yml').read_text().lower()
+          forbidden=['contents:'+' write','issues:'+' write','pull-requests:'+' write','actions:'+' write','git'+' push','gh'+' pr merge','gh'+' issue close','--method'+' post','--method'+' patch','--method'+' put','--method'+' delete']
+          for token in forbidden: assert token not in t,token
+          PY
+
+      - name: Assert repository remains clean
+        run: test -z "$(git status --porcelain)"
