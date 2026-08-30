@@ -38,6 +38,11 @@
     "state": "ACTIVE",
     "current_ownership_eligible": true
   },
+  "predecessor_frontier": {
+    "path": ".pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json",
+    "blob_sha": "a6bb097dcc210c7cd64154565808c16015c74b86",
+    "frontier_id": "WRITER_LEASE_REGISTRY_HISTORICAL_STATE_RECONCILIATION"
+  },
   "exact_historical_set": [
     {"lease_id":"3bf7a003-1e8e-4ab2-910d-0c1d4aba9b03","work_unit_id":"PIPE-WU-096","generation":1,"expected_pre_state":"ACTIVE","authorized_post_state":"RELEASED"},
     {"lease_id":"ee8b93cb-c629-4f69-82c6-25793fd10d8f","work_unit_id":"PIPE-WU-105","generation":10,"expected_pre_state":"ACTIVE","authorized_post_state":"RELEASED"},
@@ -73,7 +78,6 @@
   "anchor_paths": {
     "wu119_assessment": ".pncc-dev/contracts/autonomous-continuation-human-by-exception-readiness-assessment-wu119.json",
     "wu120_decision": ".pncc-dev/contracts/autonomous-continuation-human-by-exception-readiness-decision-wu120.json",
-    "predecessor_frontier": ".pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json",
     "writer_lease_registry_topology": ".pncc-dev/contracts/writer-lease-registry-topology.json",
     "writer_lease_lifecycle_policy": ".pncc-dev/contracts/writer-lease-lifecycle-autonomous-execution-policy.json",
     "reusable_writer_lease_grant": ".pncc-dev/contracts/reusable-writer-lease-bounded-branch-authorized.json",
@@ -83,7 +87,6 @@
   "anchor_blobs": {
     "wu119_assessment": "ad147299e65cec74f3fc5ef0365376f50f1485aa",
     "wu120_decision": "a014f81efa52671bf3f637f7a16dc6332a70091b",
-    "predecessor_frontier": "a6bb097dcc210c7cd64154565808c16015c74b86",
     "writer_lease_registry_topology": "2b9dec3f2b28aadb80ac8edbb09bdc9d453115a1",
     "writer_lease_lifecycle_policy": "942492b4ffe2c2a8c4369b15b617ad9f7f795643",
     "reusable_writer_lease_grant": "717e1f9081915f40fad2e0620c64245a650ca235",
