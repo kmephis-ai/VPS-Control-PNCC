@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "role": "GOVERNED_FRONTIER_TRANSITION",
+  "transition_state": "PREPARED_FOR_IN_PR_ADVANCEMENT",
+  "work_unit_id": "PIPE-WU-123",
+  "issue_number": 294,
+  "conflict_domain": "wave5-writer-lease-registry-historical-state-reconciliation-execution",
+  "base_sha": "61a32add50f2db41fe462f5c84276f86fe2abbbc",
+  "branch": "agent/PIPE-WU-123-writer-lease-registry-historical-state-reconciliation-execution",
+  "runtime_required": false,
+  "predecessor_frontier": {
+    "state": "ACTIVE",
+    "frontier_id": "CONTROLLED_WRITER_LEASE_REGISTRY_HISTORICAL_STATE_RECONCILIATION_EXECUTION",
+    "blob_sha": "546ad9e256a838ab7c1ab32abbe037d999ea4b69"
+  },
+  "successor_frontier": {
+    "state": "ACTIVE",
+    "frontier_id": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_READINESS_REASSESSMENT_AFTER_LEASE_HYGIENE",
+    "blob_sha": "915ccdd52d1a4d742917cd0d1a6f20174af3a34d"
+  },
+  "same_pr_advancement_required": true,
+  "predecessor_replay_forbidden": true,
+  "successor_must_be_canonical_before_merge": true,
+  "execution_evidence": {
+    "path": ".pncc-dev/contracts/writer-lease-registry-historical-state-reconciliation-execution-wu123.json",
+    "blob_sha": "b1c3914417ee3d7f12731b6937c11275fe418af8"
+  },
+  "authorized_grant": {
+    "path": ".pncc-dev/contracts/writer-lease-registry-historical-state-reconciliation-authorized.json",
+    "blob_sha": "20fc664e90b1390351a5de70c98563140ef3190d",
+    "scope": "EXACT_FOUR_STALE_WRITER_LEASE_STATE_FIELDS_ACTIVE_TO_RELEASED_ONLY"
+  },
+  "owner_authorization_receipt": {
+    "path": ".pncc-dev/attestations/writer-lease-registry-historical-state-reconciliation-owner-authorization-wu122.json",
+    "blob_sha": "f1207b8b78081f107bf1f449066554b6693c922f"
+  },
+  "preparation_contract": {
+    "path": ".pncc-dev/contracts/writer-lease-registry-historical-state-reconciliation-authority-preparation-wu121.json",
+    "blob_sha": "e0104e181a814960e30b1734e82770affbbf923c"
+  },
+  "provider_truth_observed": {
+    "pncc_main_sha": "61a32add50f2db41fe462f5c84276f86fe2abbbc",
+    "canonical_work_unit_issue_number": 294,
+    "writer_lease_id": "184af451-beeb-4447-b729-07799c89e56b",
+    "writer_lease_generation": 31,
+    "writer_lease_state_during_historical_cas": "ACTIVE",
+    "writer_lease_branch": "agent/PIPE-WU-123-writer-lease-registry-historical-state-reconciliation-execution",
+    "lease_acquisition_provider_state_commit_sha": "7b48a4701f04b72537f96e60401ed404ef226ea8",
+    "pre_registry_blob_sha": "2e6ecf0d3c03c4da8bab6bc47ea84ffdc66838ad",
+    "historical_cas_provider_state_commit_sha": "c825b7b6b6a84fa2bbf2360b0768eae878c7845a",
+    "post_registry_blob_sha": "f5b9b45092e46fe3dd2539fcff0187426059233c",
+    "post_readback_provider_state_head_sha": "c825b7b6b6a84fa2bbf2360b0768eae878c7845a",
+    "registry_generation_before": 31,
+    "registry_generation_after": 31
+  },
+  "historical_reconciliation_execution_performed_in_wu123": true,
+  "historical_reconciliation_exact_four_state_fields_only": true,
+  "post_transaction_provider_readback_completed": true,
+  "unknown_provider_outcome": false,
+  "cas_replay_performed": false,
+  "provider_state_mutation_already_completed_and_evidenced": true,
+  "provider_mutation_authority": false,
+  "issue_mutation_authority": false,
+  "branch_mutation_authority": false,
+  "pull_request_mutation_authority": false,
+  "writer_lease_mutation_authority": false,
+  "workflow_rerun_authority": false,
+  "direct_main_write_authority": false,
+  "merge_authority": false,
+  "runtime_action_authority": false,
+  "product_runtime_mutation_authority": false,
+  "adwf_binding_mutation_authority": false,
+  "adwf_repository_mutation_authority": false,
+  "release_tag_promotion_authority": false,
+  "ruleset_policy_mutation_authority": false,
+  "private_evidence_publication_authority": false,
+  "reserve_1080_lifecycle_mutation_authority": false,
+  "primary_1081_lifecycle_mutation_authority": false,
+  "higher_autonomy_granted": false,
+  "next_boundary": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_READINESS_REASSESSMENT_AFTER_LEASE_HYGIENE"
+}
