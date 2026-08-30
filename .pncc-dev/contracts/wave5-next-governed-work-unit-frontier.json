@@ -2,25 +2,25 @@
   "schema_version": 1,
   "role": "WAVE5_NEXT_GOVERNED_WORK_UNIT_FRONTIER",
   "state": "ACTIVE",
-  "frontier_id": "DURABLE_AUTONOMOUS_CONTINUATION_MULTI_SESSION_STEADY_STATE",
-  "title_template": "{work_unit_id} — Durable autonomous continuation multi-session steady state",
-  "goal": "Generalize the proven WU-115/WU-116 provider-truth-backed session resume path into a reusable multi-session steady-state contract where every independent ChatGPT/Codex session starts from fresh canonical provider truth, discards persisted authority, performs at most one delegated transaction per admitted iteration and leaves a durable clean or explicitly reconcilable handoff boundary.",
-  "conflict_domain": "wave5-durable-autonomous-continuation-multi-session-steady-state",
+  "frontier_id": "DURABLE_AUTONOMOUS_CONTINUATION_MULTI_SESSION_STEADY_STATE_EXECUTION",
+  "title_template": "{work_unit_id} — Durable autonomous continuation multi-session steady-state execution",
+  "goal": "Exercise the canonical WU-117 multi-session state machine across multiple independent continuation sessions so fresh provider truth, fresh WU-108/WU-109 recomputation, one delegated transaction per iteration, mandatory readback and checkpoint supersession are proven under real provider drift rather than only defined as contract semantics.",
+  "conflict_domain": "wave5-durable-autonomous-continuation-multi-session-steady-state-execution",
   "runtime_required": false,
   "scope": [
-    "define a reusable multi-session continuation invariant covering session start, fresh provider reconciliation, WU-108/WU-109 recomputation, bounded delegated execution, readback and durable handoff checkpoint refresh",
-    "prove checkpoint identity may advance across sessions while prior checkpoints remain immutable history and never mutation authority",
-    "require every new session to select current canonical Work Unit from fresh provider truth rather than inherit a prior session target",
-    "define deterministic supersession of old clean checkpoints after main, Work Unit, lease, branch, PR, CI or provider-state advancement",
-    "preserve interrupted/readback-pending reconciliation as a first-class session-start path before any new mutation",
-    "define bounded retention and public-safe evidence semantics sufficient for future autonomous Human-by-Exception readiness assessment"
+    "execute at least two independently identified continuation sessions with monotonically increasing session_sequence and distinct checkpoint identities",
+    "at each session start fresh-read canonical main, selected Work Unit, provider-state, lease, branch, pull request and exact-head CI truth and discard all persisted mutation authority",
+    "perform no more than one delegated provider mutation per admitted iteration and require fresh provider readback before the next iteration or checkpoint refresh",
+    "advance provider truth between sessions and prove an older clean checkpoint is superseded deterministically rather than replayed",
+    "exercise at least one clean handoff plus interrupted or provider-readback-pending reconciliation without guessed recovery",
+    "record bounded public-safe multi-session execution evidence sufficient for a later Human-by-Exception readiness assessment"
   ],
   "forbidden_scope": [
-    "create a persistent bearer token, implicit session authority or reusable mutation credential inside a checkpoint",
-    "reuse prior-session control-loop, execution-admission, registry CAS, CI-success or merge-eligibility decisions",
-    "allow more than one delegated provider mutation in one steady-state iteration or omit mandatory post-transaction provider readback",
-    "silently recover an interrupted or ambiguous transaction without provider reconciliation",
-    "broaden reusable materialization, Writer Lease, autonomous merge/Issue-close, steady-state or durable-resume mutation authority",
+    "treat WU-117 policy, checkpoint or handoff records as direct provider mutation authority",
+    "reuse prior-session control-loop, execution-admission, registry CAS, CI-success, merge-eligibility or Writer Lease ownership",
+    "batch multiple delegated provider mutations into one iteration or skip mandatory readback",
+    "replay or silently recover an interrupted or ambiguous provider transaction",
+    "broaden reusable materialization, Writer Lease, merge/Issue-close, steady-state, durable-resume or multi-session authority",
     "mutate product/runtime source or physical runtime, ADWF Consumer binding/provenance or the ADWF repository",
     "perform release/tag/promotion, ruleset/policy administration, PRIVATE evidence publication or 1080/1081 lifecycle mutation"
   ],
@@ -34,17 +34,18 @@
     "wave5-reusable-autonomous-continuation-steady-state-execution",
     "wave5-durable-autonomous-continuation-session-resume",
     "wave5-durable-autonomous-continuation-session-resume-execution",
+    "wave5-durable-autonomous-continuation-multi-session-steady-state",
     "public-safety",
     "quality-fast",
     "quality-deep"
   ],
   "exit_criteria": [
-    "a machine-readable multi-session steady-state policy defines session-start, iteration, readback, checkpoint-refresh and interruption-reconciliation invariants",
-    "prior-session checkpoint and decision state is always historical hint-only data and cannot authorize a new session mutation",
-    "fresh canonical Work Unit/provider-state/branch/PR/CI truth is mandatory at every session start and after every delegated transaction",
-    "clean, interrupted and readback-pending handoff classes are deterministic, mutually exclusive and adversarially tested",
-    "multi-session evidence remains public-safe and contains no credentials, private runtime payload or secret-bearing transport data",
+    "at least two independent session identities are evidenced with monotonic sequence and distinct checkpoint identities",
+    "each session start proves fresh provider truth and discards prior-session authority before any mutation",
+    "provider drift between sessions is detected and fresh canonical provider truth deterministically supersedes prior checkpoint state",
+    "every delegated mutation is isolated to one transaction per iteration and followed by mandatory fresh provider readback",
+    "clean, interrupted and readback-pending continuation paths remain fail-closed and replay-free under execution evidence",
     "exact-head hosted CI passes with no product/runtime, ADWF or 1080/1081 mutation"
   ],
-  "next_natural_boundary": "DURABLE_AUTONOMOUS_CONTINUATION_MULTI_SESSION_STEADY_STATE_EXECUTION"
+  "next_natural_boundary": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_READINESS_ASSESSMENT"
 }

@@ -27,7 +27,7 @@ jobs:
       - name: Run WU-116 adversarial tests
         run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_durable_autonomous_continuation_session_resume_execution_wu116.py' -v
 
-      - name: Assert exact WU-116 artifacts and immutable anchors
+      - name: Assert exact immutable WU-116 artifacts and anchors
         shell: bash
         run: |
           set -euo pipefail
@@ -35,7 +35,6 @@ jobs:
           test "$(git hash-object .pncc-dev/scripts/validate_durable_autonomous_continuation_session_resume_execution_wu116.py)" = "9018405fc22abc568610cc85f49cc1b76cab1dcd"
           test "$(git hash-object .pncc-dev/tests/test_durable_autonomous_continuation_session_resume_execution_wu116.py)" = "00908dcd64d3359d11d22e9bf9341f56d0db6e9c"
           test "$(git hash-object .pncc-dev/contracts/governed-frontier-transition-pipe-wu-116.json)" = "38f738a3a65e0e4608358fa3094bf73c332558be"
-          test "$(git hash-object .pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json)" = "b9112c7ff789a11cdbad28e8ac5a29ae4253c8b8"
           test "$(git hash-object .pncc-dev/contracts/durable-autonomous-continuation-session-checkpoint-wu115.json)" = "aa7b7e7cf2fa9657bb3897d47055971466975965"
           test "$(git hash-object .pncc-dev/contracts/durable-autonomous-continuation-session-resume-policy.json)" = "4305cd65c2ed7eaf67a6a6df24d3b4bb4d612446"
           test "$(git hash-object .pncc-dev/scripts/evaluate_durable_autonomous_continuation_session_resume.py)" = "f55d7d4de713e75f13a726292f61dad035c0a2a7"
@@ -103,7 +102,8 @@ jobs:
           diff -u /tmp/expected /tmp/actual
           ! grep -E '^(\.pncc-state/|src/windows-v7/|\.adwf-consumer/|tools/runtime-agent/)' /tmp/actual
 
-      - name: Assert handoff evidence and multi-session frontier
+      - name: Assert WU-116 consumed frontier on original PR only
+        if: github.event_name == 'pull_request' && github.head_ref == 'agent/PIPE-WU-116-durable-autonomous-continuation-session-resume-execution'
         shell: bash
         run: |
           python3 - <<'PY'
