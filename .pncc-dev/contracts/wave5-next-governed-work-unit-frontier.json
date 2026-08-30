@@ -2,22 +2,22 @@
   "schema_version": 1,
   "role": "WAVE5_NEXT_GOVERNED_WORK_UNIT_FRONTIER",
   "state": "ACTIVE",
-  "frontier_id": "REUSABLE_AUTONOMOUS_CONTINUATION_STEADY_STATE",
-  "title_template": "{work_unit_id} — Reusable autonomous continuation steady state",
-  "goal": "Promote the proven single-transaction reusable autonomous continuation executor path into a steady-state fail-closed continuation contract without broadening any delegated authority.",
-  "conflict_domain": "wave5-reusable-autonomous-continuation-steady-state",
+  "frontier_id": "REUSABLE_AUTONOMOUS_CONTINUATION_STEADY_STATE_EXECUTION",
+  "title_template": "{work_unit_id} — Reusable autonomous continuation steady-state execution",
+  "goal": "Exercise the canonical WU-113 steady-state contract across multiple sequential admitted delegated provider transactions, with a fresh provider readback and fresh WU-108/WU-109 decisions between every mutation iteration.",
+  "conflict_domain": "wave5-reusable-autonomous-continuation-steady-state-execution",
   "runtime_required": false,
   "scope": [
-    "fresh-read the canonical reusable executor grant, WU-112 first-transaction evidence and all bound admission and delegated-authority anchors",
-    "define a steady-state loop in which every mutation iteration begins from fresh provider truth and one fresh WU-108 control-loop plus WU-109 execution-admission decision",
-    "permit at most one exact delegated transaction per admitted iteration followed by mandatory fresh provider readback before any next iteration",
-    "preserve the exact existing materialization, Writer Lease and merge/Issue-close authority semantics without replacement or expansion",
-    "make wait, stop, blocked and separate-authority-required decisions mutation-free and machine-verifiable",
-    "define interruption, stale-state, contradiction, anchor-drift, revocation and classified-failure behavior as fail closed"
+    "fresh-read canonical WU-113 steady-state policy/evaluator, WU-112 first-transaction evidence, reusable executor grant and all bound delegated-authority anchors",
+    "execute at least two sequential admitted delegated provider transactions under the exact WU-113 one-transaction-per-iteration contract",
+    "perform mandatory fresh provider readback after each delegated transaction before any next iteration",
+    "obtain one fresh WU-108 control-loop decision and one fresh WU-109 execution admission for every mutation iteration",
+    "record machine-verifiable iteration evidence proving no stale admission reuse, no batched mutation and no authority broadening",
+    "preserve wait, stop, blocked, interruption and separate-authority-required paths as mutation-free fail-closed states"
   ],
   "forbidden_scope": [
-    "batch multiple provider mutations under one admission or reuse stale admission evidence",
-    "infer, broaden, replace or bypass any existing delegated reusable authority",
+    "batch multiple delegated provider mutations in one iteration or reuse prior control-loop/admission evidence",
+    "infer, broaden, replace or bypass the canonical reusable materialization, Writer Lease or merge/Issue-close authorities",
     "guess recovery after classified failure, interruption, stale state, contradiction, revocation or anchor drift",
     "mutate product/runtime source or runtime state",
     "mutate ADWF Consumer binding/provenance or the ADWF repository",
@@ -31,17 +31,18 @@
     "wave5-autonomous-continuation-execution-admission",
     "wave5-reusable-autonomous-continuation-executor-owner-authorization",
     "wave5-reusable-autonomous-continuation-executor-first-transaction",
+    "wave5-reusable-autonomous-continuation-steady-state",
     "public-safety",
     "quality-fast",
     "quality-deep"
   ],
   "exit_criteria": [
-    "steady-state executor semantics are machine readable, default deny and bound to the exact canonical WU-112 first-transaction evidence",
-    "every mutation iteration requires fresh provider truth, one exact control-loop decision, one exact admission and the matching existing delegated authority",
-    "no iteration can contain more than one delegated transaction before mandatory provider readback",
-    "wait, stop, blocked and separate-authority-required paths remain mutation free",
-    "classified failure, stale state, interruption, contradiction, revocation and anchor drift fail closed",
+    "at least two sequential delegated provider transactions are proven under separate fresh steady-state iterations",
+    "each mutation iteration has fresh provider truth, one fresh WU-108 decision, one fresh WU-109 admission and the exact matching delegated authority",
+    "each delegated transaction is followed by mandatory fresh provider readback before the next iteration",
+    "no stale admission reuse, batch mutation, inferred authority or silent recovery occurs",
+    "wait, stop, blocked, classified failure and interruption paths remain fail closed and mutation free",
     "exact-head hosted CI passes with no product/runtime, ADWF or 1080/1081 mutation"
   ],
-  "next_natural_boundary": "REUSABLE_AUTONOMOUS_CONTINUATION_STEADY_STATE_EXECUTION"
+  "next_natural_boundary": "DURABLE_AUTONOMOUS_CONTINUATION_SESSION_RESUME"
 }
