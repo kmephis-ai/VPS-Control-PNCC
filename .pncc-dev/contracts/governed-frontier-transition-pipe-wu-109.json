@@ -29,7 +29,7 @@
     "admission_policy_blob_sha": "406d78da6250c452bfc7706b57dc51a18ca48977",
     "admission_evaluator_blob_sha": "cde13515632717b81cef77876e53e9ceef0c46bf",
     "admission_regression_test_blob_sha": "790ad4cab98a707a438b53bdbfe03267589adc15",
-    "admission_workflow_blob_sha": "106b751a80ea1ea6b63dbbde3dd9a00006690e9e",
+    "admission_workflow_blob_sha": "61cbf382ad96016db377e34bc08f5bf7c2feb15c",
     "control_loop_workflow_blob_sha": "07b113b29d2e285a2b33f0fc6fdb84386e573929",
     "control_loop_policy_blob_sha": "822bcd1833ff4843b6bd176337b3ef3b742275de",
     "control_loop_evaluator_blob_sha": "1f794892cfec466505a1a6c38b271492f9759127",

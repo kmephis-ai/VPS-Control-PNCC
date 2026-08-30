@@ -84,7 +84,7 @@ jobs:
           import json
           from pathlib import Path
           w=Path('.github/workflows/wave5-autonomous-continuation-execution-admission.yml').read_text().lower()
-          for token in ('contents: write','actions: write','issues: write','pull-requests: write','git push','gh pr merge','gh issue close'):
+          for token in ('contents:'+' write','actions:'+' write','issues:'+' write','pull-requests:'+' write','git'+' push','gh'+' pr merge','gh'+' issue close'):
               assert token not in w, token
           p=json.loads(Path('.pncc-dev/contracts/autonomous-continuation-execution-admission-policy.json').read_text())
           fields=[k for k in p if k.endswith('_authority')]
