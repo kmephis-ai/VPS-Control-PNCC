@@ -2,25 +2,24 @@
   "schema_version": 1,
   "role": "WAVE5_NEXT_GOVERNED_WORK_UNIT_FRONTIER",
   "state": "ACTIVE",
-  "frontier_id": "DURABLE_AUTONOMOUS_CONTINUATION_MULTI_SESSION_STEADY_STATE_EXECUTION",
-  "title_template": "{work_unit_id} — Durable autonomous continuation multi-session steady-state execution",
-  "goal": "Exercise the canonical WU-117 multi-session state machine across multiple independent continuation sessions so fresh provider truth, fresh WU-108/WU-109 recomputation, one delegated transaction per iteration, mandatory readback and checkpoint supersession are proven under real provider drift rather than only defined as contract semantics.",
-  "conflict_domain": "wave5-durable-autonomous-continuation-multi-session-steady-state-execution",
+  "frontier_id": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_READINESS_ASSESSMENT",
+  "title_template": "{work_unit_id} — Autonomous continuation Human-by-Exception readiness assessment",
+  "goal": "Assess, without granting new authority, whether the accumulated provider-backed WU-108 through WU-118 continuation evidence is sufficient for a bounded Human-by-Exception readiness decision, explicitly identifying residual owner-escalation boundaries, unresolved stale-lease hygiene, required runtime/provider exceptions and any evidence gaps that still prevent higher autonomy.",
+  "conflict_domain": "wave5-autonomous-continuation-human-by-exception-readiness-assessment",
   "runtime_required": false,
   "scope": [
-    "execute at least two independently identified continuation sessions with monotonically increasing session_sequence and distinct checkpoint identities",
-    "at each session start fresh-read canonical main, selected Work Unit, provider-state, lease, branch, pull request and exact-head CI truth and discard all persisted mutation authority",
-    "perform no more than one delegated provider mutation per admitted iteration and require fresh provider readback before the next iteration or checkpoint refresh",
-    "advance provider truth between sessions and prove an older clean checkpoint is superseded deterministically rather than replayed",
-    "exercise at least one clean handoff plus interrupted or provider-readback-pending reconciliation without guessed recovery",
-    "record bounded public-safe multi-session execution evidence sufficient for a later Human-by-Exception readiness assessment"
+    "reconcile canonical continuation authority, provider-truth, exact-head CI, durable resume and multi-session execution evidence from WU-108 through WU-118",
+    "define measurable Human-by-Exception readiness criteria covering fresh provider truth, bounded mutation, deterministic recovery, session continuity, CI classification and escalation boundaries",
+    "classify every residual condition as autonomous-safe, wait-only, stop-only, separate-authority-required or owner-escalation-required",
+    "explicitly assess historical expired or apparently ACTIVE stale lease records so stale registry history cannot be mistaken for current mutation authority",
+    "produce a machine-readable readiness assessment and evidence matrix without converting assessment success into mutation authority",
+    "preserve provider/runtime/product/ADWF/security boundaries and identify the smallest next decision boundary"
   ],
   "forbidden_scope": [
-    "treat WU-117 policy, checkpoint or handoff records as direct provider mutation authority",
-    "reuse prior-session control-loop, execution-admission, registry CAS, CI-success, merge-eligibility or Writer Lease ownership",
-    "batch multiple delegated provider mutations into one iteration or skip mandatory readback",
-    "replay or silently recover an interrupted or ambiguous provider transaction",
-    "broaden reusable materialization, Writer Lease, merge/Issue-close, steady-state, durable-resume or multi-session authority",
+    "automatically grant Human-by-Exception execution authority based on assessment output",
+    "reinterpret historical or expired ACTIVE lease records as current ownership without fresh provider reconciliation",
+    "broaden reusable materialization, Writer Lease, merge/Issue-close, continuation or session-resume authority",
+    "weaken owner escalation, ruleset, security, runtime qualification or promotion boundaries",
     "mutate product/runtime source or physical runtime, ADWF Consumer binding/provenance or the ADWF repository",
     "perform release/tag/promotion, ruleset/policy administration, PRIVATE evidence publication or 1080/1081 lifecycle mutation"
   ],
@@ -35,17 +34,18 @@
     "wave5-durable-autonomous-continuation-session-resume",
     "wave5-durable-autonomous-continuation-session-resume-execution",
     "wave5-durable-autonomous-continuation-multi-session-steady-state",
+    "wave5-durable-autonomous-continuation-multi-session-steady-state-execution",
     "public-safety",
     "quality-fast",
     "quality-deep"
   ],
   "exit_criteria": [
-    "at least two independent session identities are evidenced with monotonic sequence and distinct checkpoint identities",
-    "each session start proves fresh provider truth and discards prior-session authority before any mutation",
-    "provider drift between sessions is detected and fresh canonical provider truth deterministically supersedes prior checkpoint state",
-    "every delegated mutation is isolated to one transaction per iteration and followed by mandatory fresh provider readback",
-    "clean, interrupted and readback-pending continuation paths remain fail-closed and replay-free under execution evidence",
+    "a machine-readable readiness rubric distinguishes proven autonomous capability from owner-controlled or separately authorized boundaries",
+    "WU-108 through WU-118 evidence is reconciled against fresh canonical provider truth and exact immutable anchor identities",
+    "stale, expired and historical lease records are explicitly classified and cannot satisfy current-writer ownership criteria",
+    "failure, interruption, unavailable-runtime and provider-contradiction paths have deterministic escalation semantics",
+    "assessment output grants no direct mutation, merge, runtime, release, ruleset or ADWF authority",
     "exact-head hosted CI passes with no product/runtime, ADWF or 1080/1081 mutation"
   ],
-  "next_natural_boundary": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_READINESS_ASSESSMENT"
+  "next_natural_boundary": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_READINESS_DECISION"
 }

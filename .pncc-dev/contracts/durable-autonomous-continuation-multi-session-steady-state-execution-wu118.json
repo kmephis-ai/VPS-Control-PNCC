@@ -1,0 +1,241 @@
+{
+  "schema_version": 1,
+  "role": "DURABLE_AUTONOMOUS_CONTINUATION_MULTI_SESSION_STEADY_STATE_EXECUTION_EVIDENCE",
+  "evidence_state": "RECORDED",
+  "work_unit_id": "PIPE-WU-118",
+  "issue_number": 284,
+  "base_main_sha": "395ed526d845ea7bb084467fe20237b3c5edf92e",
+  "frontier_id": "DURABLE_AUTONOMOUS_CONTINUATION_MULTI_SESSION_STEADY_STATE_EXECUTION",
+  "predecessor_frontier_blob_sha": "8d200456847139a9490df81c2797940b614eabbd",
+  "branch": "agent/PIPE-WU-118-durable-autonomous-continuation-multi-session-steady-state-execution",
+  "multi_session_policy_path": ".pncc-dev/contracts/durable-autonomous-continuation-multi-session-steady-state-policy.json",
+  "multi_session_policy_blob_sha": "1c1107d0d8ef446b0e07848b2fbf1dd30dea07bd",
+  "multi_session_evaluator_path": ".pncc-dev/scripts/evaluate_durable_autonomous_continuation_multi_session_steady_state.py",
+  "multi_session_evaluator_blob_sha": "58b8d1e73a7436be754b75d111c9695bccd3e888",
+  "session_1_handoff_path": ".pncc-dev/contracts/durable-autonomous-continuation-multi-session-handoff-record-wu117.json",
+  "session_1_handoff_blob_sha": "bb1e1ef834184a4dddfdcdb239d7bd2dc75d187d",
+  "session_2_checkpoint_path": ".pncc-dev/contracts/durable-autonomous-continuation-session-checkpoint-wu118.json",
+  "session_2_checkpoint_blob_sha": "b458e310ce54a86e9be0ecc7e1fda4e9530d6e92",
+  "session_2_handoff_path": ".pncc-dev/contracts/durable-autonomous-continuation-multi-session-handoff-record-wu118.json",
+  "session_2_handoff_blob_sha": "19fa9c3d93f007651574be484b1fb2963164efcd",
+  "control_loop_policy_blob_sha": "822bcd1833ff4843b6bd176337b3ef3b742275de",
+  "execution_admission_policy_blob_sha": "406d78da6250c452bfc7706b57dc51a18ca48977",
+  "delegated_authority_grant_blob_sha": "717e1f9081915f40fad2e0620c64245a650ca235",
+  "session_1": {
+    "session_sequence": 1,
+    "session_id": "PNCC-SESSION-WU117-MULTI-SESSION-A1",
+    "checkpoint_id": "PNCC-CONTINUATION-CHECKPOINT-WU117-CLEAN-A1",
+    "recorded_main_sha": "daa77dc4a263ba9d8f9a185d134bdc4ceae5bcad",
+    "selected_work_unit": {
+      "work_unit_id": "PIPE-WU-117",
+      "issue_number": 282,
+      "base_sha": "daa77dc4a263ba9d8f9a185d134bdc4ceae5bcad",
+      "runtime_required": false,
+      "provider_open": true
+    },
+    "provider_state": {
+      "state_branch_head_sha": "c7d21af6f8fa87cd3336c3caad8d21717130a6da",
+      "registry_blob_sha": "1c2c7523e2ec8f225dc356caef679d5a2429ebc5",
+      "registry_generation": 25
+    },
+    "lease_id": "4d1d6f58-0376-4ad5-88f6-5c9d16aceb71",
+    "lease_state_at_handoff": "ACTIVE",
+    "branch": "agent/PIPE-WU-117-durable-autonomous-continuation-multi-session-steady-state",
+    "branch_head_sha_at_handoff": "daa77dc4a263ba9d8f9a185d134bdc4ceae5bcad",
+    "handoff_class": "CLEAN_ITERATION_BOUNDARY",
+    "provider_readback_completed": true,
+    "checkpoint_is_mutation_authority": false
+  },
+  "session_2_start": {
+    "session_sequence": 2,
+    "session_id": "PNCC-SESSION-WU118-MULTI-SESSION-A2",
+    "prior_checkpoint_id": "PNCC-CONTINUATION-CHECKPOINT-WU117-CLEAN-A1",
+    "provider_truth_fresh": true,
+    "branch_pr_ci_truth_fresh": true,
+    "current_main_sha": "395ed526d845ea7bb084467fe20237b3c5edf92e",
+    "selected_work_unit": {
+      "work_unit_id": "PIPE-WU-118",
+      "issue_number": 284,
+      "base_sha": "395ed526d845ea7bb084467fe20237b3c5edf92e",
+      "runtime_required": false,
+      "provider_open": true
+    },
+    "provider_state_before_transaction": {
+      "state_branch_head_sha": "50e9bd45794265eb1cce3eef9c549b002a8436a8",
+      "registry_blob_sha": "b527f84d3c4ee9c5450e2c04b73695e22f10e074",
+      "registry_generation": 25,
+      "wu117_lease_state": "RELEASED",
+      "wu118_lease_present": false
+    },
+    "branch_state_before": {
+      "present": false,
+      "name": "agent/PIPE-WU-118-durable-autonomous-continuation-multi-session-steady-state-execution"
+    },
+    "pull_request_state": "NONE",
+    "ci_state": "NONE",
+    "detected_prior_session_drift_fields": [
+      "current_main",
+      "selected_work_unit",
+      "provider_state",
+      "writer_lease",
+      "branch"
+    ],
+    "decision": "START_FRESH_RECOMPUTE",
+    "fresh_wu108_recomputation_required_before_mutation": true,
+    "fresh_wu109_recomputation_required_before_mutation": true,
+    "discarded_prior_persisted_decisions": [
+      "control_loop_decision",
+      "execution_admission_decision"
+    ],
+    "prior_checkpoint_authority_used": false,
+    "prior_control_loop_reused": false,
+    "prior_execution_admission_reused": false,
+    "prior_ci_reused": false,
+    "prior_cas_reused": false,
+    "prior_merge_eligibility_reused": false,
+    "prior_writer_lease_ownership_reused": false
+  },
+  "session_2_iterations": [
+    {
+      "iteration_sequence": 1,
+      "provider_truth_fresh": true,
+      "control_loop_fresh_for_iteration": true,
+      "execution_admission_fresh_for_iteration": true,
+      "control_loop_reused_from_prior_session": false,
+      "execution_admission_reused_from_prior_session": false,
+      "registry_cas_reused_from_prior_session": false,
+      "previous_iteration_provider_readback_completed": false,
+      "control_loop_decision": "PLAN_EXISTING_WRITER_LEASE_ACQUISITION",
+      "execution_admission_decision": "ADMIT_EXISTING_WRITER_LEASE_AUTHORITY",
+      "delegated_authority_identity": "EXISTING_REUSABLE_WRITER_LEASE_BOUNDED_BRANCH_AUTHORITY",
+      "target_action": "WRITER_LEASE_ACQUIRE_FRESH_CAS_PATH",
+      "delegated_transaction_count": 1,
+      "transaction_kind": "WRITER_LEASE_ACQUISITION",
+      "provider_state_before": {
+        "state_branch_head_sha": "50e9bd45794265eb1cce3eef9c549b002a8436a8",
+        "registry_blob_sha": "b527f84d3c4ee9c5450e2c04b73695e22f10e074",
+        "registry_generation": 25,
+        "exact_work_unit_lease_present": false
+      },
+      "transaction_result": {
+        "provider_mutation_performed": true,
+        "provider_state_commit_sha": "ba7b057162ebd80aeccdbea1600306929b9d9941",
+        "lease_id": "e5fdaab4-192f-4c88-a4dc-8590f0d4c7f6",
+        "holder": "chatgpt-wave5-writer",
+        "branch": "agent/PIPE-WU-118-durable-autonomous-continuation-multi-session-steady-state-execution",
+        "state": "ACTIVE",
+        "generation": 26,
+        "acquired_at": "2026-08-30T14:39:00Z",
+        "heartbeat_at": "2026-08-30T14:39:00Z",
+        "expires_at": "2026-08-30T15:39:00Z"
+      },
+      "provider_state_after": {
+        "state_branch_head_sha": "ba7b057162ebd80aeccdbea1600306929b9d9941",
+        "registry_blob_sha": "a0faf93cd35ffb422003d599677cfe4ea375e77e",
+        "registry_generation": 26,
+        "exact_work_unit_lease_present": true,
+        "exact_work_unit_lease_state": "ACTIVE"
+      },
+      "fresh_provider_readback_completed": true,
+      "readback_matches_expected_transaction": true
+    },
+    {
+      "iteration_sequence": 2,
+      "provider_truth_fresh": true,
+      "control_loop_fresh_for_iteration": true,
+      "execution_admission_fresh_for_iteration": true,
+      "control_loop_reused_from_prior_session": false,
+      "execution_admission_reused_from_prior_session": false,
+      "registry_cas_reused_from_prior_session": false,
+      "previous_iteration_provider_readback_completed": true,
+      "control_loop_decision": "PLAN_EXISTING_BOUNDED_BRANCH_CREATE",
+      "execution_admission_decision": "ADMIT_EXISTING_WRITER_LEASE_AUTHORITY",
+      "delegated_authority_identity": "EXISTING_REUSABLE_WRITER_LEASE_BOUNDED_BRANCH_AUTHORITY",
+      "target_action": "BOUNDED_NON_MAIN_BRANCH_CREATE_PATH",
+      "delegated_transaction_count": 1,
+      "transaction_kind": "BOUNDED_BRANCH_CREATE",
+      "provider_state_before": {
+        "state_branch_head_sha": "ba7b057162ebd80aeccdbea1600306929b9d9941",
+        "registry_blob_sha": "a0faf93cd35ffb422003d599677cfe4ea375e77e",
+        "registry_generation": 26,
+        "exact_work_unit_lease_present": true,
+        "exact_work_unit_lease_state": "ACTIVE"
+      },
+      "branch_state_before": {
+        "present": false
+      },
+      "transaction_result": {
+        "provider_mutation_performed": true,
+        "branch_created": true,
+        "branch": "agent/PIPE-WU-118-durable-autonomous-continuation-multi-session-steady-state-execution",
+        "branch_head_sha": "395ed526d845ea7bb084467fe20237b3c5edf92e",
+        "branch_base_sha": "395ed526d845ea7bb084467fe20237b3c5edf92e"
+      },
+      "branch_state_after": {
+        "present": true,
+        "branch_head_sha": "395ed526d845ea7bb084467fe20237b3c5edf92e",
+        "compare_status": "identical",
+        "ahead_by": 0,
+        "behind_by": 0
+      },
+      "provider_state_after": {
+        "state_branch_head_sha": "ba7b057162ebd80aeccdbea1600306929b9d9941",
+        "registry_blob_sha": "a0faf93cd35ffb422003d599677cfe4ea375e77e",
+        "registry_generation": 26,
+        "exact_work_unit_lease_present": true,
+        "exact_work_unit_lease_state": "ACTIVE"
+      },
+      "fresh_provider_readback_completed": true,
+      "readback_matches_expected_transaction": true
+    }
+  ],
+  "session_2_handoff_refresh": {
+    "provider_truth_fresh": true,
+    "fresh_provider_readback_completed": true,
+    "prior_checkpoint_id": "PNCC-CONTINUATION-CHECKPOINT-WU117-CLEAN-A1",
+    "new_checkpoint_id": "PNCC-CONTINUATION-CHECKPOINT-WU118-CLEAN-A2",
+    "new_checkpoint_blob_sha": "b458e310ce54a86e9be0ecc7e1fda4e9530d6e92",
+    "new_handoff_blob_sha": "19fa9c3d93f007651574be484b1fb2963164efcd",
+    "decision": "CLEAN_HANDOFF_READY",
+    "checkpoint_refresh_allowed": true,
+    "prior_checkpoint_content_mutated": false,
+    "prior_checkpoint_authority_used": false
+  },
+  "reconciliation_paths": {
+    "interrupted": {
+      "prior_handoff_class": "TRANSACTION_OUTCOME_UNKNOWN",
+      "expected_decision": "RECONCILE_INTERRUPTED_SESSION",
+      "provider_reconciliation_required": true,
+      "delegated_transaction_replayed": false,
+      "new_mutation_before_reconciliation": false
+    },
+    "readback_pending": {
+      "prior_handoff_class": "PROVIDER_READBACK_PENDING",
+      "expected_decision": "WAIT_FOR_PROVIDER_READBACK",
+      "provider_readback_required": true,
+      "delegated_transaction_replayed": false,
+      "new_mutation_before_readback": false
+    }
+  },
+  "independent_session_count": 2,
+  "session_sequence_monotonic": true,
+  "session_ids_distinct": true,
+  "checkpoint_ids_distinct": true,
+  "provider_drift_between_sessions_detected": true,
+  "fresh_provider_truth_superseded_prior_checkpoint": true,
+  "fresh_control_loop_and_admission_per_iteration": true,
+  "stale_prior_session_authority_reuse_performed": false,
+  "batch_provider_mutation_performed": false,
+  "all_delegated_transactions_followed_by_fresh_readback": true,
+  "checkpoint_history_bounded_and_public_safe": true,
+  "product_runtime_mutation_performed": false,
+  "runtime_action_performed": false,
+  "adwf_binding_or_repository_mutation_performed": false,
+  "release_tag_promotion_performed": false,
+  "ruleset_policy_mutation_performed": false,
+  "private_evidence_publication_performed": false,
+  "reserve_1080_lifecycle_mutation_performed": false,
+  "primary_1081_lifecycle_mutation_performed": false,
+  "authority_broadening_performed": false,
+  "next_boundary": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_READINESS_ASSESSMENT"
+}

@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "role": "DURABLE_AUTONOMOUS_CONTINUATION_SESSION_CHECKPOINT",
+  "checkpoint_state": "PERSISTED_HINT_ONLY",
+  "checkpoint_id": "PNCC-CONTINUATION-CHECKPOINT-WU118-CLEAN-A2",
+  "repository": "kmephis-ai/VPS-Control-PNCC",
+  "default_branch": "main",
+  "recorded_main_sha": "395ed526d845ea7bb084467fe20237b3c5edf92e",
+  "selected_work_unit": {
+    "work_unit_id": "PIPE-WU-118",
+    "issue_number": 284,
+    "base_sha": "395ed526d845ea7bb084467fe20237b3c5edf92e",
+    "runtime_required": false,
+    "provider_open": true
+  },
+  "provider_state": {
+    "state_branch_present": true,
+    "state_branch_head_sha": "ba7b057162ebd80aeccdbea1600306929b9d9941",
+    "registry_blob_sha": "a0faf93cd35ffb422003d599677cfe4ea375e77e",
+    "registry_generation": 26
+  },
+  "execution_state": {
+    "lease": {
+      "state": "ACTIVE",
+      "lease_id": "e5fdaab4-192f-4c88-a4dc-8590f0d4c7f6",
+      "generation": 26,
+      "branch": "agent/PIPE-WU-118-durable-autonomous-continuation-multi-session-steady-state-execution"
+    },
+    "branch": {
+      "present": true,
+      "name": "agent/PIPE-WU-118-durable-autonomous-continuation-multi-session-steady-state-execution",
+      "head_sha": "395ed526d845ea7bb084467fe20237b3c5edf92e"
+    },
+    "pull_request": {
+      "state": "NONE",
+      "number": null,
+      "base_sha": null,
+      "head_sha": null,
+      "merge_commit_sha": null
+    },
+    "ci": {
+      "state": "NONE",
+      "head_sha": null
+    }
+  },
+  "last_completed_steady_state_iteration": 2,
+  "transaction_boundary": "CLEAN_ITERATION_BOUNDARY",
+  "persisted_decisions": {
+    "control_loop_decision": "PLAN_EXISTING_BOUNDED_BRANCH_CREATE",
+    "execution_admission_decision": "ADMIT_EXISTING_WRITER_LEASE_AUTHORITY",
+    "ci_decision": null
+  },
+  "checkpoint_is_mutation_authority": false,
+  "checkpoint_cas_tokens_reusable": false,
+  "checkpoint_ci_success_reusable": false,
+  "checkpoint_admission_reusable": false,
+  "contains_private_runtime_payload": false,
+  "contains_credentials": false,
+  "contains_host_identifiers": false,
+  "contains_secret_transport_data": false
+}
