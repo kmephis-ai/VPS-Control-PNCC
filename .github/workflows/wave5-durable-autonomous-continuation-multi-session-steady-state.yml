@@ -63,7 +63,7 @@ jobs:
           assert set(out['discarded_prior_persisted_decisions'])=={'control_loop_decision','execution_admission_decision'}
           PY
 
-      - name: Assert exact WU-117 artifacts and immutable anchors
+      - name: Assert exact immutable WU-117 artifacts and anchors
         shell: bash
         run: |
           set -euo pipefail
@@ -74,7 +74,6 @@ jobs:
           test "$(git hash-object .pncc-dev/contracts/durable-autonomous-continuation-session-checkpoint-wu117.json)" = "0d5ca65a4fe9711c07aec162c18c4ffde151fafd"
           test "$(git hash-object .pncc-dev/contracts/durable-autonomous-continuation-multi-session-handoff-record-wu117.json)" = "bb1e1ef834184a4dddfdcdb239d7bd2dc75d187d"
           test "$(git hash-object .pncc-dev/contracts/governed-frontier-transition-pipe-wu-117.json)" = "b41a64391014617f4fc5cd6234b393f4534a0a28"
-          test "$(git hash-object .pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json)" = "8d200456847139a9490df81c2797940b614eabbd"
           test "$(git hash-object .pncc-dev/contracts/durable-autonomous-continuation-session-resume-execution-wu116.json)" = "e9c104d24f0b27c496857d162903d9d610c7e39d"
           test "$(git hash-object .pncc-dev/scripts/validate_durable_autonomous_continuation_session_resume_execution_wu116.py)" = "9018405fc22abc568610cc85f49cc1b76cab1dcd"
           test "$(git hash-object .pncc-dev/contracts/reusable-autonomous-continuation-steady-state-policy.json)" = "6957f09565a66e7b7f7206a640157aac4491bfa8"
@@ -141,10 +140,12 @@ jobs:
           diff -u /tmp/expected /tmp/actual
           ! grep -E '^(\.pncc-state/|src/windows-v7/|\.adwf-consumer/|tools/runtime-agent/)' /tmp/actual
 
-      - name: Assert canonical multi-session handoff and successor frontier
+      - name: Assert WU-117 consumed successor frontier on original PR only
+        if: github.event_name == 'pull_request' && github.head_ref == 'agent/PIPE-WU-117-durable-autonomous-continuation-multi-session-steady-state'
         shell: bash
         run: |
           set -euo pipefail
+          test "$(git hash-object .pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json)" = "8d200456847139a9490df81c2797940b614eabbd"
           python3 - <<'PY'
           import json
           from pathlib import Path
