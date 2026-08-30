@@ -1,0 +1,95 @@
+name: wave5-autonomous-continuation-execution-admission
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  issues: read
+  pull-requests: read
+
+jobs:
+  execution-admission:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Run WU-109 adversarial admission tests
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_autonomous_continuation_execution_admission_wu109.py' -v
+
+      - name: Assert exact admission anchors
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object .pncc-dev/contracts/autonomous-continuation-execution-admission-policy.json)" = "406d78da6250c452bfc7706b57dc51a18ca48977"
+          test "$(git hash-object .pncc-dev/scripts/evaluate_autonomous_continuation_execution_admission.py)" = "cde13515632717b81cef77876e53e9ceef0c46bf"
+          test "$(git hash-object .pncc-dev/tests/test_autonomous_continuation_execution_admission_wu109.py)" = "790ad4cab98a707a438b53bdbfe03267589adc15"
+          test "$(git hash-object .github/workflows/wave5-autonomous-continuation-control-loop.yml)" = "07b113b29d2e285a2b33f0fc6fdb84386e573929"
+          test "$(git hash-object .pncc-dev/contracts/autonomous-continuation-control-loop-policy.json)" = "822bcd1833ff4843b6bd176337b3ef3b742275de"
+          test "$(git hash-object .pncc-dev/scripts/evaluate_autonomous_continuation_control_loop.py)" = "1f794892cfec466505a1a6c38b271492f9759127"
+          test "$(git hash-object .pncc-dev/contracts/reusable-canonical-work-unit-materialization-authorized.json)" = "39db0554b86932b1beb4bb7250d040c06f9371ea"
+          test "$(git hash-object .pncc-dev/contracts/reusable-writer-lease-bounded-branch-authorized.json)" = "717e1f9081915f40fad2e0620c64245a650ca235"
+          test "$(git hash-object .pncc-dev/contracts/reusable-autonomous-merge-close-authorized.json)" = "baa503d63eaa437545ddcf0a045cf864d1ef36e6"
+          test "$(git hash-object .pncc-dev/contracts/reusable-merge-close-executor-integration.json)" = "220668dc1089aaa123085724db005f3eae9971c8"
+
+      - name: Assert upstream live control-loop harness is Work-Unit generic
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          text=Path('.github/workflows/wave5-autonomous-continuation-control-loop.yml').read_text(encoding='utf-8')
+          for stale in ('LIVE_SELECTED_WU108_REQUIRED','WU108_LEASE_NOT_FOUND','issues/263'):
+              assert stale not in text, stale
+          assert 'LIVE_SELECTED_WORK_UNIT_REQUIRED' in text
+          assert "branch.startswith('agent/'+wu+'-')" in text
+          PY
+
+      - name: Assert exact PIPE-WU-109 bounded diff
+        if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'agent/PIPE-WU-109-')
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin "$BASE_SHA"
+          git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort > /tmp/actual
+          printf '%s\n' \
+            '.github/workflows/wave5-autonomous-continuation-control-loop.yml' \
+            '.github/workflows/wave5-autonomous-continuation-execution-admission.yml' \
+            '.pncc-dev/contracts/autonomous-continuation-execution-admission-policy.json' \
+            '.pncc-dev/contracts/governed-frontier-transition-pipe-wu-109.json' \
+            '.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json' \
+            '.pncc-dev/scripts/evaluate_autonomous_continuation_execution_admission.py' \
+            '.pncc-dev/tests/test_autonomous_continuation_execution_admission_wu109.py' | sort > /tmp/expected
+          diff -u /tmp/expected /tmp/actual
+          ! grep -E '^(\.pncc-state/|src/windows-v7/|\.adwf-consumer/|tools/runtime-agent/)' /tmp/actual
+
+      - name: Assert workflow and admission remain read only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          w=Path('.github/workflows/wave5-autonomous-continuation-execution-admission.yml').read_text().lower()
+          for token in ('contents:'+' write','actions:'+' write','issues:'+' write','pull-requests:'+' write','git'+' push','gh'+' pr merge','gh'+' issue close'):
+              assert token not in w, token
+          p=json.loads(Path('.pncc-dev/contracts/autonomous-continuation-execution-admission-policy.json').read_text())
+          fields=[k for k in p if k.endswith('_authority')]
+          assert fields and all(p[k] is False for k in fields)
+          PY
+
+      - name: Assert repository remains clean
+        run: test -z "$(git status --porcelain)"
