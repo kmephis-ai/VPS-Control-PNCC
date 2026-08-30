@@ -1,0 +1,170 @@
+name: wave5-autonomous-continuation-control-loop
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+  issues: read
+  pull-requests: read
+
+jobs:
+  autonomous-continuation-control-loop:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Run WU-108 adversarial control-loop tests
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_autonomous_continuation_control_loop_wu108.py' -v
+
+      - name: Assert exact control-loop anchors
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object .pncc-dev/contracts/autonomous-continuation-control-loop-policy.json)" = "822bcd1833ff4843b6bd176337b3ef3b742275de"
+          test "$(git hash-object .pncc-dev/scripts/evaluate_autonomous_continuation_control_loop.py)" = "1f794892cfec466505a1a6c38b271492f9759127"
+          test "$(git hash-object .pncc-dev/tests/test_autonomous_continuation_control_loop_wu108.py)" = "625db459bec89e89a23c7cf2c592d701d689ecb3"
+          test "$(git hash-object .pncc-dev/contracts/provider-truth-continuation-policy.json)" = "4c6fe2895d41ed9282e9209223a5dd27b209a2fc"
+          test "$(git hash-object .pncc-dev/scripts/evaluate_provider_truth_continuation.py)" = "33fdd78096ae09c9706e0802a94b310ba5fa4bd2"
+          test "$(git hash-object .pncc-dev/contracts/exact-head-ci-inspection-classification-policy.json)" = "98499793b870932f2e70b7b6293ff5fffeecbd29"
+          test "$(git hash-object .pncc-dev/scripts/evaluate_exact_head_ci_inspection_classification.py)" = "12bfea6f4bc87a7c14ba6c403238d5b10affe6cf"
+          test "$(git hash-object .pncc-dev/contracts/reusable-canonical-work-unit-materialization-authorized.json)" = "39db0554b86932b1beb4bb7250d040c06f9371ea"
+          test "$(git hash-object .pncc-dev/contracts/reusable-writer-lease-bounded-branch-authorized.json)" = "717e1f9081915f40fad2e0620c64245a650ca235"
+          test "$(git hash-object .pncc-dev/contracts/reusable-autonomous-merge-close-authorized.json)" = "baa503d63eaa437545ddcf0a045cf864d1ef36e6"
+          test "$(git hash-object .pncc-dev/contracts/reusable-merge-close-executor-integration.json)" = "220668dc1089aaa123085724db005f3eae9971c8"
+
+      - name: Compose fresh provider truth through control loop read only
+        if: github.event_name == 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .pncc-dev/scripts/evaluate_provider_truth_continuation.py --repository "$REPOSITORY" --default-branch main --live-github --output "$RUNNER_TEMP/continuation.json" >/tmp/continuation.stdout
+          python3 - "$RUNNER_TEMP/ci-snapshot.json" <<'PY'
+          import json, os, sys, time, urllib.request
+          out=sys.argv[1]; repo=os.environ['REPOSITORY']; pr=int(os.environ['PR_NUMBER']); expected=os.environ['EXPECTED_HEAD']; token=os.environ['GITHUB_TOKEN']
+          headers={'Accept':'application/vnd.github+json','Authorization':'Bearer '+token,'X-GitHub-Api-Version':'2022-11-28','User-Agent':'pncc-wave5-control-loop'}
+          def get(url):
+              req=urllib.request.Request(url,headers=headers)
+              with urllib.request.urlopen(req,timeout=30) as response: return json.load(response)
+          pr_data=get(f'https://api.github.com/repos/{repo}/pulls/{pr}')
+          observed=((pr_data.get('head') or {}).get('sha'))
+          if observed!=expected: raise SystemExit(f'PR_HEAD_DRIFT:{expected}:{observed}')
+          required={'pipeline-state','wave5-provider-work-unit-selection','public-safety','quality-fast','quality-deep'}
+          all_runs=[]
+          for attempt in range(20):
+              all_runs=[]; page=1
+              while True:
+                  data=get(f'https://api.github.com/repos/{repo}/actions/runs?head_sha={expected}&event=pull_request&per_page=100&page={page}')
+                  batch=data.get('workflow_runs') or []; all_runs.extend(batch)
+                  if len(batch)<100: break
+                  page+=1
+              if required.issubset({str(x.get('name') or '') for x in all_runs}): break
+              if attempt==19: raise SystemExit('REQUIRED_WORKFLOW_PROVIDER_REGISTRATION_INCOMPLETE')
+              time.sleep(3)
+          effective={}
+          for raw in all_runs:
+              name=str(raw.get('name') or '')
+              if name and (name not in effective or int(raw.get('id') or 0)>int(effective[name].get('id') or 0)): effective[name]=raw
+          runs=[{'id':int(raw['id']),'name':name,'head_sha':raw.get('head_sha'),'status':raw.get('status'),'conclusion':raw.get('conclusion'),'failure_attribution':None} for name,raw in sorted(effective.items())]
+          snap={'schema_version':1,'role':'EXACT_HEAD_CI_PROVIDER_SNAPSHOT','repository':repo,'default_branch':'main','provider_truth_fresh':True,
+                'inventory_complete':True,'effective_inventory':True,'superseded_runs_accounted_for':True,'pr_number':pr,
+                'pr_base_sha':((pr_data.get('base') or {}).get('sha')),'pr_head_sha':expected,'observed_pr_head_sha':observed,'workflow_runs':runs}
+          with open(out,'w',encoding='utf-8') as f: json.dump(snap,f,sort_keys=True,indent=2); f.write('\n')
+          PY
+          python3 .pncc-dev/scripts/evaluate_exact_head_ci_inspection_classification.py --input "$RUNNER_TEMP/ci-snapshot.json" > "$RUNNER_TEMP/ci-decision.json"
+          python3 - "$RUNNER_TEMP/continuation.json" "$RUNNER_TEMP/ci-decision.json" "$RUNNER_TEMP/control-loop-snapshot.json" <<'PY'
+          import base64, json, os, sys, urllib.parse, urllib.request
+          cont_path,ci_path,out=sys.argv[1:]; repo=os.environ['REPOSITORY']; pr=int(os.environ['PR_NUMBER']); token=os.environ['GITHUB_TOKEN']
+          headers={'Accept':'application/vnd.github+json','Authorization':'Bearer '+token,'X-GitHub-Api-Version':'2022-11-28','User-Agent':'pncc-wave5-control-loop'}
+          def get(url):
+              req=urllib.request.Request(url,headers=headers)
+              with urllib.request.urlopen(req,timeout=30) as response: return json.load(response)
+          cont=json.load(open(cont_path,encoding='utf-8')); ci=json.load(open(ci_path,encoding='utf-8'))
+          selected=cont.get('selected') or {}
+          if selected.get('work_unit_id')!='PIPE-WU-108' or selected.get('issue')!=263: raise SystemExit('LIVE_SELECTED_WU108_REQUIRED')
+          main_ref=get(f'https://api.github.com/repos/{repo}/git/ref/heads/main'); main=((main_ref.get('object') or {}).get('sha'))
+          pr_data=get(f'https://api.github.com/repos/{repo}/pulls/{pr}'); branch=((pr_data.get('head') or {}).get('ref')); head=((pr_data.get('head') or {}).get('sha'))
+          issue=get(f'https://api.github.com/repos/{repo}/issues/263')
+          content=get(f'https://api.github.com/repos/{repo}/contents/.pncc-state/writer-lease-registry.json?ref=pncc-provider-state')
+          registry=json.loads(base64.b64decode(content['content']).decode('utf-8'))
+          matches=[e for e in registry.get('entries',[]) if e.get('work_unit_id')=='PIPE-WU-108' and e.get('branch')==branch]
+          if not matches: raise SystemExit('WU108_LEASE_NOT_FOUND')
+          lease=max(matches,key=lambda e:int(e.get('generation') or 0))
+          exact=(lease.get('base_sha')==main and lease.get('conflict_domain')==selected.get('conflict_domain') and lease.get('state') in {'ACTIVE','RELEASED'})
+          execution={'work_unit_id':'PIPE-WU-108','issue_number':263,'issue_open':issue.get('state')=='open','lease_state':lease.get('state'),
+                     'lease_exact_binding':bool(exact),'branch_exists':True,'branch_name':branch,'branch_head_sha':head,'post_merge_recovery':False,
+                     'pull_request':{'number':pr,'state':'OPEN','base_sha':((pr_data.get('base') or {}).get('sha')),'head_sha':head}}
+          snap={'schema_version':1,'role':'AUTONOMOUS_CONTINUATION_CONTROL_LOOP_SNAPSHOT','repository':repo,'default_branch':'main','provider_truth_fresh':True,
+                'current_main_sha':main,'continuation_decision':cont,'execution_state':execution,'ci_decision':ci}
+          with open(out,'w',encoding='utf-8') as f: json.dump(snap,f,sort_keys=True,indent=2); f.write('\n')
+          PY
+          python3 .pncc-dev/scripts/evaluate_autonomous_continuation_control_loop.py --input "$RUNNER_TEMP/control-loop-snapshot.json" > "$RUNNER_TEMP/control-loop-decision.json"
+          python3 - "$RUNNER_TEMP/ci-decision.json" "$RUNNER_TEMP/control-loop-decision.json" <<'PY'
+          import json,sys
+          ci=json.load(open(sys.argv[1],encoding='utf-8')); loop=json.load(open(sys.argv[2],encoding='utf-8'))
+          expected={'CI_PENDING':'WAIT_FOR_EXACT_HEAD_CI','CI_SUCCESS':'PLAN_EXISTING_WRITER_LEASE_RELEASE',
+                    'HARNESS_OR_VALIDATION_DEFECT_CANDIDATE':'PLAN_CLASSIFIED_FAILURE_RECOVERY',
+                    'PRODUCT_RUNTIME_DEFECT_CANDIDATE':'PLAN_CLASSIFIED_FAILURE_RECOVERY','PROVIDER_ENVIRONMENT_AMBIGUITY':'PLAN_CLASSIFIED_FAILURE_RECOVERY'}
+          want=expected.get(ci.get('decision'))
+          if want is None or loop.get('decision')!=want: raise SystemExit(f'CONTROL_LOOP_MAPPING_MISMATCH:{ci.get("decision")}:{loop.get("decision")}:{want}')
+          for field in ('provider_mutation_performed','issue_mutation_performed','branch_mutation_performed','pull_request_mutation_performed',
+                        'writer_lease_mutation_performed','workflow_rerun_performed','merge_performed','runtime_action_performed','product_runtime_mutation_performed'):
+              if loop.get(field) is not False: raise SystemExit('CONTROL_LOOP_MUTATION_REPORTED:'+field)
+          print('LIVE_CONTROL_LOOP_DECISION='+loop['decision'])
+          PY
+
+      - name: Assert exact PIPE-WU-108 bounded diff
+        if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'agent/PIPE-WU-108-')
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin "$BASE_SHA"
+          git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort > /tmp/actual
+          printf '%s\n' \
+            '.github/workflows/wave5-autonomous-continuation-control-loop.yml' \
+            '.pncc-dev/contracts/autonomous-continuation-control-loop-policy.json' \
+            '.pncc-dev/contracts/governed-frontier-transition-pipe-wu-108.json' \
+            '.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json' \
+            '.pncc-dev/scripts/evaluate_autonomous_continuation_control_loop.py' \
+            '.pncc-dev/tests/test_autonomous_continuation_control_loop_wu108.py' | sort > /tmp/expected
+          diff -u /tmp/expected /tmp/actual
+          ! grep -E '^(\.pncc-state/|src/windows-v7/|\.adwf-consumer/|tools/runtime-agent/)' /tmp/actual
+
+      - name: Assert workflow and control-loop policy remain read only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          text=Path('.github/workflows/wave5-autonomous-continuation-control-loop.yml').read_text(encoding='utf-8').lower()
+          forbidden=['contents:'+' write','actions:'+' write','issues:'+' write','pull-requests:'+' write','git'+' push','gh'+' pr merge','gh'+' issue close','--method'+' post','--method'+' patch','--method'+' put','--method'+' delete']
+          for token in forbidden: assert token not in text,token
+          p=json.loads(Path('.pncc-dev/contracts/autonomous-continuation-control-loop-policy.json').read_text(encoding='utf-8'))
+          fields=['provider_mutation_authority','issue_create_authority','issue_update_authority','issue_close_authority','branch_mutation_authority',
+                  'pull_request_mutation_authority','writer_lease_mutation_authority','workflow_rerun_authority','merge_authority','runtime_action_authority',
+                  'product_runtime_mutation_authority','adwf_binding_mutation_authority','adwf_repository_mutation_authority','release_tag_promotion_authority',
+                  'ruleset_policy_mutation_authority','private_evidence_publication_authority','reserve_1080_lifecycle_mutation_authority','primary_1081_lifecycle_mutation_authority']
+          assert all(p[k] is False for k in fields)
+          PY
+
+      - name: Assert repository remains clean
+        run: test -z "$(git status --porcelain)"
