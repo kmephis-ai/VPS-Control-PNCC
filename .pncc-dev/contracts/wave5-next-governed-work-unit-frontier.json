@@ -2,21 +2,22 @@
   "schema_version": 1,
   "role": "WAVE5_NEXT_GOVERNED_WORK_UNIT_FRONTIER",
   "state": "ACTIVE",
-  "frontier_id": "AUTONOMOUS_CONTINUATION_CONTROL_LOOP_EXECUTION_ADMISSION",
-  "title_template": "{work_unit_id} — Autonomous continuation control-loop execution admission",
-  "goal": "Add a default-deny PLAN_ONLY execution-admission boundary that validates one control-loop decision against the exact delegated reusable authority and current transaction evidence without executing any mutation.",
-  "conflict_domain": "wave5-autonomous-continuation-control-loop-execution-admission",
+  "frontier_id": "SEPARATE_REUSABLE_AUTONOMOUS_CONTINUATION_EXECUTOR_AUTHORITY_PREPARATION",
+  "title_template": "{work_unit_id} — Reusable autonomous continuation executor authority preparation",
+  "goal": "Prepare a default-deny reusable autonomous continuation executor authority contract and explicit Owner Authorization boundary without granting or exercising reusable executor authority.",
+  "conflict_domain": "wave5-reusable-autonomous-continuation-executor-authority-preparation",
   "runtime_required": false,
   "scope": [
-    "consume one exact autonomous continuation control-loop decision bound to fresh current provider truth",
-    "validate that any proposed mutation path names exactly one existing canonical reusable authority and satisfies its required transaction evidence",
-    "distinguish wait, stop, blocked and separately-authorized recovery states from mutation-admission candidates",
-    "emit only PLAN_ONLY admission evidence with exact target action and authority identity; perform no delegated mutation",
-    "fail closed on authority-anchor drift, stale main, selected Work Unit drift, lease or PR drift, incomplete CI evidence or contradictory control-loop state",
-    "keep any reusable autonomous continuation executor behind a separate explicit Owner Authorization boundary"
+    "bind the prepared executor authority to the exact WU-109 execution-admission policy/evaluator and canonical existing reusable materialization, Writer Lease and merge/Issue-close grants",
+    "define exact per-transaction freshness, selected Work Unit, lease, branch, pull-request, CI, CAS, pinned-head merge and post-merge close evidence required before any future delegated execution",
+    "define default-deny interruption and recovery semantics so wait, stop, blocked and classified-failure states never become guessed mutations",
+    "define exact Owner Authorization receipt and future canonical grant binding plus revocation and anchor-drift fail-closed behavior",
+    "keep reusable_autonomous_continuation_executor_authority=false and all mutation authority false throughout this preparation Work Unit",
+    "advance the governed frontier only to the explicit Owner Authorization boundary"
   ],
   "forbidden_scope": [
-    "grant or execute Issue-create, Issue-update, branch, pull-request, provider-state, Writer Lease, workflow-rerun, merge or Issue-close authority",
+    "grant or exercise reusable autonomous continuation executor authority",
+    "execute Issue-create, Issue-update, branch, pull-request, provider-state, Writer Lease, workflow-rerun, merge or Issue-close transactions under the prepared executor",
     "mutate product/runtime source or runtime state",
     "mutate ADWF Consumer binding/provenance or the ADWF repository",
     "perform release/tag/promotion, ruleset/policy administration, PRIVATE evidence publication or 1080/1081 lifecycle mutation"
@@ -26,17 +27,18 @@
     "wave5-provider-work-unit-selection",
     "wave5-exact-head-ci-inspection-classification",
     "wave5-autonomous-continuation-control-loop",
+    "wave5-autonomous-continuation-execution-admission",
     "public-safety",
     "quality-fast",
     "quality-deep"
   ],
   "exit_criteria": [
-    "every control-loop decision maps deterministically to wait, stop, block or one exact existing delegated authority",
-    "admission never converts a PLAN_ONLY decision into mutation authority",
-    "post-merge close recovery remains bound to exact released lease, merged PR and current-main merge readback",
-    "all unknown, stale, contradictory or incomplete inputs fail closed",
-    "a future reusable autonomous executor remains separately prepared and explicitly Owner-authorized",
+    "one exact prepared reusable executor authority contract is machine readable and default deny",
+    "the preparation binds immutable canonical admission and delegated reusable-authority anchors without broadening them",
+    "all future mutation paths remain conditional on exact fresh transaction evidence and their existing delegated authority semantics",
+    "reusable executor authority remains false until a separate exact Owner Authorization receipt is present",
+    "unknown, stale, contradictory, interrupted or classified-failure states fail closed or require separate authority",
     "exact-head hosted CI passes with no provider-state, ADWF, product/runtime or 1080/1081 mutation"
   ],
-  "next_natural_boundary": "SEPARATE_REUSABLE_AUTONOMOUS_CONTINUATION_EXECUTOR_AUTHORITY_PREPARATION"
+  "next_natural_boundary": "EXPLICIT_OWNER_AUTHORIZATION_FOR_REUSABLE_AUTONOMOUS_CONTINUATION_EXECUTOR"
 }
