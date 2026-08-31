@@ -23,6 +23,30 @@ def issue(number, body, state="closed"):
     return {"number": number, "state": state, "body": body}
 
 
+def active_frontier():
+    """Stable synthetic ACTIVE frontier for historical WU102 planner tests.
+
+    These tests exercise planner behavior, not the mutable live Wave-5 frontier.
+    Keeping the fixture local prevents a legitimate canonical transition to
+    terminal NONE from rewriting the semantics of historical ACTIVE scenarios.
+    """
+    return {
+        "schema_version": 1,
+        "role": "WAVE5_NEXT_GOVERNED_WORK_UNIT_FRONTIER",
+        "state": "ACTIVE",
+        "frontier_id": "WU102_TEST_ACTIVE_FRONTIER",
+        "title_template": "{work_unit_id} — Synthetic governed materialization test",
+        "goal": "Exercise deterministic governed Work Unit materialization.",
+        "conflict_domain": "wu102-synthetic-materialization-test",
+        "runtime_required": False,
+        "scope": ["exercise planner behavior"],
+        "forbidden_scope": ["grant mutation authority"],
+        "required_checks": ["pipeline-state"],
+        "exit_criteria": ["planner result is deterministic"],
+        "next_natural_boundary": "WU102_TEST_BOUNDARY",
+    }
+
+
 def snapshot():
     return {
         "schema_version": 1,
@@ -46,7 +70,7 @@ def snapshot():
 class GovernedWorkUnitMaterializationTests(unittest.TestCase):
     def setUp(self):
         self.policy = planner.load_json(planner.POLICY_PATH)
-        self.frontier = planner.load_json(planner.FRONTIER_PATH)
+        self.frontier = active_frontier()
 
     def plan(self, snap=None, policy=None, frontier=None, **kwargs):
         return planner.plan_materialization(
@@ -136,8 +160,11 @@ class GovernedWorkUnitMaterializationTests(unittest.TestCase):
         self.assertIn("FRONTIER_RUNTIME_MUST_BE_FALSE", result["reasons"])
 
     def test_none_frontier_returns_no_frontier(self):
-        frontier = copy.deepcopy(self.frontier)
-        frontier["state"] = "NONE"
+        frontier = {
+            "schema_version": 1,
+            "role": "WAVE5_NEXT_GOVERNED_WORK_UNIT_FRONTIER",
+            "state": "NONE",
+        }
         result = self.plan(frontier=frontier)
         self.assertEqual(result["decision"], "NO_FRONTIER")
         self.assertIsNone(result["proposal"])
