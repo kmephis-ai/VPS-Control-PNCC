@@ -69,12 +69,12 @@ jobs:
           PY
 
       - name: Evaluate fresh WU135 health drift snapshot
-        run: python3 .pncc-dev/scripts/evaluate_wave6_hbe_pipeline_health_drift.py --snapshot /tmp/wu135-provider.json
+        run: python3 .pncc-dev/scripts/evaluate_wave6_hbe_pipeline_health_drift.py --snapshot /tmp/wu135-provider.json --no-anchor-check
 
       - name: Run WU135 adversarial tests
         run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_wave6_hbe_pipeline_health_drift_wu135.py' -v
 
-      - name: Assert immutable anchors
+      - name: Assert immutable anchors from exact Git objects
         shell: bash
         run: |
           set -euo pipefail
@@ -82,7 +82,11 @@ jobs:
           test "$(git hash-object .pncc-dev/contracts/governed-work-unit-materialization-policy.json)" = "8b6b6d9116b96a8f4746c22906a522589a9ae6e0"
           test "$(git hash-object .pncc-dev/contracts/reusable-canonical-work-unit-materialization-authorized.json)" = "39db0554b86932b1beb4bb7250d040c06f9371ea"
           test "$(git hash-object .pncc-dev/contracts/reusable-writer-lease-bounded-branch-authorized.json)" = "717e1f9081915f40fad2e0620c64245a650ca235"
+          test "$(git hash-object .pncc-dev/contracts/reusable-autonomous-merge-close-authorized.json)" = "baa503d63eaa437545ddcf0a045cf864d1ef36e6"
+          test "$(git hash-object .pncc-dev/contracts/reusable-autonomous-continuation-executor-authorized.json)" = "2c62780720dace54b220cedd42f77f834886e62a"
+          test "$(git hash-object .pncc-dev/contracts/autonomous-continuation-control-loop-policy.json)" = "822bcd1833ff4843b6bd176337b3ef3b742275de"
           test "$(git hash-object docs/roadmap/PNCC_PIPELINE_ROADMAP.md)" = "e5731248ac4b178e7b1aabbe2d9cd784cbc79b08"
+          test "$(git hash-object docs/architecture/PNCC_TARGET_DEVELOPMENT_PIPELINE.md)" = "bf5fcbee18d053d1d1d1e02d3f92feefbc0a4593"
 
       - name: Assert WU135 acquisition snapshot and exact binding
         shell: bash
@@ -114,12 +118,15 @@ jobs:
           test "$(git merge-base "$BASE_SHA" "$HEAD_SHA")" = "$BASE_SHA"
           git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort > /tmp/actual
           printf '%s\n' \
+            '.github/workflows/wave6-hbe-frontier-bootstrap-wu134.yml' \
             '.github/workflows/wave6-hbe-pipeline-health-drift-wu135.yml' \
             '.pncc-dev/contracts/governed-frontier-transition-pipe-wu-135.json' \
             '.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json' \
             '.pncc-dev/contracts/wave6-hbe-pipeline-health-drift-assessment-policy.json' \
             '.pncc-dev/contracts/wave6-hbe-pipeline-health-drift-assessment-wu135.json' \
             '.pncc-dev/scripts/evaluate_wave6_hbe_pipeline_health_drift.py' \
+            '.pncc-dev/tests/fixtures/wave6-hbe-frontier-bootstrap-wu134-successor.json' \
+            '.pncc-dev/tests/test_wave6_hbe_frontier_bootstrap_wu134.py' \
             '.pncc-dev/tests/test_wave6_hbe_pipeline_health_drift_wu135.py' | sort > /tmp/expected
           diff -u /tmp/expected /tmp/actual
           ! grep -E '^(\.pncc-state/|src/windows-v7/|\.adwf-consumer/|tools/runtime-agent/)' /tmp/actual
@@ -129,6 +136,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git hash-object .pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json)" = "0fcd62f95ca491d70faddc07a251baed0524f876"
+          test "$(git hash-object .pncc-dev/tests/fixtures/wave6-hbe-frontier-bootstrap-wu134-successor.json)" = "c9f16baebd6ba5416e176b76fe69e32387e93786"
           python3 - <<'PY'
           import json
           from pathlib import Path
@@ -139,6 +147,7 @@ jobs:
           assert f['periodic_scheduling_authority'] is False
           assert f['unattended_mutation_authority'] is False
           assert f['higher_autonomy_authority'] is False
+          assert t['transition_state']=='PREPARED_FOR_IN_PR_ADVANCEMENT'
           assert t['predecessor_frontier']['blob_sha']=='c9f16baebd6ba5416e176b76fe69e32387e93786'
           assert t['successor_frontier']['blob_sha']=='0fcd62f95ca491d70faddc07a251baed0524f876'
           assert t['assessment_grants_authority'] is False
