@@ -82,7 +82,7 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           t=Path('.github/workflows/wave6-hbe-periodic-health-drift-proposal-wu136.yml').read_text().lower()
-          forbidden=['contents:'+' write','issues:'+' write','pull-requests:'+' write','actions:'+' write','git'+' push','gh'+' pr merge','gh'+' issue close','--method'+' post','--method'+' patch','--method'+' put','--method'+' delete','self-hosted']
+          forbidden=['contents:'+' write','issues:'+' write','pull-requests:'+' write','actions:'+' write','git'+' push','gh'+' pr merge','gh'+' issue close','--method'+' post','--method'+' patch','--method'+' put','--method'+' delete','self'+'-hosted']
           for token in forbidden:
               assert token not in t, token
           PY
