@@ -3,8 +3,8 @@ import hashlib
 import json
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-EVIDENCE = ROOT / "contracts" / "autonomous-continuation-human-by-exception-durable-multi-session-steady-state-wu132.json"
+PNCC_DEV = Path(__file__).resolve().parents[1]
+EVIDENCE = PNCC_DEV / "contracts" / "autonomous-continuation-human-by-exception-durable-multi-session-steady-state-wu132.json"
 EXPECTED_BASE = "3e7c86b1235f3bcb9b94c3218f3cfa41636e5f3a"
 EXPECTED_BRANCH = "agent/PIPE-WU-132-human-by-exception-durable-multi-session-steady-state-existing-authority-only"
 EXPECTED_ROUTES = {
@@ -18,6 +18,7 @@ EXPECTED_ROUTES = {
 
 def validate(data):
     errors = []
+
     def require(cond, msg):
         if not cond:
             errors.append(msg)
@@ -76,6 +77,7 @@ def main():
             print(f"ERROR: {error}")
         raise SystemExit(1)
     print("PIPE-WU-132 durable multi-session steady-state evidence: PASS")
+
 
 if __name__ == "__main__":
     main()
