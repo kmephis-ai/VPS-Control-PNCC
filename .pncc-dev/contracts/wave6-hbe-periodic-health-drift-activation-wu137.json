@@ -59,8 +59,11 @@
   "ruleset_binding": {
     "ruleset_id": 21585301,
     "enforcement": "active",
-    "configured_bypass_actor_count": 0,
+    "activation_observed_bypass_actor_count": 0,
     "current_user_can_bypass": "never",
+    "ruleset_updated_at": "2026-08-26T21:32:07.589+03:00",
+    "bypass_actor_list_revalidation_via_read_only_token": "UNAVAILABLE_BY_GITHUB_API_DESIGN",
+    "bypass_drift_detection_policy": "PIN_ZERO_AT_ACTIVATION_AND_DETECT_RULESET_UPDATED_AT_PLUS_EFFECTIVE_RUNNER_BYPASS_CAPABILITY",
     "strict_required_status_checks_policy": true,
     "required_check_contexts": [
       "repo-integrity",
