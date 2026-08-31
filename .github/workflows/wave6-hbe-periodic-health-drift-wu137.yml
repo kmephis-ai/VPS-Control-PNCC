@@ -1,0 +1,285 @@
+name: wave6-hbe-periodic-health-drift-wu137
+
+on:
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '17 * * * *'
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+  actions: read
+  checks: read
+
+jobs:
+  validate-activation:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Run WU137 adversarial tests
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_wave6_hbe_periodic_health_drift_wu137.py' -v
+
+      - name: Pin activation artifacts and Owner-authorized proposal
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object .pncc-dev/contracts/wave6-hbe-periodic-health-drift-authority-proposal-wu136.json)" = "7605105488aafad7400c26c13a5c8f5515d40a02"
+          test "$(git hash-object .pncc-dev/contracts/wave6-hbe-periodic-health-drift-activation-wu137.json)" = "37e08c46e021e04f1be6b799009b6f24111c1ac3"
+          test "$(git hash-object .pncc-dev/scripts/evaluate_wave6_hbe_periodic_health_drift_wu137.py)" = "d478fdc13afcf81b30d59952a44cc2aad8d5d5fe"
+          test "$(git hash-object .pncc-dev/tests/test_wave6_hbe_periodic_health_drift_wu137.py)" = "d1e292178284663e4a5b6636d857c145aa31748e"
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          a=json.loads(Path('.pncc-dev/contracts/wave6-hbe-periodic-health-drift-activation-wu137.json').read_text())
+          assert a['activation_state']=='OWNER_AUTHORIZED_ACTIVE'
+          assert a['proposal_binding']['blob_sha']=='7605105488aafad7400c26c13a5c8f5515d40a02'
+          assert a['owner_authorization']['authorized_base_sha']=='107f0e3ac66f3fa53bddf6ad30f1afbbccc49ada'
+          assert a['monitoring']['cadence_seconds']==3600
+          assert a['monitoring']['cron_utc']=='17 * * * *'
+          assert a['monitoring']['overlap_policy']=='SKIP_IF_PREVIOUS_RUN_ACTIVE'
+          assert a['monitoring']['missed_run_policy']=='NO_CATCH_UP_BURST_REEVALUATE_FRESH_PROVIDER_TRUTH'
+          assert a['ruleset_binding']['activation_observed_bypass_actor_count']==0
+          assert a['ruleset_binding']['ruleset_updated_at']=='2026-08-26T21:32:07.589+03:00'
+          assert a['ruleset_binding']['bypass_actor_list_revalidation_via_read_only_token']=='UNAVAILABLE_BY_GITHUB_API_DESIGN'
+          assert all(v is False for v in a['authority'].values())
+          PY
+
+      - name: Pin Writer Lease generation 51 acquisition
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin pncc-provider-state
+          git cat-file -e b1d5c2a4cba94a253bc106b5ab034c807bb76e54^{commit}
+          git show b1d5c2a4cba94a253bc106b5ab034c807bb76e54:.pncc-state/writer-lease-registry.json > /tmp/wu137-acquisition.json
+          test "$(git hash-object /tmp/wu137-acquisition.json)" = "5cd18c8376dc65894dcbe8bebbeed3ab759bcb68"
+          python3 - <<'PY'
+          import json
+          r=json.load(open('/tmp/wu137-acquisition.json'))
+          assert r['generation']==51
+          rows=[x for x in r['entries'] if x['lease_id']=='78994206-dd05-4ce0-9b09-408cf5c75969']
+          assert len(rows)==1
+          x=rows[0]
+          assert x['work_unit_id']=='PIPE-WU-137'
+          assert x['conflict_domain']=='wave6-hbe-periodic-health-drift-activation-existing-authority-only'
+          assert x['holder']=='chatgpt-wave5-writer'
+          assert x['base_sha']=='107f0e3ac66f3fa53bddf6ad30f1afbbccc49ada'
+          assert x['branch']=='agent/PIPE-WU-137-wave6-hbe-periodic-health-drift-activation'
+          assert x['state']=='ACTIVE' and x['generation']==51
+          PY
+
+      - name: Revalidate fresh Provider Truth and Owner authorization
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          test "$(git rev-parse origin/main)" = "107f0e3ac66f3fa53bddf6ad30f1afbbccc49ada"
+          curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/kmephis-ai/VPS-Control-PNCC/issues/322 > /tmp/wu137-issue.json
+          curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/kmephis-ai/VPS-Control-PNCC/rulesets/21585301 > /tmp/wu137-ruleset.json
+          python3 - <<'PY'
+          import json
+          from datetime import datetime, timezone
+          issue=json.load(open('/tmp/wu137-issue.json'))
+          ruleset=json.load(open('/tmp/wu137-ruleset.json'))
+          body=issue.get('body') or ''
+          def instant(value):
+              normalized=value[:-1] + '+00:00' if value.endswith('Z') else value
+              parsed=datetime.fromisoformat(normalized)
+              assert parsed.tzinfo is not None and parsed.utcoffset() is not None
+              return parsed.astimezone(timezone.utc)
+          required_tokens=[
+            'Exact proposal blob: `7605105488aafad7400c26c13a5c8f5515d40a02`',
+            'Exact authorized base: `107f0e3ac66f3fa53bddf6ad30f1afbbccc49ada`',
+            'Cadence: `3600` seconds.',
+          ]
+          assert issue.get('state')=='open'
+          assert all(t in body for t in required_tokens)
+          assert ruleset.get('id')==21585301
+          assert ruleset.get('enforcement')=='active'
+          assert instant(ruleset.get('updated_at'))==instant('2026-08-26T21:32:07.589+03:00')
+          if 'bypass_actors' in ruleset:
+              assert ruleset['bypass_actors']==[]
+          assert ruleset.get('current_user_can_bypass')=='never'
+          rules={r.get('type'):r for r in ruleset.get('rules',[])}
+          assert set(rules)=={'deletion','non_fast_forward','pull_request','required_status_checks'}
+          params=rules['required_status_checks']['parameters']
+          assert params.get('strict_required_status_checks_policy') is True
+          assert [x.get('context') for x in params.get('required_status_checks',[])]==['repo-integrity','powershell-static','truth-contract']
+          PY
+
+      - name: Enforce exact bounded WU137 diff and ancestry
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$BASE_SHA" = "107f0e3ac66f3fa53bddf6ad30f1afbbccc49ada"
+          test "$(git merge-base "$BASE_SHA" "$HEAD_SHA")" = "$BASE_SHA"
+          git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort > /tmp/actual
+          printf '%s\n' \
+            '.github/workflows/wave6-hbe-periodic-health-drift-wu137.yml' \
+            '.pncc-dev/contracts/wave6-hbe-periodic-health-drift-activation-wu137.json' \
+            '.pncc-dev/scripts/evaluate_wave6_hbe_periodic_health_drift_wu137.py' \
+            '.pncc-dev/tests/test_wave6_hbe_periodic_health_drift_wu137.py' | sort > /tmp/expected
+          diff -u /tmp/expected /tmp/actual
+          ! grep -E '^(\.pncc-state/|src/windows-v7/|\.adwf-consumer/|tools/runtime-agent/|tools/release/)' /tmp/actual
+
+      - name: Enforce schedule and read-only workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          t=Path('.github/workflows/wave6-hbe-periodic-health-drift-wu137.yml').read_text()
+          low=t.lower()
+          assert "cron: '17 * * * *'" in t
+          assert 'timeout-minutes: 10' in t
+          assert 'actions: read' in t and 'checks: read' in t
+          assert ('workflow_' + 'dispatch:') not in t
+          forbidden=[
+            'contents:' + ' write','issues:' + ' write','pull-requests:' + ' write','actions:' + ' write','checks:' + ' write',
+            'git' + ' push','gh pr' + ' merge','gh issue' + ' close','--method' + ' post','--method' + ' patch',
+            '--method' + ' put','--method' + ' delete','self-' + 'hosted'
+          ]
+          for token in forbidden:
+              assert token not in low, token
+          assert ('while' + ' true') not in low
+          assert ('re' + 'run') not in low
+          PY
+          test -z "$(git status --porcelain)"
+
+  periodic-health-drift:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout scheduled main revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Skip overlapping scheduled execution
+        id: overlap
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CURRENT_RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/kmephis-ai/VPS-Control-PNCC/actions/workflows/wave6-hbe-periodic-health-drift-wu137.yml/runs?event=schedule&status=in_progress&per_page=20" > /tmp/wu137-runs.json
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, os
+          r=json.load(open('/tmp/wu137-runs.json'))
+          current=int(os.environ['CURRENT_RUN_ID'])
+          other=[x for x in r.get('workflow_runs',[]) if int(x.get('id',0)) != current]
+          print('skip=' + ('true' if other else 'false'))
+          PY
+          if grep -q '^skip=true$' "$GITHUB_OUTPUT"; then
+            printf '### WU137 HEALTHY\n\nOVERLAP_SKIPPED_NO_MUTATION\n' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Collect fresh read-only Provider Truth
+        if: steps.overlap.outputs.skip != 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          CHECKOUT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main pncc-provider-state
+          git show origin/pncc-provider-state:.pncc-state/writer-lease-registry.json > /tmp/wu137-registry.json
+          curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/kmephis-ai/VPS-Control-PNCC/issues/322 > /tmp/wu137-issue.json
+          curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/kmephis-ai/VPS-Control-PNCC/rulesets/21585301 > /tmp/wu137-ruleset.json
+          MAIN_SHA="$(git rev-parse origin/main)"
+          PROVIDER_STATE_SHA="$(git rev-parse origin/pncc-provider-state)"
+          curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/kmephis-ai/VPS-Control-PNCC/commits/$MAIN_SHA/check-runs?per_page=100" > /tmp/wu137-checks.json
+          export WU137_OBSERVED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          export WU137_MAIN_SHA="$MAIN_SHA"
+          export WU137_PROVIDER_STATE_SHA="$PROVIDER_STATE_SHA"
+          export WU137_CHECKOUT_SHA="$CHECKOUT_SHA"
+          export WU137_REPOSITORY="$REPOSITORY"
+          python3 - <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+          registry=json.loads(Path('/tmp/wu137-registry.json').read_text())
+          issue=json.loads(Path('/tmp/wu137-issue.json').read_text())
+          ruleset=json.loads(Path('/tmp/wu137-ruleset.json').read_text())
+          checks=json.loads(Path('/tmp/wu137-checks.json').read_text())
+          frontier=json.loads(Path('.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json').read_text())
+          proposal_blob=subprocess.check_output(
+              ['git','hash-object','.pncc-dev/contracts/wave6-hbe-periodic-health-drift-authority-proposal-wu136.json'],
+              text=True
+          ).strip()
+          required=['repo-integrity','powershell-static','truth-contract']
+          rule_map={r.get('type'):r for r in ruleset.get('rules',[])}
+          status_params=rule_map.get('required_status_checks',{}).get('parameters',{})
+          contexts=[x.get('context') for x in status_params.get('required_status_checks',[])]
+          latest={}
+          for run in checks.get('check_runs',[]):
+              name=run.get('name')
+              if name in required and name not in latest:
+                  latest[name]=run
+          conclusions={name:(latest.get(name) or {}).get('conclusion') or 'missing' for name in required}
+          body=issue.get('body') or ''
+          auth_tokens=[
+              'Exact proposal blob: `7605105488aafad7400c26c13a5c8f5515d40a02`',
+              'Exact authorized base: `107f0e3ac66f3fa53bddf6ad30f1afbbccc49ada`',
+              'Cadence: `3600` seconds.',
+          ]
+          snapshot={
+              'observed_at':os.environ['WU137_OBSERVED_AT'],
+              'repository':os.environ['WU137_REPOSITORY'],
+              'main_sha':os.environ['WU137_MAIN_SHA'],
+              'checkout_sha':os.environ['WU137_CHECKOUT_SHA'],
+              'provider_state_sha':os.environ['WU137_PROVIDER_STATE_SHA'],
+              'registry_generation':registry.get('generation'),
+              'frontier_state':frontier.get('state'),
+              'proposal_blob_sha':proposal_blob,
+              'authorization_issue_state':issue.get('state'),
+              'authorization_tokens_present':all(t in body for t in auth_tokens),
+              'ruleset_id':ruleset.get('id'),
+              'ruleset_enforcement':ruleset.get('enforcement'),
+              'ruleset_updated_at':ruleset.get('updated_at'),
+              'ruleset_current_user_can_bypass':ruleset.get('current_user_can_bypass'),
+              'ruleset_rule_types':sorted(rule_map),
+              'strict_required_status_checks_policy':status_params.get('strict_required_status_checks_policy'),
+              'required_check_contexts':contexts,
+              'required_check_conclusions':conclusions,
+              'owner_boundary_requested':False,
+          }
+          Path('/tmp/wu137-provider.json').write_text(json.dumps(snapshot,sort_keys=True),encoding='utf-8')
+          PY
+
+      - name: Evaluate health/drift and route by failure signal only
+        if: steps.overlap.outputs.skip != 'true'
+        shell: bash
+        run: |
+          set +e
+          result="$(python3 .pncc-dev/scripts/evaluate_wave6_hbe_periodic_health_drift_wu137.py --snapshot /tmp/wu137-provider.json)"
+          rc=$?
+          set -e
+          printf '### WU137 periodic health/drift\n\n```json\n%s\n```\n' "$result" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$rc" -ne 0 ]; then
+            outcome="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1])["outcome"])' "$result")"
+            echo "::error title=WU137 $outcome::$result"
+            exit "$rc"
+          fi
+
+      - name: Assert no repository mutation
+        if: steps.overlap.outputs.skip != 'true'
+        run: test -z "$(git status --porcelain)"
