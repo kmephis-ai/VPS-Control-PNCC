@@ -1,0 +1,33 @@
+name: wave5-terminal-maturity-reconciliation-wu133
+
+on:
+  pull_request:
+    paths:
+      - '.pncc-dev/contracts/wave5-terminal-maturity-reconciliation-wu133.json'
+      - '.pncc-dev/scripts/validate_wave5_terminal_maturity_reconciliation_wu133.py'
+      - '.pncc-dev/tests/test_wave5_terminal_maturity_reconciliation_wu133.py'
+      - '.github/workflows/wave5-terminal-maturity-reconciliation-wu133.yml'
+  push:
+    branches:
+      - 'agent/PIPE-WU-133-terminal-wave5-maturity-reconciliation'
+    paths:
+      - '.pncc-dev/contracts/wave5-terminal-maturity-reconciliation-wu133.json'
+      - '.pncc-dev/scripts/validate_wave5_terminal_maturity_reconciliation_wu133.py'
+      - '.pncc-dev/tests/test_wave5_terminal_maturity_reconciliation_wu133.py'
+      - '.github/workflows/wave5-terminal-maturity-reconciliation-wu133.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate PIPE-WU-133 reconciliation
+        run: python .pncc-dev/scripts/validate_wave5_terminal_maturity_reconciliation_wu133.py
+      - name: Run PIPE-WU-133 regression tests
+        run: python -m unittest discover -s .pncc-dev/tests -p 'test_wave5_terminal_maturity_reconciliation_wu133.py' -v
