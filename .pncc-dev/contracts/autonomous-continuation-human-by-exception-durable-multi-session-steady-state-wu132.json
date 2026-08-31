@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "role": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_DURABLE_MULTI_SESSION_STEADY_STATE_EVIDENCE",
+  "work_unit_id": "PIPE-WU-132",
+  "issue": 312,
+  "state": "COMPLETE",
+  "phase": "HUMAN_BY_EXCEPTION_DURABLE_MULTI_SESSION_STEADY_STATE_VALIDATED",
+  "base_sha": "3e7c86b1235f3bcb9b94c3218f3cfa41636e5f3a",
+  "branch": "agent/PIPE-WU-132-human-by-exception-durable-multi-session-steady-state-existing-authority-only",
+  "runtime_required": false,
+  "authority": {
+    "source": ".pncc-dev/contracts/reusable-writer-lease-bounded-branch-authorized.json",
+    "source_blob_sha": "717e1f9081915f40fad2e0620c64245a650ca235",
+    "existing_authority_only": true,
+    "higher_authority_claimed": false
+  },
+  "anchors": {
+    "wu131_evidence_blob_sha": "47c6f99c7df45d29215583666e18d1550b99e1b5",
+    "pre_validation_frontier_blob_sha": "3ccfb3d19992ea2723650fa8f9a0a94caeb9ba4c",
+    "provider_state_before_sha": "9417b2372e60e7c5b2120ea275239711aab1460d",
+    "provider_state_after_lease_sha": "00a73e8717a99eb1a674596fdfa67e5b64fed47d",
+    "registry_before_blob_sha": "283e92a6b2a782a05b310242547ade6d983c3a12",
+    "registry_after_blob_sha": "d88edd31234427de49cbb4fd6db8d589cefa0863"
+  },
+  "writer_lease": {
+    "lease_id": "650694ef-b296-42aa-afd9-f5a002bed68c",
+    "generation": 41,
+    "holder": "chatgpt-wave5-writer",
+    "conflict_domain": "wave5-autonomous-continuation-human-by-exception-durable-multi-session-steady-state-existing-authority-only",
+    "state_at_validation": "ACTIVE"
+  },
+  "required_completed_iterations": 2,
+  "completed_iterations": 2,
+  "sessions": [
+    {
+      "session_id": "session-a",
+      "fresh_provider_truth": true,
+      "persisted_decisions_discarded": true,
+      "decisions_recomputed": true,
+      "delegated_transaction_count": 1,
+      "transaction": "WRITER_LEASE_ACQUIRE",
+      "provider_state_before_sha": "9417b2372e60e7c5b2120ea275239711aab1460d",
+      "provider_state_after_sha": "00a73e8717a99eb1a674596fdfa67e5b64fed47d",
+      "registry_generation_before": 40,
+      "registry_generation_after": 41,
+      "canonical_fingerprint_input": "PIPE-WU-132|session-a|WRITER_LEASE_ACQUIRE|3e7c86b1235f3bcb9b94c3218f3cfa41636e5f3a|9417b2372e60e7c5b2120ea275239711aab1460d|00a73e8717a99eb1a674596fdfa67e5b64fed47d|41",
+      "completed_transaction_fingerprint_sha256": "3887bf33036d8f6ed4cdee2f6c7c717f6f5e1aa144c7f8e3da8732e270c5450b",
+      "replay_outcome": "REJECTED"
+    },
+    {
+      "session_id": "session-b",
+      "fresh_provider_truth": true,
+      "persisted_decisions_discarded": true,
+      "decisions_recomputed": true,
+      "delegated_transaction_count": 1,
+      "transaction": "WORK_UNIT_BRANCH_CREATE",
+      "provider_state_before_sha": "00a73e8717a99eb1a674596fdfa67e5b64fed47d",
+      "branch_readback_sha": "3e7c86b1235f3bcb9b94c3218f3cfa41636e5f3a",
+      "canonical_fingerprint_input": "PIPE-WU-132|session-b|WORK_UNIT_BRANCH_CREATE|3e7c86b1235f3bcb9b94c3218f3cfa41636e5f3a|00a73e8717a99eb1a674596fdfa67e5b64fed47d|agent/PIPE-WU-132-human-by-exception-durable-multi-session-steady-state-existing-authority-only|3e7c86b1235f3bcb9b94c3218f3cfa41636e5f3a",
+      "completed_transaction_fingerprint_sha256": "7ae778c1b3ee0e87d2656e2604a5a677eb34748a51e4b85f7d1b4bb02db51374",
+      "replay_outcome": "REJECTED"
+    }
+  ],
+  "historical_lease_semantics": "EXPIRED_OR_RELEASED_OBSERVATION_ONLY",
+  "human_by_exception_routes_preserved": [
+    "OWNER_ESCALATION_REQUIRED",
+    "WAIT_ONLY",
+    "STOP_ONLY",
+    "SEPARATE_AUTHORITY_REQUIRED",
+    "BLOCKED"
+  ],
+  "forbidden_mutations": {
+    "runtime": false,
+    "product": false,
+    "adwf": false,
+    "release": false,
+    "ruleset": false,
+    "private_instance": false,
+    "reserve_manual_1080": false,
+    "primary_auto_1081": false
+  },
+  "next_frontier": {
+    "id": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_DURABLE_MULTI_SESSION_STEADY_STATE_EXECUTION_WITH_EXISTING_AUTHORITY_ONLY",
+    "materialized": false,
+    "reason": "No canonical PIPE-WU-133 issue exists at validation time; validation evidence does not self-authorize next Work Unit materialization."
+  }
+}
