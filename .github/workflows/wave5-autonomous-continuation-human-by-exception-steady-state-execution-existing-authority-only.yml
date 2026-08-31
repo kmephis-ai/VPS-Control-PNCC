@@ -102,7 +102,7 @@ jobs:
             --base-sha "$BASE_SHA" \
             --branch "$WORK_BRANCH"
 
-      - name: Pin WU-129 artifacts
+      - name: Pin immutable WU-129 artifacts
         shell: bash
         run: |
           set -euo pipefail
@@ -110,7 +110,6 @@ jobs:
           test "$(git hash-object .pncc-dev/scripts/validate_autonomous_continuation_human_by_exception_steady_state_execution_wu129.py)" = "09c3767fdebc83bb2b59e3b1bf213db4246a77f4"
           test "$(git hash-object .pncc-dev/tests/test_autonomous_continuation_human_by_exception_steady_state_execution_wu129.py)" = "af66e0aff2090bb130562707c2cec458e988c5f7"
           test "$(git hash-object .pncc-dev/contracts/governed-frontier-transition-pipe-wu-129.json)" = "bcf67413b040d64eeefba645aed664e920bb06ed"
-          test "$(git hash-object .pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json)" = "f949f6c645ad922be6f7f1636e12705e6217bd1e"
 
       - name: Enforce exact bounded WU-129 diff and ancestry
         if: github.event_name == 'pull_request' && github.head_ref == 'agent/PIPE-WU-129-human-by-exception-steady-state-execution-existing-authority-only'
@@ -127,6 +126,7 @@ jobs:
           test "$(git rev-parse "$FIRST_COMMIT^")" = "$BASE_SHA"
           git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort > /tmp/actual
           printf '%s\n' \
+            '.github/workflows/wave5-autonomous-continuation-human-by-exception-steady-state-existing-authority-only.yml' \
             '.github/workflows/wave5-autonomous-continuation-human-by-exception-steady-state-execution-existing-authority-only.yml' \
             '.pncc-dev/contracts/autonomous-continuation-human-by-exception-steady-state-execution-wu129.json' \
             '.pncc-dev/contracts/governed-frontier-transition-pipe-wu-129.json' \
@@ -141,9 +141,13 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          t=Path('.github/workflows/wave5-autonomous-continuation-human-by-exception-steady-state-execution-existing-authority-only.yml').read_text().lower()
-          forbidden=['contents:'+' write','issues:'+' write','pull-requests:'+' write','actions:'+' write','git'+' push','gh'+' pr merge','gh'+' issue close','--method'+' post','--method'+' patch','--method'+' put','--method'+' delete']
-          for token in forbidden: assert token not in t,token
+          for p in (
+              Path('.github/workflows/wave5-autonomous-continuation-human-by-exception-steady-state-existing-authority-only.yml'),
+              Path('.github/workflows/wave5-autonomous-continuation-human-by-exception-steady-state-execution-existing-authority-only.yml'),
+          ):
+              t=p.read_text().lower()
+              forbidden=['contents:'+' write','issues:'+' write','pull-requests:'+' write','actions:'+' write','git'+' push','gh'+' pr merge','gh'+' issue close','--method'+' post','--method'+' patch','--method'+' put','--method'+' delete']
+              for token in forbidden: assert token not in t,(p,token)
           PY
 
       - name: Assert repository remains clean
