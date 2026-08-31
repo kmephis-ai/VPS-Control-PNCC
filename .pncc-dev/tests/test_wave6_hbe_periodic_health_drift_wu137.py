@@ -36,7 +36,7 @@ def healthy_snapshot():
         "authorization_tokens_present": True,
         "ruleset_id": 21585301,
         "ruleset_enforcement": "active",
-        "ruleset_updated_at": "2026-08-26T21:32:07.589+03:00",
+        "ruleset_updated_at": "2026-08-26T18:32:07.589Z",
         "ruleset_current_user_can_bypass": "never",
         "ruleset_rule_types": ["deletion", "non_fast_forward", "pull_request", "required_status_checks"],
         "strict_required_status_checks_policy": True,
@@ -53,7 +53,7 @@ class TestWU137PeriodicHealthDrift(unittest.TestCase):
     def evaluate(self, snapshot):
         return mod.evaluate(snapshot, now=NOW, activation=ACTIVATION)
 
-    def test_healthy(self):
+    def test_healthy_accepts_equivalent_timezone_representation(self):
         r = self.evaluate(healthy_snapshot())
         self.assertEqual(r["outcome"], "HEALTHY")
         self.assertFalse(r["provider_mutation_performed"])
@@ -90,6 +90,13 @@ class TestWU137PeriodicHealthDrift(unittest.TestCase):
         r = self.evaluate(s)
         self.assertEqual(r["outcome"], "DRIFT_DETECTED")
         self.assertIn("RULESET_UPDATED_AT_DRIFT", r["reasons"])
+
+    def test_invalid_ruleset_timestamp_blocks(self):
+        s = healthy_snapshot()
+        s["ruleset_updated_at"] = "not-a-time"
+        r = self.evaluate(s)
+        self.assertEqual(r["outcome"], "BLOCKED")
+        self.assertIn("TIME_INVALID:RULESET_UPDATED_AT", r["reasons"])
 
     def test_ruleset_bypass_capability_requires_owner_exception(self):
         s = healthy_snapshot()
