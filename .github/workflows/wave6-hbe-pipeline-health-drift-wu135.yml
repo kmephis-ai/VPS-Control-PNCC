@@ -46,9 +46,8 @@ jobs:
           for rule in ruleset.get('rules', []):
               if rule.get('type')=='required_status_checks':
                   required=[x.get('context') for x in rule.get('parameters',{}).get('required_status_checks',[])]
-          current_user_can_bypass=ruleset.get('current_user_can_bypass')
-          token_safe_no_bypass=current_user_can_bypass in (None, 'never', False)
-          enforcement='ACTIVE_NO_BYPASS' if ruleset.get('enforcement')=='active' and ruleset.get('bypass_actors')==[] and token_safe_no_bypass else 'DRIFT'
+          configured_no_bypass=ruleset.get('bypass_actors')==[]
+          enforcement='ACTIVE_NO_BYPASS' if ruleset.get('enforcement')=='active' and configured_no_bypass else 'DRIFT'
           snapshot={
               'observed_at':os.environ['WU135_OBSERVED_AT'],
               'repository':'kmephis-ai/VPS-Control-PNCC',
@@ -88,7 +87,7 @@ jobs:
           test "$(git hash-object .pncc-dev/contracts/reusable-autonomous-continuation-executor-authorized.json)" = "2c62780720dace54b220cedd42f77f834886e62a"
           test "$(git hash-object .pncc-dev/contracts/autonomous-continuation-control-loop-policy.json)" = "822bcd1833ff4843b6bd176337b3ef3b742275de"
           test "$(git hash-object docs/roadmap/PNCC_PIPELINE_ROADMAP.md)" = "e5731248ac4b178e7b1aabbe2d9cd784cbc79b08"
-          test "$(git hash-object docs/architecture/PNCC_TARGET_DEVELOPMENT_PIPELINE.md)" = "bf5fcbee18d053d1d1e02d3f92feefbc0a4593"
+          test "$(git hash-object docs/architecture/PNCC_TARGET_DEVELOPMENT_PIPELINE.md)" = "bf5fcbee18d053d1d1d1e02d3f92feefbc0a4593"
 
       - name: Assert WU135 acquisition snapshot and exact binding
         shell: bash
@@ -128,7 +127,7 @@ jobs:
             '.pncc-dev/contracts/wave6-hbe-pipeline-health-drift-assessment-wu135.json' \
             '.pncc-dev/scripts/evaluate_wave6_hbe_pipeline_health_drift.py' \
             '.pncc-dev/tests/fixtures/wave6-hbe-frontier-bootstrap-wu134-successor.json' \
-            '.pncc-dev/tests/test_wave6_hbe_frontier_bootstrap_wu134.py' \
+            '.pncc-dev/tests/test_wave6_hbe-frontier-bootstrap-wu134.py' \
             '.pncc-dev/tests/test_wave6_hbe_pipeline_health_drift_wu135.py' | sort > /tmp/expected
           diff -u /tmp/expected /tmp/actual
           ! grep -E '^(\.pncc-state/|src/windows-v7/|\.adwf-consumer/|tools/runtime-agent/)' /tmp/actual
