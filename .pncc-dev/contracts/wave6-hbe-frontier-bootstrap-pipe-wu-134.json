@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "role": "WAVE6_HBE_FRONTIER_BOOTSTRAP_TRANSITION",
+  "transition_state": "PREPARED_FOR_OWNER_AUTHORIZED_IN_PR_BOOTSTRAP",
+  "work_unit_id": "PIPE-WU-134",
+  "issue_number": 316,
+  "conflict_domain": "wave6-hbe-frontier-bootstrap-existing-authority-only",
+  "base_sha": "7f86472c2cf66c4a5f3b64fb17ee53059cea8c60",
+  "branch": "agent/PIPE-WU-134-wave6-hbe-frontier-bootstrap",
+  "runtime_required": false,
+  "policy_binding": {
+    "path": ".pncc-dev/contracts/wave6-hbe-frontier-bootstrap-policy.json",
+    "blob_sha": "89f90e42cacfff5ee02f03611d81ddedc138481e"
+  },
+  "predecessor_frontier": {
+    "state": "NONE",
+    "frontier_id": "NONE",
+    "blob_sha": "b4cf4f19e0d89884598427ad0a6729c997e7f1fe"
+  },
+  "successor_frontier": {
+    "state": "ACTIVE",
+    "frontier_id": "WAVE6_HBE_PIPELINE_HEALTH_DRIFT_READ_ONLY_ASSESSMENT_EXISTING_AUTHORITY_ONLY",
+    "blob_sha": "c9f16baebd6ba5416e176b76fe69e32387e93786"
+  },
+  "provider_truth_observed": {
+    "main_sha_before_first_mutation": "7f86472c2cf66c4a5f3b64fb17ee53059cea8c60",
+    "canonical_work_unit_issue_number": 316,
+    "provider_state_after_lease_acquisition_sha": "c9fe6cbd12ac7e2deaf89e8107f336003279d650",
+    "writer_lease_registry_blob_sha": "fe5ea76600e5d94125bc638330c43bdea16aa9ca",
+    "writer_lease_generation": 44,
+    "writer_lease_id": "427c7518-da33-43ae-8c64-88f714869f4f",
+    "predecessor_frontier_blob_sha": "b4cf4f19e0d89884598427ad0a6729c997e7f1fe"
+  },
+  "owner_authorization": {
+    "source": "CANONICAL_ISSUE_OWNER_AUTHORIZATION_BOUNDARY",
+    "issue_number": 316,
+    "exact_base_sha": "7f86472c2cf66c4a5f3b64fb17ee53059cea8c60",
+    "single_use_none_to_active_transition_authorized": true,
+    "product_runtime_release_tag_ruleset_security_adwf_authority_granted": false
+  },
+  "same_pr_bootstrap_required": true,
+  "predecessor_replay_forbidden": true,
+  "successor_must_be_canonical_before_merge": true,
+  "future_bootstrap_reuse_forbidden": true,
+  "provider_mutation_authority": false,
+  "issue_mutation_authority": false,
+  "branch_mutation_authority": false,
+  "pull_request_mutation_authority": false,
+  "writer_lease_mutation_authority": false,
+  "workflow_rerun_authority": false,
+  "direct_main_write_authority": false,
+  "merge_authority": false,
+  "runtime_action_authority": false,
+  "product_runtime_mutation_authority": false,
+  "adwf_binding_mutation_authority": false,
+  "adwf_repository_mutation_authority": false,
+  "release_tag_promotion_authority": false,
+  "ruleset_policy_mutation_authority": false,
+  "private_evidence_publication_authority": false,
+  "reserve_1080_lifecycle_mutation_authority": false,
+  "primary_1081_lifecycle_mutation_authority": false,
+  "higher_autonomy_authority": false,
+  "periodic_scheduling_authority": false,
+  "unattended_mutation_authority": false,
+  "next_boundary": "EXACT_HEAD_CI_AND_EXISTING_REUSABLE_MERGE_CLOSE_AUTHORITY"
+}

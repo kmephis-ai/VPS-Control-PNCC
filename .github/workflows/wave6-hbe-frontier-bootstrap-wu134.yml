@@ -1,0 +1,102 @@
+name: wave6-hbe-frontier-bootstrap-wu134
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/pipeline-state.yml'
+      - '.github/workflows/wave6-hbe-frontier-bootstrap-wu134.yml'
+      - '.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json'
+      - '.pncc-dev/contracts/wave6-hbe-frontier-bootstrap-policy.json'
+      - '.pncc-dev/contracts/wave6-hbe-frontier-bootstrap-pipe-wu-134.json'
+      - '.pncc-dev/scripts/evaluate_wave6_hbe_frontier_bootstrap.py'
+      - '.pncc-dev/tests/test_wave6_hbe_frontier_bootstrap_wu134.py'
+  push:
+    branches:
+      - 'agent/PIPE-WU-134-wave6-hbe-frontier-bootstrap'
+    paths:
+      - '.github/workflows/pipeline-state.yml'
+      - '.github/workflows/wave6-hbe-frontier-bootstrap-wu134.yml'
+      - '.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json'
+      - '.pncc-dev/contracts/wave6-hbe-frontier-bootstrap-policy.json'
+      - '.pncc-dev/contracts/wave6-hbe-frontier-bootstrap-pipe-wu-134.json'
+      - '.pncc-dev/scripts/evaluate_wave6_hbe_frontier_bootstrap.py'
+      - '.pncc-dev/tests/test_wave6_hbe_frontier_bootstrap_wu134.py'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Evaluate exact Owner-authorized NONE to ACTIVE bootstrap
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || '7f86472c2cf66c4a5f3b64fb17ee53059cea8c60' }}
+          WORK_BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: |
+          set -euo pipefail
+          test "$BASE_SHA" = "7f86472c2cf66c4a5f3b64fb17ee53059cea8c60"
+          test "$WORK_BRANCH" = "agent/PIPE-WU-134-wave6-hbe-frontier-bootstrap"
+          git fetch --no-tags --depth=1 origin "$BASE_SHA"
+          git show "$BASE_SHA:.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json" > /tmp/predecessor-frontier.json
+          python3 .pncc-dev/scripts/evaluate_wave6_hbe_frontier_bootstrap.py \
+            --transition .pncc-dev/contracts/wave6-hbe-frontier-bootstrap-pipe-wu-134.json \
+            --predecessor /tmp/predecessor-frontier.json \
+            --successor .pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json \
+            --work-unit-id PIPE-WU-134 \
+            --base-sha "$BASE_SHA" \
+            --branch "$WORK_BRANCH"
+
+      - name: Run WU134 regression tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s .pncc-dev/tests -p 'test_wave6_hbe_frontier_bootstrap_wu134.py' -v
+
+      - name: Assert immutable authority security and materialization anchors
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object AGENTS.md)" = "e9e9bbbc1b88f3e2775e0dc081166500f26a92a9"
+          test "$(git hash-object SECURITY.md)" = "44d8b91331abbb827b4164e5807f3d6852fbcb92"
+          test "$(git hash-object .pncc-dev/scripts/plan_governed_work_unit_materialization.py)" = "c561b34dbf3fb7cfefd1a2a9780aba6e857ec78c"
+          test "$(git hash-object .pncc-dev/contracts/governed-work-unit-materialization-policy.json)" = "8b6b6d9116b96a8f4746c22906a522589a9ae6e0"
+          test "$(git hash-object .pncc-dev/contracts/reusable-canonical-work-unit-materialization-authorized.json)" = "39db0554b86932b1beb4bb7250d040c06f9371ea"
+          test "$(git hash-object .pncc-dev/scripts/select_provider_work_unit.py)" = "8045a97d5344f058064690cb265b30f88973e2b8"
+          test "$(git hash-object .pncc-dev/schemas/work-unit.schema.json)" = "a6b23c5695262192175216e6293d832f8e835851"
+          test "$(git hash-object docs/roadmap/PNCC_PIPELINE_ROADMAP.md)" = "e5731248ac4b178e7b1aabbe2d9cd784cbc79b08"
+          test "$(git hash-object .pncc-dev/contracts/governed-frontier-lifecycle-policy.json)" = "a9d04f0c8611f29cb1cd1929719dbec6f7434c52"
+          test "$(git hash-object .pncc-dev/contracts/reusable-writer-lease-bounded-branch-authorized.json)" = "717e1f9081915f40fad2e0620c64245a650ca235"
+          test "$(git hash-object .pncc-dev/contracts/wave5-terminal-maturity-reconciliation-wu133.json)" = "06531f4a2c687bb5572dc9b5cfe4d2c2cb83f2b6"
+
+      - name: Assert exact bounded WU134 diff
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || '7f86472c2cf66c4a5f3b64fb17ee53059cea8c60' }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin "$BASE_SHA"
+          git diff --name-only "$BASE_SHA" HEAD | sort > /tmp/actual
+          printf '%s\n' \
+            '.github/workflows/pipeline-state.yml' \
+            '.github/workflows/wave6-hbe-frontier-bootstrap-wu134.yml' \
+            '.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json' \
+            '.pncc-dev/contracts/wave6-hbe-frontier-bootstrap-policy.json' \
+            '.pncc-dev/contracts/wave6-hbe-frontier-bootstrap-pipe-wu-134.json' \
+            '.pncc-dev/scripts/evaluate_wave6_hbe_frontier_bootstrap.py' \
+            '.pncc-dev/tests/test_wave6_hbe_frontier_bootstrap_wu134.py' | sort > /tmp/expected
+          diff -u /tmp/expected /tmp/actual
+          ! grep -E '^(\.pncc-state/|src/windows-v7/|\.adwf-consumer/|tools/runtime-agent/)' /tmp/actual
+
+      - name: Assert repository remains clean
+        shell: bash
+        run: test -z "$(git status --porcelain)"

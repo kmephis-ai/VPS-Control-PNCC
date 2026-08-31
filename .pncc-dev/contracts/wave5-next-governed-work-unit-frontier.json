@@ -1,5 +1,63 @@
 {
   "schema_version": 1,
   "role": "WAVE5_NEXT_GOVERNED_WORK_UNIT_FRONTIER",
-  "state": "NONE"
+  "state": "ACTIVE",
+  "frontier_id": "WAVE6_HBE_PIPELINE_HEALTH_DRIFT_READ_ONLY_ASSESSMENT_EXISTING_AUTHORITY_ONLY",
+  "title_template": "{work_unit_id} — Assess Wave 6 Human-by-Exception pipeline health/drift under existing authority only",
+  "goal": "Prepare a deterministic read-only Provider Truth health/drift assessment for the Wave 6 Human-by-Exception control plane, with explicit exception routing and no scheduling, mutation, runtime, product, release, ruleset/security or ADWF authority.",
+  "conflict_domain": "wave6-hbe-pipeline-health-drift-read-only-assessment-existing-authority-only",
+  "runtime_required": false,
+  "scope": [
+    "re-read fresh public GitHub Provider Truth for main, open canonical Work Units, pull requests, workflow/check state, rulesets and canonical provider-state before every assessment",
+    "compare current governance, authority and continuity anchors with their canonical expected identities and classify material drift deterministically",
+    "produce a machine-readable read-only health/drift assessment that distinguishes HEALTHY, DRIFT_DETECTED, OWNER_EXCEPTION_REQUIRED and BLOCKED outcomes",
+    "route any authority, security, runtime, release, ruleset, ADWF or product boundary to an explicit no-mutation owner exception",
+    "prove the assessment performs no provider mutation and creates no periodic scheduling or unattended execution authority"
+  ],
+  "forbidden_scope": [
+    "create or enable periodic schedules, unattended mutation loops or new higher-autonomy authority",
+    "create, infer or broaden issue, branch, pull-request, writer-lease, merge or provider-state mutation authority",
+    "mutate product/runtime source, physical Windows/Keenetic/VPS runtime or 1080/1081 lifecycle",
+    "mutate ADWF binding/repository, release/tag/promotion, ruleset/security/trust policy or PRIVATE evidence",
+    "modify immutable materialization planner, policy, reusable grant, selector, schema or roadmap anchors"
+  ],
+  "required_checks": [
+    "pipeline-state",
+    "wave5-provider-work-unit-selection",
+    "wave5-writer-lease-registry-topology",
+    "public-safety",
+    "quality-fast",
+    "quality-deep"
+  ],
+  "exit_criteria": [
+    "fresh Provider Truth is required and stale provider snapshots are rejected",
+    "governance and authority anchor drift is classified deterministically without mutation",
+    "HEALTHY, DRIFT_DETECTED, OWNER_EXCEPTION_REQUIRED and BLOCKED remain distinct machine-readable outcomes",
+    "periodic scheduling and unattended mutation authority remain explicitly absent",
+    "no product/runtime, release/tag, ruleset/security, ADWF, PRIVATE evidence or 1080/1081 mutation occurs",
+    "exact-head hosted CI passes for the bounded repository-only Work Unit"
+  ],
+  "provider_mutation_authority": false,
+  "writer_lease_mutation_authority": false,
+  "issue_create_authority": false,
+  "issue_update_authority": false,
+  "issue_close_authority": false,
+  "branch_mutation_authority": false,
+  "pull_request_mutation_authority": false,
+  "workflow_rerun_authority": false,
+  "merge_authority": false,
+  "runtime_action_authority": false,
+  "product_runtime_mutation_authority": false,
+  "adwf_binding_mutation_authority": false,
+  "adwf_repository_mutation_authority": false,
+  "release_tag_promotion_authority": false,
+  "ruleset_policy_mutation_authority": false,
+  "private_evidence_publication_authority": false,
+  "reserve_1080_lifecycle_mutation_authority": false,
+  "primary_1081_lifecycle_mutation_authority": false,
+  "higher_autonomy_authority": false,
+  "owner_boundary_override": false,
+  "periodic_scheduling_authority": false,
+  "unattended_mutation_authority": false,
+  "next_natural_boundary": "EXISTING_REUSABLE_WRITER_LEASE_AND_BOUNDED_BRANCH_AUTHORITY"
 }
