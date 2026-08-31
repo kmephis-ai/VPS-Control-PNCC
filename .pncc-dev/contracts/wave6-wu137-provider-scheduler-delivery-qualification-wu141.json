@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "role": "WAVE6_WU137_PROVIDER_SCHEDULER_DELIVERY_QUALIFICATION",
+  "work_unit_id": "PIPE-WU-141",
+  "issue_number": 327,
+  "state": "COMPLETE",
+  "verdict": "PROVIDER_SCHEDULER_DELIVERY_NOT_OBSERVED",
+  "repository": "kmephis-ai/VPS-Control-PNCC",
+  "authorized_base_sha": "7e85b5d3d4efabc2369ed301bd392c81dcd55b01",
+  "qualification_snapshot_observed_at": "2026-08-31T20:53:30Z",
+  "runtime_required": false,
+  "provider_evidence": {
+    "main_sha": "7e85b5d3d4efabc2369ed301bd392c81dcd55b01",
+    "default_branch": "main",
+    "repository_disabled": false,
+    "wu137_merged_at": "2026-08-31T17:40:59Z",
+    "canonical_cron_utc": "17 * * * *",
+    "elapsed_nominal_ticks": [
+      "2026-08-31T18:17:00Z",
+      "2026-08-31T19:17:00Z",
+      "2026-08-31T20:17:00Z"
+    ],
+    "repository_schedule_run_count": 0,
+    "authorization_issue_number": 322,
+    "authorization_issue_state": "closed",
+    "authorization_tokens_present": true,
+    "canonical_frontier_state": "NONE",
+    "ruleset_id": 21585301,
+    "ruleset_enforcement": "active",
+    "ruleset_updated_at": "2026-08-26T21:32:07.589+03:00",
+    "ruleset_bypass_actors": [],
+    "ruleset_current_user_can_bypass": "never",
+    "strict_required_status_checks_policy": true,
+    "required_check_contexts": [
+      "repo-integrity",
+      "powershell-static",
+      "truth-contract"
+    ],
+    "required_check_conclusions": {
+      "repo-integrity": "success",
+      "powershell-static": "success",
+      "truth-contract": "success"
+    },
+    "provider_state_commit_sha_after_wu141_lease_acquisition": "241e07147dc12954a57abd5d5c426b7322d86734",
+    "writer_lease_registry_generation": 55,
+    "writer_lease_registry_blob_sha": "4122c57c2198e9bf70e6ba91793f8b6e52d7ebff",
+    "writer_lease_id": "d6b01933-066f-4697-bc96-be44fd087ee2"
+  },
+  "wu137_immutable_anchor_blobs": {
+    ".github/workflows/wave6-hbe-periodic-health-drift-wu137.yml": "524ff5813cb45476fa332f7ebfdc195931ce0dff",
+    ".pncc-dev/contracts/wave6-hbe-periodic-health-drift-activation-wu137.json": "37e08c46e021e04f1be6b799009b6f24111c1ac3",
+    ".pncc-dev/scripts/evaluate_wave6_hbe_periodic_health_drift_wu137.py": "d478fdc13afcf81b30d59952a44cc2aad8d5d5fe",
+    ".pncc-dev/tests/test_wave6_hbe_periodic_health_drift_wu137.py": "d1e292178284663e4a5b6636d857c145aa31748e",
+    ".pncc-dev/contracts/wave6-hbe-periodic-health-drift-authority-proposal-wu136.json": "7605105488aafad7400c26c13a5c8f5515d40a02"
+  },
+  "classification": {
+    "configuration_defect_proven": false,
+    "external_provider_blocked_proven": false,
+    "external_provider_correlation": "STRONG_NON_AUTHORITATIVE",
+    "schedule_delivery_observed": false,
+    "repair_authorized": false,
+    "authority_granted": false
+  },
+  "mutation_report": {
+    "wu137_workflow_mutation_performed": false,
+    "wu137_evaluator_mutation_performed": false,
+    "schedule_mutation_performed": false,
+    "workflow_rerun_performed": false,
+    "workflow_dispatch_performed": false,
+    "permission_increase_performed": false,
+    "product_mutation_performed": false,
+    "runtime_mutation_performed": false,
+    "adwf_mutation_performed": false,
+    "ruleset_security_mutation_performed": false,
+    "release_tag_promotion_mutation_performed": false,
+    "roadmap_architecture_anchor_mutation_performed": false,
+    "v631_mutation_performed": false,
+    "reserve_1080_lifecycle_mutation_performed": false,
+    "primary_1081_lifecycle_mutation_performed": false,
+    "force_or_bypass_performed": false
+  },
+  "evidence_interpretation": {
+    "provider_schedule_delivery_is_proven": false,
+    "repository_configuration_defect_is_proven": false,
+    "current_evidence_requires_wu137_repair": false,
+    "real_future_schedule_run_supersedes_this_observational_gap_for_delivery_proof": true
+  },
+  "next_boundary": "WAIT_FOR_REAL_PROVIDER_SCHEDULE_RUN_OR_SEPARATE_OWNER_DECISION"
+}
