@@ -1,0 +1,91 @@
+name: wave6-hbe-periodic-health-drift-proposal-wu136
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+jobs:
+  wave6-hbe-periodic-health-drift-proposal:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Run WU136 proposal boundary tests
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_wave6_hbe_periodic_health_drift_proposal_wu136.py' -v
+
+      - name: Assert governed terminal frontier lifecycle
+        shell: bash
+        run: |
+          set -euo pipefail
+          git show ee959e492faaf2cf41257ebbf1b01f9bc217bd2a:.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json > /tmp/wu136-predecessor.json
+          python3 .pncc-dev/scripts/evaluate_governed_frontier_lifecycle.py \
+            --transition .pncc-dev/contracts/governed-frontier-transition-pipe-wu-136.json \
+            --predecessor /tmp/wu136-predecessor.json \
+            --successor .pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json \
+            --work-unit-id PIPE-WU-136 \
+            --base-sha ee959e492faaf2cf41257ebbf1b01f9bc217bd2a \
+            --branch agent/PIPE-WU-136-wave6-hbe-periodic-health-drift-authority-proposal-preparation
+
+      - name: Assert proposal is non-authorizing and no schedule exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('.pncc-dev/contracts/wave6-hbe-periodic-health-drift-authority-proposal-wu136.json').read_text())
+          f=json.loads(Path('.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json').read_text())
+          assert p['proposal_state']=='PREPARED_NON_AUTHORIZING'
+          assert p['activation_boundary']['state']=='OWNER_AUTHORIZATION_REQUIRED'
+          assert p['activation_boundary']['schedule_exists'] is False
+          assert p['activation_boundary']['schedule_enabled'] is False
+          assert p['activation_boundary']['periodic_execution_authorized'] is False
+          assert p['activation_boundary']['generic_continue_instruction_is_authorization'] is False
+          assert all(v is False for v in p['authority'].values())
+          assert f=={'schema_version':1,'role':'WAVE5_NEXT_GOVERNED_WORK_UNIT_FRONTIER','state':'NONE'}
+          PY
+          ! grep -Eq '^[[:space:]]*schedule:' .github/workflows/wave6-hbe-periodic-health-drift-proposal-wu136.yml
+
+      - name: Assert exact bounded WU136 diff and ancestry
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$BASE_SHA" = "ee959e492faaf2cf41257ebbf1b01f9bc217bd2a"
+          test "$(git merge-base "$BASE_SHA" "$HEAD_SHA")" = "$BASE_SHA"
+          git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort > /tmp/actual
+          printf '%s\n' \
+            '.github/workflows/wave6-hbe-periodic-health-drift-proposal-wu136.yml' \
+            '.pncc-dev/contracts/governed-frontier-transition-pipe-wu-136.json' \
+            '.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json' \
+            '.pncc-dev/contracts/wave6-hbe-periodic-health-drift-authority-proposal-wu136.json' \
+            '.pncc-dev/tests/test_wave6_hbe_periodic_health_drift_proposal_wu136.py' | sort > /tmp/expected
+          diff -u /tmp/expected /tmp/actual
+          ! grep -E '^(\.pncc-state/|src/windows-v7/|\.adwf-consumer/|tools/runtime-agent/)' /tmp/actual
+
+      - name: Assert workflow itself is read only
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          t=Path('.github/workflows/wave6-hbe-periodic-health-drift-proposal-wu136.yml').read_text().lower()
+          forbidden=['contents:'+' write','issues:'+' write','pull-requests:'+' write','actions:'+' write','git'+' push','gh'+' pr merge','gh'+' issue close','--method'+' post','--method'+' patch','--method'+' put','--method'+' delete','self-hosted']
+          for token in forbidden:
+              assert token not in t, token
+          PY
+
+      - name: Assert repository remains clean
+        run: test -z "$(git status --porcelain)"
