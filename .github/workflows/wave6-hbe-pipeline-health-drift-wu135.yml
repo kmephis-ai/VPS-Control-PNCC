@@ -40,15 +40,43 @@ jobs:
           issue=json.loads(Path('/tmp/wu135-issue.json').read_text())
           ruleset=json.loads(Path('/tmp/wu135-ruleset.json').read_text())
           registry=json.loads(Path('/tmp/wu135-registry.json').read_text())
+          attestation=json.loads(Path('.pncc-dev/attestations/wave6-hbe-ruleset-provider-truth-wu135.json').read_text())
           marker='<!-- PNCC-WORK-UNIT schema=1 id=PIPE-WU-135 state=READY conflict_domain=wave6-hbe-pipeline-health-drift-read-only-assessment-existing-authority-only base=55c1ff6ea4b43ce7b8a6735c3475a996ef49cc4c runtime_required=false -->'
           selected_state='OPEN_READY' if issue.get('state')=='open' and marker in (issue.get('body') or '') else 'NOT_OPEN_READY'
           required=[]
+          strict_checks=None
           for rule in ruleset.get('rules', []):
               if rule.get('type')=='required_status_checks':
-                  required=[x.get('context') for x in rule.get('parameters',{}).get('required_status_checks',[])]
-          configured_no_bypass=ruleset.get('bypass_actors')==[]
-          print('RULESET_SAFE_DIAGNOSTIC', json.dumps({'enforcement':ruleset.get('enforcement'),'bypass_actors_present':'bypass_actors' in ruleset,'bypass_actor_count':len(ruleset.get('bypass_actors',[])) if isinstance(ruleset.get('bypass_actors'),list) else None,'top_level_keys':sorted(ruleset.keys())}, sort_keys=True))
-          enforcement='ACTIVE_NO_BYPASS' if ruleset.get('enforcement')=='active' and configured_no_bypass else 'DRIFT'
+                  params=rule.get('parameters',{})
+                  required=[x.get('context') for x in params.get('required_status_checks',[])]
+                  strict_checks=params.get('strict_required_status_checks_policy')
+          attestation_valid=(
+              attestation.get('schema_version')==1 and
+              attestation.get('role')=='WAVE6_HBE_RULESET_PROVIDER_TRUTH_ATTESTATION' and
+              attestation.get('repository')=='kmephis-ai/VPS-Control-PNCC' and
+              attestation.get('work_unit_id')=='PIPE-WU-135' and
+              attestation.get('ruleset_id')==21585301 and
+              attestation.get('enforcement')=='active' and
+              attestation.get('configured_bypass_actor_count')==0 and
+              attestation.get('required_check_contexts')==['repo-integrity','powershell-static','truth-contract'] and
+              attestation.get('strict_required_status_checks_policy') is True and
+              attestation.get('sensitive_bypass_actor_identities_published') is False and
+              attestation.get('provider_mutation_performed') is False and
+              attestation.get('ruleset_mutation_performed') is False and
+              attestation.get('authority_granted') is False
+          )
+          visible_matches_attestation=(
+              ruleset.get('id')==attestation.get('ruleset_id') and
+              ruleset.get('name')==attestation.get('ruleset_name') and
+              ruleset.get('target')==attestation.get('target') and
+              ruleset.get('source_type')==attestation.get('source_type') and
+              ruleset.get('source')==attestation.get('source') and
+              ruleset.get('updated_at')==attestation.get('ruleset_updated_at') and
+              ruleset.get('enforcement')==attestation.get('enforcement') and
+              required==attestation.get('required_check_contexts') and
+              strict_checks is attestation.get('strict_required_status_checks_policy')
+          )
+          enforcement='ACTIVE_NO_BYPASS' if attestation_valid and visible_matches_attestation else 'DRIFT'
           snapshot={
               'observed_at':os.environ['WU135_OBSERVED_AT'],
               'repository':'kmephis-ai/VPS-Control-PNCC',
@@ -122,11 +150,12 @@ jobs:
           printf '%s\n' \
             '.github/workflows/wave6-hbe-frontier-bootstrap-wu134.yml' \
             '.github/workflows/wave6-hbe-pipeline-health-drift-wu135.yml' \
+            '.pncc-dev/attestations/wave6-hbe-ruleset-provider-truth-wu135.json' \
             '.pncc-dev/contracts/governed-frontier-transition-pipe-wu-135.json' \
             '.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json' \
             '.pncc-dev/contracts/wave6-hbe-pipeline-health-drift-assessment-policy.json' \
             '.pncc-dev/contracts/wave6-hbe-pipeline-health-drift-assessment-wu135.json' \
-            '.pncc-dev/scripts/evaluate_wave6_hbe_pipeline_health_drift.py' \
+            '.pncc-dev/scripts/evaluate_wave6_hbe-pipeline-health-drift.py' \
             '.pncc-dev/tests/fixtures/wave6-hbe-frontier-bootstrap-wu134-successor.json' \
             '.pncc-dev/tests/test_wave6_hbe_frontier_bootstrap_wu134.py' \
             '.pncc-dev/tests/test_wave6_hbe_pipeline_health_drift_wu135.py' | sort > /tmp/expected
@@ -145,6 +174,7 @@ jobs:
           f=json.loads(Path('.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json').read_text())
           t=json.loads(Path('.pncc-dev/contracts/governed-frontier-transition-pipe-wu-135.json').read_text())
           a=json.loads(Path('.pncc-dev/contracts/wave6-hbe-pipeline-health-drift-assessment-wu135.json').read_text())
+          r=json.loads(Path('.pncc-dev/attestations/wave6-hbe-ruleset-provider-truth-wu135.json').read_text())
           assert f['frontier_id']=='WAVE6_HBE_PERIODIC_HEALTH_DRIFT_AUTHORITY_PROPOSAL_PREPARATION_EXISTING_AUTHORITY_ONLY'
           assert f['periodic_scheduling_authority'] is False
           assert f['unattended_mutation_authority'] is False
@@ -157,6 +187,11 @@ jobs:
           assert t['successor_frontier']['blob_sha']=='0fcd62f95ca491d70faddc07a251baed0524f876'
           assert t['assessment_grants_authority'] is False
           assert a['assessment_output_authority']['periodic_scheduling_authority'] is False
+          assert r['configured_bypass_actor_count']==0
+          assert r['sensitive_bypass_actor_identities_published'] is False
+          assert r['provider_mutation_performed'] is False
+          assert r['ruleset_mutation_performed'] is False
+          assert r['authority_granted'] is False
           PY
 
       - name: Assert workflow itself is read only
