@@ -1,0 +1,188 @@
+{
+  "schema_version": 1,
+  "role": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_DURABLE_SESSION_RESUME_POLICY",
+  "policy_state": "READY",
+  "mode": "HBE_DURABLE_SESSION_RESUME_EXISTING_AUTHORITY_ONLY",
+  "repository": "kmephis-ai/VPS-Control-PNCC",
+  "default_branch": "main",
+  "definition_binding": {
+    "work_unit_id": "PIPE-WU-130",
+    "issue_number": 308,
+    "base_main_sha": "f6f942f40db14eac28b97fa79429f3ad49f1b9ae",
+    "branch": "agent/PIPE-WU-130-human-by-exception-durable-session-resume-existing-authority-only",
+    "conflict_domain": "wave5-autonomous-continuation-human-by-exception-durable-session-resume-existing-authority-only",
+    "runtime_required": false
+  },
+  "definition_provider_truth": {
+    "state_branch": "pncc-provider-state",
+    "state_branch_head_sha": "cd4f127c616968eb407b02a77cbcd95c15c776c2",
+    "registry_blob_sha": "87e545c85a2e8641eba5e741adbad66fd305dab2",
+    "registry_generation": 39,
+    "lease_id": "7435a7f5-9dcb-4c87-a803-62e0561f6153",
+    "lease_generation": 39,
+    "lease_state": "ACTIVE",
+    "lease_expires_at": "2026-08-31T05:05:45Z"
+  },
+  "anchors": {
+    "predecessor_hbe_steady_state_execution": {
+      "path": ".pncc-dev/contracts/autonomous-continuation-human-by-exception-steady-state-execution-wu129.json",
+      "blob_sha": "b644be019b821a7f2de30a05102f1ae8efb8d964"
+    },
+    "generic_durable_resume_policy": {
+      "path": ".pncc-dev/contracts/durable-autonomous-continuation-session-resume-policy.json",
+      "blob_sha": "4305cd65c2ed7eaf67a6a6df24d3b4bb4d612446"
+    },
+    "reusable_writer_lease_grant": {
+      "path": ".pncc-dev/contracts/reusable-writer-lease-bounded-branch-authorized.json",
+      "blob_sha": "717e1f9081915f40fad2e0620c64245a650ca235"
+    },
+    "writer_lease_claim_policy": {
+      "path": ".pncc-dev/contracts/writer-lease-claim-admission-policy.json",
+      "blob_sha": "bf83539899df5c5a4e660734e861653f1d4cc1ee"
+    },
+    "writer_lease_topology_validator": {
+      "path": ".pncc-dev/scripts/validate_writer_lease_registry_topology.py",
+      "blob_sha": "aad1f221e28cd413408c676eb9ea9da48c4130f0"
+    },
+    "control_loop_policy": {
+      "path": ".pncc-dev/contracts/autonomous-continuation-control-loop-policy.json",
+      "blob_sha": "822bcd1833ff4843b6bd176337b3ef3b742275de"
+    },
+    "execution_admission_policy": {
+      "path": ".pncc-dev/contracts/autonomous-continuation-execution-admission-policy.json",
+      "blob_sha": "406d78da6250c452bfc7706b57dc51a18ca48977"
+    }
+  },
+  "checkpoint_contract": {
+    "role": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_DURABLE_SESSION_CHECKPOINT",
+    "checkpoint_state": "PERSISTED_HINT_ONLY",
+    "required_top_level_fields": [
+      "schema_version",
+      "role",
+      "provider_truth_fresh",
+      "main_fresh",
+      "selection_fresh",
+      "branch_readback_fresh",
+      "pr_ci_readback_fresh_when_applicable",
+      "current_main_sha",
+      "selected_work_unit",
+      "provider_state",
+      "branch_state",
+      "transaction_boundary",
+      "completed_transaction_fingerprints",
+      "next_transaction_fingerprint",
+      "hbe_boundary"
+    ],
+    "selected_work_unit_required_fields": [
+      "work_unit_id",
+      "issue_number",
+      "marker_state",
+      "conflict_domain",
+      "runtime_required",
+      "base_sha"
+    ],
+    "provider_state_required_fields": [
+      "state_branch_head_sha",
+      "registry_blob_sha",
+      "registry_generation",
+      "unexpired_active_in_conflict_domain",
+      "exact_owned_lease"
+    ],
+    "branch_state_required_fields": [
+      "present",
+      "name",
+      "head_sha",
+      "base_sha"
+    ],
+    "checkpoint_is_hint_only": true,
+    "checkpoint_never_grants_mutation_authority": true,
+    "checkpoint_cas_tokens_reusable": false,
+    "checkpoint_ci_success_reusable": false,
+    "checkpoint_admission_reusable": false
+  },
+  "freshness_requirements": {
+    "provider_truth_fresh_required": true,
+    "current_main_fresh_required": true,
+    "selected_work_unit_fresh_required": true,
+    "branch_readback_fresh_required": true,
+    "pr_ci_readback_fresh_when_applicable_required": true,
+    "fresh_control_loop_recomputation_before_mutation_required": true,
+    "fresh_execution_admission_recomputation_before_mutation_required": true,
+    "fresh_operationalization_recomputation_before_mutation_required": true,
+    "provider_truth_supersedes_checkpoint": true
+  },
+  "transaction_semantics": {
+    "allowed_boundaries": [
+      "CLEAN_ITERATION_BOUNDARY",
+      "TRANSACTION_OUTCOME_UNKNOWN",
+      "PROVIDER_READBACK_PENDING"
+    ],
+    "persisted_decision_reuse_forbidden": true,
+    "completed_transaction_replay_forbidden": true,
+    "unknown_transaction_outcome_replay_forbidden": true,
+    "provider_readback_pending_mutation_forbidden": true,
+    "transaction_fingerprint_must_not_repeat": true
+  },
+  "writer_lease_resume_semantics": {
+    "expired_historical_active_is_observation_only": true,
+    "expired_historical_active_mutation_forbidden": true,
+    "expired_historical_active_reactivation_forbidden": true,
+    "expired_historical_active_reuse_forbidden": true,
+    "expired_historical_release_without_separate_authority_forbidden": true,
+    "released_lease_reuse_forbidden": true,
+    "silent_lease_steal_forbidden": true,
+    "fresh_monotonic_claim_required_when_no_exact_owned_active_unexpired_lease": true,
+    "fresh_claim_requires_zero_other_unexpired_active_in_conflict_domain": true,
+    "fresh_claim_delegated_authority_identity": "EXISTING_REUSABLE_WRITER_LEASE_BOUNDED_BRANCH_AUTHORITY",
+    "fresh_claim_authority_is_external_to_this_policy": true
+  },
+  "hbe_boundaries": {
+    "CONTINUE": "SESSION_RESUME_EVALUATION",
+    "OWNER_ESCALATION_REQUIRED": "OWNER_ESCALATION_REQUIRED",
+    "WAIT_ONLY": "WAIT_ONLY",
+    "STOP_ONLY": "STOP_ONLY",
+    "SEPARATE_AUTHORITY_REQUIRED": "SEPARATE_AUTHORITY_REQUIRED",
+    "BLOCKED": "BLOCKED"
+  },
+  "resume_decisions": [
+    "RECOMPUTE_FRESH_CONTINUATION",
+    "FRESH_MONOTONIC_LEASE_REQUIRED",
+    "RECONCILE_INTERRUPTED_TRANSACTION_FROM_PROVIDER_TRUTH",
+    "WAIT_FOR_FRESH_PROVIDER_READBACK",
+    "OWNER_ESCALATION_REQUIRED",
+    "WAIT_ONLY",
+    "STOP_ONLY",
+    "SEPARATE_AUTHORITY_REQUIRED",
+    "BLOCKED"
+  ],
+  "public_safety": {
+    "credentials_forbidden": true,
+    "tokens_forbidden": true,
+    "private_runtime_payload_forbidden": true,
+    "raw_runtime_logs_forbidden": true,
+    "host_identifiers_forbidden": true,
+    "local_private_paths_forbidden": true,
+    "external_ip_addresses_forbidden": true
+  },
+  "provider_mutation_authority": false,
+  "issue_mutation_authority": false,
+  "branch_mutation_authority": false,
+  "pull_request_mutation_authority": false,
+  "writer_lease_mutation_authority": false,
+  "workflow_rerun_authority": false,
+  "merge_authority": false,
+  "runtime_action_authority": false,
+  "product_runtime_mutation_authority": false,
+  "adwf_binding_mutation_authority": false,
+  "adwf_repository_mutation_authority": false,
+  "release_tag_promotion_authority": false,
+  "ruleset_policy_mutation_authority": false,
+  "private_evidence_publication_authority": false,
+  "force_ref_update_authority": false,
+  "silent_lease_steal_authority": false,
+  "reserve_1080_lifecycle_mutation_authority": false,
+  "primary_1081_lifecycle_mutation_authority": false,
+  "authority_granted": false,
+  "higher_autonomy_authorized": false,
+  "next_boundary": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_DURABLE_SESSION_RESUME_EXECUTION_WITH_EXISTING_AUTHORITY_ONLY"
+}
