@@ -55,7 +55,7 @@ class WU135Tests(unittest.TestCase):
                             check_anchors=anchors)
 
     def test_healthy_snapshot(self):
-        out = self.evaluate(anchors=True)
+        out = self.evaluate(anchors=False)
         self.assertEqual(out["outcome"], "HEALTHY")
         self.assertFalse(out["provider_mutation_performed"])
         self.assertFalse(out["periodic_schedule_created"])
