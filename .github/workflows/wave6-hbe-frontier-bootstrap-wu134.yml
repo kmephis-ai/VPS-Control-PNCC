@@ -10,6 +10,8 @@ on:
       - '.pncc-dev/contracts/wave6-hbe-frontier-bootstrap-policy.json'
       - '.pncc-dev/contracts/wave6-hbe-frontier-bootstrap-pipe-wu-134.json'
       - '.pncc-dev/scripts/evaluate_wave6_hbe_frontier_bootstrap.py'
+      - '.pncc-dev/scripts/validate_wave5_terminal_maturity_reconciliation_wu133.py'
+      - '.pncc-dev/tests/test_wave5_terminal_maturity_reconciliation_wu133.py'
       - '.pncc-dev/tests/test_wave6_hbe_frontier_bootstrap_wu134.py'
   push:
     branches:
@@ -21,7 +23,9 @@ on:
       - '.pncc-dev/contracts/wave6-hbe-frontier-bootstrap-policy.json'
       - '.pncc-dev/contracts/wave6-hbe-frontier-bootstrap-pipe-wu-134.json'
       - '.pncc-dev/scripts/evaluate_wave6_hbe_frontier_bootstrap.py'
-      - '.pncc-dev/tests/test_wave6_hbe_frontier_bootstrap_wu134.py'
+      - '.pncc-dev/scripts/validate_wave5_terminal_maturity_reconciliation_wu133.py'
+      - '.pncc-dev/tests/test_wave5_terminal_maturity_reconciliation_wu133.py'
+      - '.pncc-dev/tests/test_wave6_hbe-frontier-bootstrap-wu134.py'
 
 permissions:
   contents: read
@@ -56,10 +60,11 @@ jobs:
             --base-sha "$BASE_SHA" \
             --branch "$WORK_BRANCH"
 
-      - name: Run WU134 regression tests
+      - name: Run WU133 historical and WU134 bootstrap regression tests
         shell: bash
         run: |
           set -euo pipefail
+          python3 -m unittest discover -s .pncc-dev/tests -p 'test_wave5_terminal_maturity_reconciliation_wu133.py' -v
           python3 -m unittest discover -s .pncc-dev/tests -p 'test_wave6_hbe_frontier_bootstrap_wu134.py' -v
 
       - name: Assert immutable authority security and materialization anchors
@@ -93,7 +98,9 @@ jobs:
             '.pncc-dev/contracts/wave6-hbe-frontier-bootstrap-policy.json' \
             '.pncc-dev/contracts/wave6-hbe-frontier-bootstrap-pipe-wu-134.json' \
             '.pncc-dev/scripts/evaluate_wave6_hbe_frontier_bootstrap.py' \
-            '.pncc-dev/tests/test_wave6_hbe_frontier_bootstrap_wu134.py' | sort > /tmp/expected
+            '.pncc-dev/scripts/validate_wave5_terminal_maturity_reconciliation_wu133.py' \
+            '.pncc-dev/tests/test_wave5_terminal_maturity_reconciliation_wu133.py' \
+            '.pncc-dev/tests/test_wave6_hbe-frontier-bootstrap-wu134.py' | sort > /tmp/expected
           diff -u /tmp/expected /tmp/actual
           ! grep -E '^(\.pncc-state/|src/windows-v7/|\.adwf-consumer/|tools/runtime-agent/)' /tmp/actual
 
