@@ -35,8 +35,8 @@ jobs:
           set -euo pipefail
           test "$(git hash-object .pncc-dev/contracts/wave6-hbe-periodic-health-drift-authority-proposal-wu136.json)" = "7605105488aafad7400c26c13a5c8f5515d40a02"
           test "$(git hash-object .pncc-dev/contracts/wave6-hbe-periodic-health-drift-activation-wu137.json)" = "37e08c46e021e04f1be6b799009b6f24111c1ac3"
-          test "$(git hash-object .pncc-dev/scripts/evaluate_wave6_hbe_periodic_health_drift_wu137.py)" = "51ec50b9cadeaa114055978ff29e5d90b427882f"
-          test "$(git hash-object .pncc-dev/tests/test_wave6_hbe_periodic_health_drift_wu137.py)" = "de2c7315ae9fe822ab5d8fe82be1a1dfaf1abfe7"
+          test "$(git hash-object .pncc-dev/scripts/evaluate_wave6_hbe_periodic_health_drift_wu137.py)" = "d478fdc13afcf81b30d59952a44cc2aad8d5d5fe"
+          test "$(git hash-object .pncc-dev/tests/test_wave6_hbe_periodic_health_drift_wu137.py)" = "d1e292178284663e4a5b6636d857c145aa31748e"
           python3 - <<'PY'
           import json
           from pathlib import Path
@@ -89,9 +89,15 @@ jobs:
           curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/kmephis-ai/VPS-Control-PNCC/rulesets/21585301 > /tmp/wu137-ruleset.json
           python3 - <<'PY'
           import json
+          from datetime import datetime, timezone
           issue=json.load(open('/tmp/wu137-issue.json'))
           ruleset=json.load(open('/tmp/wu137-ruleset.json'))
           body=issue.get('body') or ''
+          def instant(value):
+              normalized=value[:-1] + '+00:00' if value.endswith('Z') else value
+              parsed=datetime.fromisoformat(normalized)
+              assert parsed.tzinfo is not None and parsed.utcoffset() is not None
+              return parsed.astimezone(timezone.utc)
           required_tokens=[
             'Exact proposal blob: `7605105488aafad7400c26c13a5c8f5515d40a02`',
             'Exact authorized base: `107f0e3ac66f3fa53bddf6ad30f1afbbccc49ada`',
@@ -101,7 +107,7 @@ jobs:
           assert all(t in body for t in required_tokens)
           assert ruleset.get('id')==21585301
           assert ruleset.get('enforcement')=='active'
-          assert ruleset.get('updated_at')=='2026-08-26T21:32:07.589+03:00'
+          assert instant(ruleset.get('updated_at'))==instant('2026-08-26T21:32:07.589+03:00')
           if 'bypass_actors' in ruleset:
               assert ruleset['bypass_actors']==[]
           assert ruleset.get('current_user_can_bypass')=='never'
