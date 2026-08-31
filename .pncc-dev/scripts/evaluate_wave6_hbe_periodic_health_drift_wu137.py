@@ -103,8 +103,11 @@ def validate_activation(obj: Any) -> dict[str, Any]:
     if ruleset != {
         "ruleset_id": 21585301,
         "enforcement": "active",
-        "configured_bypass_actor_count": 0,
+        "activation_observed_bypass_actor_count": 0,
         "current_user_can_bypass": "never",
+        "ruleset_updated_at": "2026-08-26T21:32:07.589+03:00",
+        "bypass_actor_list_revalidation_via_read_only_token": "UNAVAILABLE_BY_GITHUB_API_DESIGN",
+        "bypass_drift_detection_policy": "PIN_ZERO_AT_ACTIVATION_AND_DETECT_RULESET_UPDATED_AT_PLUS_EFFECTIVE_RUNNER_BYPASS_CAPABILITY",
         "strict_required_status_checks_policy": True,
         "required_check_contexts": required,
     }:
@@ -140,7 +143,7 @@ def evaluate(snapshot: Any, *, now: datetime | None = None, activation: Any = No
             "observed_at", "repository", "main_sha", "checkout_sha", "provider_state_sha",
             "registry_generation", "frontier_state", "proposal_blob_sha",
             "authorization_issue_state", "authorization_tokens_present",
-            "ruleset_id", "ruleset_enforcement", "ruleset_bypass_actor_count",
+            "ruleset_id", "ruleset_enforcement", "ruleset_updated_at",
             "ruleset_current_user_can_bypass", "ruleset_rule_types",
             "strict_required_status_checks_policy", "required_check_contexts",
             "required_check_conclusions", "owner_boundary_requested"
@@ -178,17 +181,13 @@ def evaluate(snapshot: Any, *, now: datetime | None = None, activation: Any = No
             drift.append("RULESET_ID_DRIFT")
         if snapshot.get("ruleset_enforcement") != a["ruleset_binding"]["enforcement"]:
             drift.append("RULESET_ENFORCEMENT_DRIFT")
+        if snapshot.get("ruleset_updated_at") != a["ruleset_binding"]["ruleset_updated_at"]:
+            drift.append("RULESET_UPDATED_AT_DRIFT")
         if snapshot.get("ruleset_current_user_can_bypass") != a["ruleset_binding"]["current_user_can_bypass"]:
             return _result("OWNER_EXCEPTION_REQUIRED", ["RULESET_BYPASS_CAPABILITY_DRIFT"], a)
         rule_types = snapshot.get("ruleset_rule_types")
         if not isinstance(rule_types, list) or sorted(rule_types) != sorted(["deletion","non_fast_forward","pull_request","required_status_checks"]):
             drift.append("RULESET_RULE_TYPES_DRIFT")
-
-        bypass = snapshot.get("ruleset_bypass_actor_count")
-        if not isinstance(bypass, int) or isinstance(bypass, bool) or bypass < 0:
-            raise EvaluationError("RULESET_BYPASS_COUNT_INVALID")
-        if bypass != 0:
-            return _result("OWNER_EXCEPTION_REQUIRED", ["RULESET_BYPASS_ACTOR_PRESENT"], a)
 
         if snapshot.get("strict_required_status_checks_policy") is not True:
             drift.append("STRICT_REQUIRED_CHECK_POLICY_DRIFT")
