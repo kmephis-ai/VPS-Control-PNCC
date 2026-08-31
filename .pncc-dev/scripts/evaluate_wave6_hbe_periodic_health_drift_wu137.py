@@ -36,6 +36,18 @@ def parse_time(value: Any, name: str) -> datetime:
     except ValueError as exc:
         raise EvaluationError("TIME_INVALID:" + name) from exc
 
+def parse_iso_instant(value: Any, name: str) -> datetime:
+    if not isinstance(value, str):
+        raise EvaluationError("TIME_INVALID:" + name)
+    try:
+        normalized = value[:-1] + "+00:00" if value.endswith("Z") else value
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError as exc:
+        raise EvaluationError("TIME_INVALID:" + name) from exc
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise EvaluationError("TIME_TIMEZONE_REQUIRED:" + name)
+    return parsed.astimezone(timezone.utc)
+
 def full_sha(value: Any) -> bool:
     return isinstance(value, str) and len(value) == 40 and all(c in "0123456789abcdef" for c in value)
 
@@ -112,6 +124,7 @@ def validate_activation(obj: Any) -> dict[str, Any]:
         "required_check_contexts": required,
     }:
         raise EvaluationError("RULESET_BINDING_INVALID")
+    parse_iso_instant(ruleset["ruleset_updated_at"], "ACTIVATION_RULESET_UPDATED_AT")
 
     authority = obj.get("authority")
     if not isinstance(authority, dict) or not authority:
@@ -181,7 +194,9 @@ def evaluate(snapshot: Any, *, now: datetime | None = None, activation: Any = No
             drift.append("RULESET_ID_DRIFT")
         if snapshot.get("ruleset_enforcement") != a["ruleset_binding"]["enforcement"]:
             drift.append("RULESET_ENFORCEMENT_DRIFT")
-        if snapshot.get("ruleset_updated_at") != a["ruleset_binding"]["ruleset_updated_at"]:
+        observed_ruleset_updated_at = parse_iso_instant(snapshot.get("ruleset_updated_at"), "RULESET_UPDATED_AT")
+        activation_ruleset_updated_at = parse_iso_instant(a["ruleset_binding"]["ruleset_updated_at"], "ACTIVATION_RULESET_UPDATED_AT")
+        if observed_ruleset_updated_at != activation_ruleset_updated_at:
             drift.append("RULESET_UPDATED_AT_DRIFT")
         if snapshot.get("ruleset_current_user_can_bypass") != a["ruleset_binding"]["current_user_can_bypass"]:
             return _result("OWNER_EXCEPTION_REQUIRED", ["RULESET_BYPASS_CAPABILITY_DRIFT"], a)
