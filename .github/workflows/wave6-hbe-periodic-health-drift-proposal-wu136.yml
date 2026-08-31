@@ -74,7 +74,7 @@ jobs:
             '.pncc-dev/contracts/governed-frontier-transition-pipe-wu-136.json' \
             '.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json' \
             '.pncc-dev/contracts/wave6-hbe-periodic-health-drift-authority-proposal-wu136.json' \
-            '.pncc-dev/tests/test_wave6_hbe-periodic-health-drift-proposal-wu136.py' | sort > /tmp/expected
+            '.pncc-dev/tests/test_wave6_hbe_periodic_health_drift_proposal_wu136.py' | sort > /tmp/expected
           diff -u /tmp/expected /tmp/actual
           ! grep -E '^(\.pncc-state/|src/windows-v7/|\.adwf-consumer/|tools/runtime-agent/)' /tmp/actual
 
