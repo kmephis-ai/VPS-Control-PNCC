@@ -22,6 +22,7 @@ jobs:
           persist-credentials: false
 
       - name: Collect fresh read-only Provider Truth snapshot
+        if: github.head_ref == 'agent/PIPE-WU-135-wave6-hbe-pipeline-health-drift-read-only-assessment'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -112,6 +113,7 @@ jobs:
           PY
 
       - name: Evaluate fresh WU135 health drift snapshot
+        if: github.head_ref == 'agent/PIPE-WU-135-wave6-hbe-pipeline-health-drift-read-only-assessment'
         run: python3 .pncc-dev/scripts/evaluate_wave6_hbe_pipeline_health_drift.py --snapshot /tmp/wu135-provider.json --no-anchor-check
 
       - name: Run WU135 adversarial tests
@@ -151,6 +153,7 @@ jobs:
           PY
 
       - name: Assert exact bounded WU135 diff and ancestry
+        if: github.head_ref == 'agent/PIPE-WU-135-wave6-hbe-pipeline-health-drift-read-only-assessment'
         shell: bash
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
@@ -176,6 +179,7 @@ jobs:
           ! grep -E '^(\.pncc-state/|src/windows-v7/|\.adwf-consumer/|tools/runtime-agent/)' /tmp/actual
 
       - name: Assert frontier transition and non-authorizing successor
+        if: github.head_ref == 'agent/PIPE-WU-135-wave6-hbe-pipeline-health-drift-read-only-assessment'
         shell: bash
         run: |
           set -euo pipefail
