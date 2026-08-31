@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "role": "WAVE5_TERMINAL_MATURITY_RECONCILIATION",
+  "work_unit_id": "PIPE-WU-133",
+  "issue": 314,
+  "state": "COMPLETE",
+  "verdict": "WAVE5_COMPLETE",
+  "base_sha": "be9ebf31919477c23bc1325f37897925d82de6cf",
+  "branch": "agent/PIPE-WU-133-terminal-wave5-maturity-reconciliation",
+  "runtime_required": false,
+  "runtime_authority_claimed": false,
+  "stable_or_promotion_claimed": false,
+  "authority_granted": false,
+  "higher_autonomy_authorized": false,
+  "provider_truth": {
+    "main_sha_at_reconciliation": "be9ebf31919477c23bc1325f37897925d82de6cf",
+    "provider_state_after_lease_acquisition_sha": "0a2ef2a6ac4456d7fb54bc237913dd8b5de5ff8c",
+    "writer_lease_registry_blob_sha": "7be7bfb0be0546e5f9f847b43d19cce41ad2d252",
+    "writer_lease_generation": 43,
+    "writer_lease_id": "ba23411c-a106-4aec-95f5-8e7a814e60e2",
+    "frontier_path": ".pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json",
+    "frontier_blob_sha": "b4cf4f19e0d89884598427ad0a6729c997e7f1fe",
+    "frontier_state": "NONE",
+    "frontier_mutation_performed": false
+  },
+  "wave5_exit_criteria": [
+    {
+      "id": "FRESH_PROVIDER_WORK_UNIT_SELECTION",
+      "status": "PROVEN",
+      "evidence": [
+        {"path": ".pncc-dev/contracts/provider-truth-continuation-policy.json", "blob_sha": "4c6fe2895d41ed9282e9209223a5dd27b209a2fc"},
+        {"path": ".pncc-dev/tests/test_provider_truth_continuation_wu106.py", "blob_sha": "2738d66234f4b8e5f2d0277a0b5e84c47c059539"}
+      ]
+    },
+    {
+      "id": "ROUTINE_HOSTED_ENGINEERING_WITHOUT_OWNER_MICROMANAGEMENT",
+      "status": "PROVEN",
+      "evidence": [
+        {"path": ".pncc-dev/contracts/reusable-autonomous-continuation-steady-state-execution-wu114.json", "blob_sha": "8384ce0cc7440fe46ce08ba0061233012757cc49"},
+        {"path": ".pncc-dev/contracts/autonomous-continuation-human-by-exception-steady-state-execution-wu129.json", "blob_sha": "b644be019b821a7f2de30a05102f1ae8efb8d964"},
+        {"path": ".pncc-dev/contracts/autonomous-continuation-human-by-exception-durable-multi-session-steady-state-wu132.json", "blob_sha": "c9554b3bd743f79ac7ed457c86a0be6ab49db388"}
+      ]
+    },
+    {
+      "id": "CI_HARNESS_CLASSIFICATION_AND_NON_PRODUCT_REPAIR",
+      "status": "PROVEN",
+      "evidence": [
+        {"path": ".pncc-dev/contracts/exact-head-ci-inspection-classification-policy.json", "blob_sha": "98499793b870932f2e70b7b6293ff5fffeecbd29"},
+        {"path": ".pncc-dev/tests/test_exact_head_ci_inspection_classification_wu107.py", "blob_sha": "c4e876821cf8b5745b2d47687d94db96396955e2"}
+      ],
+      "provider_evidence": [
+        {"kind": "ISSUE", "number": 19, "work_unit_id": "PIPE-WU-003", "fact": "Two quality-control-plane defects repaired without PNCC product/runtime mutation or RC creation."},
+        {"kind": "ISSUE", "number": 194, "work_unit_id": "PIPE-WU-082", "fact": "Candidate-builder harness defect repaired with product/runtime source explicitly out of scope."}
+      ]
+    },
+    {
+      "id": "DURABLE_WAITING_RUNTIME",
+      "status": "PROVEN",
+      "evidence": [
+        {"path": ".pncc-dev/contracts/provider-truth-continuation-policy.json", "blob_sha": "4c6fe2895d41ed9282e9209223a5dd27b209a2fc"},
+        {"path": ".pncc-dev/tests/test_provider_truth_continuation_wu106.py", "blob_sha": "2738d66234f4b8e5f2d0277a0b5e84c47c059539"}
+      ],
+      "fact": "WAITING_RUNTIME is a no-mutation continuation result and never invokes the materialization planner."
+    },
+    {
+      "id": "CROSS_SESSION_RESUME_WITHOUT_CHAT_RECONSTRUCTION",
+      "status": "PROVEN",
+      "evidence": [
+        {"path": ".pncc-dev/contracts/durable-autonomous-continuation-session-resume-policy.json", "blob_sha": "4305cd65c2ed7eaf67a6a6df24d3b4bb4d612446"},
+        {"path": ".pncc-dev/contracts/durable-autonomous-continuation-multi-session-steady-state-policy.json", "blob_sha": "1c1107d0d8ef446b0e07848b2fbf1dd30dea07bd"},
+        {"path": ".pncc-dev/contracts/autonomous-continuation-human-by-exception-durable-multi-session-steady-state-wu132.json", "blob_sha": "c9554b3bd743f79ac7ed457c86a0be6ab49db388"}
+      ]
+    }
+  ],
+  "human_by_exception_capabilities": {
+    "proven_existing_authority_only": [
+      "FRESH_PROVIDER_TRUTH_SELECTION_AND_RECOMPUTATION",
+      "BOUNDED_EXISTING_AUTHORITY_CONTINUATION",
+      "FRESH_CAS_WRITER_LEASE_AND_BOUNDED_BRANCH",
+      "EXACT_HEAD_CI_CLASSIFICATION",
+      "DURABLE_WAITING_RUNTIME",
+      "DURABLE_SESSION_RESUME",
+      "DURABLE_MULTI_SESSION_RECOMPUTATION_AND_REPLAY_REJECTION",
+      "LOW_RISK_MERGE_CLOSE_WHEN_EXISTING_REUSABLE_AUTHORITY_ADMITS",
+      "OWNER_EXCEPTION_WAIT_STOP_SEPARATE_AUTHORITY_ROUTING"
+    ],
+    "not_authorized_or_not_proven": [
+      "AUTOMATIC_FRONTIER_ACTIVATION_FROM_TERMINAL_NONE",
+      "HIGHER_AUTONOMY_GRANT",
+      "PERIODIC_UNATTENDED_PIPELINE_HEALTH_DRIFT_SCHEDULING_AS_CANONICAL_REPO_AUTHORITY",
+      "OWNER_FREE_RUNTIME_PRODUCT_RELEASE_TAG_RULESET_SECURITY_OR_ADWF_MUTATION",
+      "GENERAL_PARALLEL_MUTATING_WRITERS"
+    ]
+  },
+  "anchor_impact": {
+    "current_work_unit_changes_immutable_materialization_anchors": false,
+    "frontier_change_in_wu133": false,
+    "roadmap_change_in_wu133": false,
+    "roadmap_update_deferred_because_current_roadmap_blob_is_an_immutable_materialization_policy_anchor": true,
+    "future_frontier_activation_requires_separate_owner_governance": true,
+    "immutable_anchor_expectations": {
+      ".pncc-dev/scripts/plan_governed_work_unit_materialization.py": "c561b34dbf3fb7cfefd1a2a9780aba6e857ec78c",
+      ".pncc-dev/contracts/governed-work-unit-materialization-policy.json": "8b6b6d9116b96a8f4746c22906a522589a9ae6e0",
+      ".pncc-dev/contracts/reusable-canonical-work-unit-materialization-authorized.json": "39db0554b86932b1beb4bb7250d040c06f9371ea",
+      ".pncc-dev/scripts/select_provider_work_unit.py": "8045a97d5344f058064690cb265b30f88973e2b8",
+      ".pncc-dev/schemas/work-unit.schema.json": "a6b23c5695262192175216e6293d832f8e835851",
+      "docs/roadmap/PNCC_PIPELINE_ROADMAP.md": "e5731248ac4b178e7b1aabbe2d9cd784cbc79b08"
+    }
+  },
+  "post_wave5_frontier_proposal": {
+    "proposal_state": "NON_AUTHORIZING_PROPOSAL_ONLY",
+    "materialized": false,
+    "authority_granted": false,
+    "current_frontier_remains_none": true,
+    "proposed_next_work_unit_id": "PIPE-WU-134",
+    "proposed_goal": "Prepare an explicit Owner-governed transition from terminal Wave 5 to a bounded Wave 6 Human-by-Exception frontier while preserving existing authority anchors and without granting runtime/product/release/security/ADWF authority.",
+    "requires_explicit_owner_authorization": true,
+    "suggested_next_boundary": "OWNER_DECISION_POST_WAVE5_HBE_FRONTIER"
+  },
+  "forbidden_mutations": {
+    "frontier": false,
+    "higher_autonomy": false,
+    "product": false,
+    "runtime": false,
+    "adwf": false,
+    "release_or_tag": false,
+    "ruleset_or_security": false,
+    "private_evidence": false,
+    "reserve_manual_1080": false,
+    "primary_auto_1081": false,
+    "v6_3_1": false,
+    "materialization_anchors": false
+  },
+  "next_boundary": "OWNER_DECISION_POST_WAVE5_HBE_FRONTIER"
+}
