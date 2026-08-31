@@ -127,7 +127,7 @@ jobs:
             '.pncc-dev/contracts/wave6-hbe-pipeline-health-drift-assessment-wu135.json' \
             '.pncc-dev/scripts/evaluate_wave6_hbe_pipeline_health_drift.py' \
             '.pncc-dev/tests/fixtures/wave6-hbe-frontier-bootstrap-wu134-successor.json' \
-            '.pncc-dev/tests/test_wave6_hbe-frontier-bootstrap-wu134.py' \
+            '.pncc-dev/tests/test_wave6_hbe_frontier_bootstrap_wu134.py' \
             '.pncc-dev/tests/test_wave6_hbe_pipeline_health_drift_wu135.py' | sort > /tmp/expected
           diff -u /tmp/expected /tmp/actual
           ! grep -E '^(\.pncc-state/|src/windows-v7/|\.adwf-consumer/|tools/runtime-agent/)' /tmp/actual
