@@ -1,0 +1,160 @@
+name: wave6-hbe-pipeline-health-drift-wu135
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+jobs:
+  wave6-hbe-pipeline-health-drift:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Collect fresh read-only Provider Truth snapshot
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main pncc-provider-state
+          git show origin/pncc-provider-state:.pncc-state/writer-lease-registry.json > /tmp/wu135-registry.json
+          curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/kmephis-ai/VPS-Control-PNCC/issues/318 > /tmp/wu135-issue.json
+          curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/kmephis-ai/VPS-Control-PNCC/rulesets/21585301 > /tmp/wu135-ruleset.json
+          export WU135_OBSERVED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          export WU135_MAIN_SHA="$(git rev-parse origin/main)"
+          export WU135_PROVIDER_STATE_SHA="$(git rev-parse origin/pncc-provider-state)"
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          issue=json.loads(Path('/tmp/wu135-issue.json').read_text())
+          ruleset=json.loads(Path('/tmp/wu135-ruleset.json').read_text())
+          registry=json.loads(Path('/tmp/wu135-registry.json').read_text())
+          marker='<!-- PNCC-WORK-UNIT schema=1 id=PIPE-WU-135 state=READY conflict_domain=wave6-hbe-pipeline-health-drift-read-only-assessment-existing-authority-only base=55c1ff6ea4b43ce7b8a6735c3475a996ef49cc4c runtime_required=false -->'
+          selected_state='OPEN_READY' if issue.get('state')=='open' and marker in (issue.get('body') or '') else 'NOT_OPEN_READY'
+          required=[]
+          for rule in ruleset.get('rules', []):
+              if rule.get('type')=='required_status_checks':
+                  required=[x.get('context') for x in rule.get('parameters',{}).get('required_status_checks',[])]
+          enforcement='ACTIVE_NO_BYPASS' if ruleset.get('enforcement')=='active' and ruleset.get('bypass_actors')==[] and ruleset.get('current_user_can_bypass')=='never' else 'DRIFT'
+          snapshot={
+              'observed_at':os.environ['WU135_OBSERVED_AT'],
+              'repository':'kmephis-ai/VPS-Control-PNCC',
+              'main_sha':os.environ['WU135_MAIN_SHA'],
+              'selected_work_unit_id':'PIPE-WU-135',
+              'selected_work_unit_issue_number':318,
+              'selected_work_unit_state':selected_state,
+              'provider_state_sha':os.environ['WU135_PROVIDER_STATE_SHA'],
+              'registry_generation':registry.get('generation'),
+              'ruleset_enforcement':enforcement,
+              'required_check_contexts':required,
+              'boundary_requests':{
+                  'product_runtime':False,'physical_runtime':False,'release_tag_promotion':False,
+                  'ruleset_security':False,'adwf':False,'private_evidence':False,
+                  'reserve_1080_lifecycle':False,'primary_1081_lifecycle':False,
+                  'periodic_scheduling':False,'unattended_mutation':False,'higher_autonomy':False
+              }
+          }
+          Path('/tmp/wu135-provider.json').write_text(json.dumps(snapshot,sort_keys=True),encoding='utf-8')
+          PY
+
+      - name: Evaluate fresh WU135 health drift snapshot
+        run: python3 .pncc-dev/scripts/evaluate_wave6_hbe_pipeline_health_drift.py --snapshot /tmp/wu135-provider.json
+
+      - name: Run WU135 adversarial tests
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_wave6_hbe_pipeline_health_drift_wu135.py' -v
+
+      - name: Assert immutable anchors
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object .pncc-dev/contracts/governed-frontier-lifecycle-policy.json)" = "a9d04f0c8611f29cb1cd1929719dbec6f7434c52"
+          test "$(git hash-object .pncc-dev/contracts/governed-work-unit-materialization-policy.json)" = "8b6b6d9116b96a8f4746c22906a522589a9ae6e0"
+          test "$(git hash-object .pncc-dev/contracts/reusable-canonical-work-unit-materialization-authorized.json)" = "39db0554b86932b1beb4bb7250d040c06f9371ea"
+          test "$(git hash-object .pncc-dev/contracts/reusable-writer-lease-bounded-branch-authorized.json)" = "717e1f9081915f40fad2e0620c64245a650ca235"
+          test "$(git hash-object docs/roadmap/PNCC_PIPELINE_ROADMAP.md)" = "e5731248ac4b178e7b1aabbe2d9cd784cbc79b08"
+
+      - name: Assert WU135 acquisition snapshot and exact binding
+        shell: bash
+        run: |
+          set -euo pipefail
+          git cat-file -e f0a96f140b25e22e8c02dfe65d625b7d0220ae8a^{commit}
+          git show f0a96f140b25e22e8c02dfe65d625b7d0220ae8a:.pncc-state/writer-lease-registry.json > /tmp/wu135-acquisition.json
+          test "$(git hash-object /tmp/wu135-acquisition.json)" = "c4b4f6aee90d46f214edb674b1f012c915ed2737"
+          python3 - <<'PY'
+          import json
+          r=json.load(open('/tmp/wu135-acquisition.json'))
+          assert r['generation']==46
+          rows=[e for e in r['entries'] if e['lease_id']=='e95d9207-7d86-4f03-83fe-535bb19b485e']
+          assert len(rows)==1
+          e=rows[0]
+          assert e['work_unit_id']=='PIPE-WU-135' and e['state']=='ACTIVE' and e['generation']==46
+          assert e['base_sha']=='55c1ff6ea4b43ce7b8a6735c3475a996ef49cc4c'
+          assert e['branch']=='agent/PIPE-WU-135-wave6-hbe-pipeline-health-drift-read-only-assessment'
+          PY
+
+      - name: Assert exact bounded WU135 diff and ancestry
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$BASE_SHA" = "55c1ff6ea4b43ce7b8a6735c3475a996ef49cc4c"
+          test "$(git merge-base "$BASE_SHA" "$HEAD_SHA")" = "$BASE_SHA"
+          git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort > /tmp/actual
+          printf '%s\n' \
+            '.github/workflows/wave6-hbe-pipeline-health-drift-wu135.yml' \
+            '.pncc-dev/contracts/governed-frontier-transition-pipe-wu-135.json' \
+            '.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json' \
+            '.pncc-dev/contracts/wave6-hbe-pipeline-health-drift-assessment-policy.json' \
+            '.pncc-dev/contracts/wave6-hbe-pipeline-health-drift-assessment-wu135.json' \
+            '.pncc-dev/scripts/evaluate_wave6_hbe_pipeline_health_drift.py' \
+            '.pncc-dev/tests/test_wave6_hbe_pipeline_health_drift_wu135.py' | sort > /tmp/expected
+          diff -u /tmp/expected /tmp/actual
+          ! grep -E '^(\.pncc-state/|src/windows-v7/|\.adwf-consumer/|tools/runtime-agent/)' /tmp/actual
+
+      - name: Assert frontier transition and non-authorizing successor
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object .pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json)" = "0fcd62f95ca491d70faddc07a251baed0524f876"
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          f=json.loads(Path('.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json').read_text())
+          t=json.loads(Path('.pncc-dev/contracts/governed-frontier-transition-pipe-wu-135.json').read_text())
+          a=json.loads(Path('.pncc-dev/contracts/wave6-hbe-pipeline-health-drift-assessment-wu135.json').read_text())
+          assert f['frontier_id']=='WAVE6_HBE_PERIODIC_HEALTH_DRIFT_AUTHORITY_PROPOSAL_PREPARATION_EXISTING_AUTHORITY_ONLY'
+          assert f['periodic_scheduling_authority'] is False
+          assert f['unattended_mutation_authority'] is False
+          assert f['higher_autonomy_authority'] is False
+          assert t['predecessor_frontier']['blob_sha']=='c9f16baebd6ba5416e176b76fe69e32387e93786'
+          assert t['successor_frontier']['blob_sha']=='0fcd62f95ca491d70faddc07a251baed0524f876'
+          assert t['assessment_grants_authority'] is False
+          assert a['assessment_output_authority']['periodic_scheduling_authority'] is False
+          PY
+
+      - name: Assert workflow itself is read only
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          t=Path('.github/workflows/wave6-hbe-pipeline-health-drift-wu135.yml').read_text().lower()
+          forbidden=['contents:'+' write','issues:'+' write','pull-requests:'+' write','actions:'+' write','git'+' push','gh'+' pr merge','gh'+' issue close','--method'+' post','--method'+' patch','--method'+' put','--method'+' delete']
+          for token in forbidden:
+              assert token not in t, token
+          PY
+
+      - name: Assert repository remains clean
+        run: test -z "$(git status --porcelain)"
