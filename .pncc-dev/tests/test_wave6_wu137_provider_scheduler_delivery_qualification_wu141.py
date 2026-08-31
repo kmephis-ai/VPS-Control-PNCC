@@ -13,7 +13,7 @@ WORKFLOW_PATH = ROOT / ".github/workflows/wave6-hbe-periodic-health-drift-wu137.
 FRONTIER_PATH = ROOT / ".pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json"
 
 EXPECTED_ANCHORS = {
-    ".github/workflows/wave6-hbe-periodic-health-drift-wu137.yml": "524ff5813cb45476fa332f7ebfdc195931ce0dff",
+    ".github/workflows/wave6-hbe-periodic-health-drift-wu137.yml": "524ff581fb1c68d25a9c4d3b3ed56cd995fa82f2",
     ".pncc-dev/contracts/wave6-hbe-periodic-health-drift-activation-wu137.json": "37e08c46e021e04f1be6b799009b6f24111c1ac3",
     ".pncc-dev/scripts/evaluate_wave6_hbe_periodic_health_drift_wu137.py": "d478fdc13afcf81b30d59952a44cc2aad8d5d5fe",
     ".pncc-dev/tests/test_wave6_hbe_periodic_health_drift_wu137.py": "d1e292178284663e4a5b6636d857c145aa31748e",
