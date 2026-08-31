@@ -74,7 +74,7 @@ jobs:
               ruleset.get('updated_at')==attestation.get('ruleset_updated_at') and
               ruleset.get('enforcement')==attestation.get('enforcement') and
               required==attestation.get('required_check_contexts') and
-              strict_checks is attestation.get('strict_required_status_checks_policy')
+              strict_checks == attestation.get('strict_required_status_checks_policy')
           )
           enforcement='ACTIVE_NO_BYPASS' if attestation_valid and visible_matches_attestation else 'DRIFT'
           snapshot={
@@ -155,7 +155,7 @@ jobs:
             '.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json' \
             '.pncc-dev/contracts/wave6-hbe-pipeline-health-drift-assessment-policy.json' \
             '.pncc-dev/contracts/wave6-hbe-pipeline-health-drift-assessment-wu135.json' \
-            '.pncc-dev/scripts/evaluate_wave6_hbe-pipeline-health-drift.py' \
+            '.pncc-dev/scripts/evaluate_wave6_hbe_pipeline_health_drift.py' \
             '.pncc-dev/tests/fixtures/wave6-hbe-frontier-bootstrap-wu134-successor.json' \
             '.pncc-dev/tests/test_wave6_hbe_frontier_bootstrap_wu134.py' \
             '.pncc-dev/tests/test_wave6_hbe_pipeline_health_drift_wu135.py' | sort > /tmp/expected
