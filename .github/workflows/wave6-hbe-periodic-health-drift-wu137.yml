@@ -160,6 +160,14 @@ jobs:
           PY
           test -z "$(git status --porcelain)"
 
+  successor-pr-noop:
+    if: github.event_name == 'pull_request' && github.head_ref != 'agent/PIPE-WU-137-wave6-hbe-periodic-health-drift-activation'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Confirm terminal WU137 validator is not applicable
+        run: echo 'WU137 terminal activation validator is branch-gated; scheduled health/drift monitoring is unchanged.'
+
   periodic-health-drift:
     if: github.event_name == 'schedule'
     runs-on: ubuntu-24.04
