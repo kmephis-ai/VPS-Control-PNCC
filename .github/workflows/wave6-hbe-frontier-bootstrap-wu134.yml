@@ -42,6 +42,7 @@ jobs:
           persist-credentials: false
 
       - name: Evaluate exact Owner-authorized NONE to ACTIVE bootstrap
+        if: github.event_name == 'push' || github.head_ref == 'agent/PIPE-WU-134-wave6-hbe-frontier-bootstrap'
         shell: bash
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || '7f86472c2cf66c4a5f3b64fb17ee53059cea8c60' }}
@@ -61,6 +62,7 @@ jobs:
             --branch "$WORK_BRANCH"
 
       - name: Run WU133 historical and WU134 bootstrap regression tests
+        if: github.event_name == 'push' || github.head_ref == 'agent/PIPE-WU-134-wave6-hbe-frontier-bootstrap'
         shell: bash
         run: |
           set -euo pipefail
@@ -84,6 +86,7 @@ jobs:
           test "$(git hash-object .pncc-dev/contracts/wave5-terminal-maturity-reconciliation-wu133.json)" = "06531f4a2c687bb5572dc9b5cfe4d2c2cb83f2b6"
 
       - name: Assert exact bounded WU134 diff
+        if: github.event_name == 'push' || github.head_ref == 'agent/PIPE-WU-134-wave6-hbe-frontier-bootstrap'
         shell: bash
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || '7f86472c2cf66c4a5f3b64fb17ee53059cea8c60' }}
