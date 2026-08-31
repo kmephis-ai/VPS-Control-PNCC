@@ -11,6 +11,7 @@ permissions:
 
 jobs:
   wave6-hbe-periodic-health-drift-proposal:
+    if: github.head_ref == 'agent/PIPE-WU-136-wave6-hbe-periodic-health-drift-authority-proposal-preparation'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
