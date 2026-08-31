@@ -147,16 +147,16 @@ jobs:
           assert "cron: '17 * * * *'" in t
           assert 'timeout-minutes: 10' in t
           assert 'actions: read' in t and 'checks: read' in t
-          assert 'workflow_dispatch:' not in t
+          assert ('workflow_' + 'dispatch:') not in t
           forbidden=[
-            'contents: write','issues: write','pull-requests: write','actions: write','checks: write',
-            'git push','gh pr merge','gh issue close','--method post','--method patch',
-            '--method put','--method delete','self-hosted'
+            'contents:' + ' write','issues:' + ' write','pull-requests:' + ' write','actions:' + ' write','checks:' + ' write',
+            'git' + ' push','gh pr' + ' merge','gh issue' + ' close','--method' + ' post','--method' + ' patch',
+            '--method' + ' put','--method' + ' delete','self-' + 'hosted'
           ]
           for token in forbidden:
               assert token not in low, token
-          assert 'while true' not in low
-          assert 'rerun' not in low
+          assert ('while' + ' true') not in low
+          assert ('re' + 'run') not in low
           PY
           test -z "$(git status --porcelain)"
 
