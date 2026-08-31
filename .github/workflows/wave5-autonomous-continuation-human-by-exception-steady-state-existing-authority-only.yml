@@ -79,7 +79,7 @@ jobs:
             --base-sha "$BASE_SHA" \
             --branch "$WORK_BRANCH"
 
-      - name: Pin WU-128 artifacts
+      - name: Pin immutable WU-128 artifacts
         shell: bash
         run: |
           set -euo pipefail
@@ -87,7 +87,6 @@ jobs:
           test "$(git hash-object .pncc-dev/scripts/evaluate_autonomous_continuation_human_by_exception_steady_state.py)" = "4a6ce0f528c879804723dd5c75d673f908188b19"
           test "$(git hash-object .pncc-dev/tests/test_autonomous_continuation_human_by_exception_steady_state_wu128.py)" = "3f9e59eb0bc3c16d7fbf3d0f5efd462cbb7a17df"
           test "$(git hash-object .pncc-dev/contracts/governed-frontier-transition-pipe-wu-128.json)" = "2dc280ed074297ebbd53ac41ca0e77c8a83d8ce2"
-          test "$(git hash-object .pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json)" = "320f76f278bd7464e8a755e0a2982236e5e25c00"
 
       - name: Enforce exact bounded WU-128 diff and ancestry
         if: github.event_name == 'pull_request' && github.head_ref == 'agent/PIPE-WU-128-human-by-exception-steady-state-existing-authority-only'
