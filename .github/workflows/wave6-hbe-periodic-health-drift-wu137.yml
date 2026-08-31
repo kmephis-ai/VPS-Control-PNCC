@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   validate-activation:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && github.head_ref == 'agent/PIPE-WU-137-wave6-hbe-periodic-health-drift-activation'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
