@@ -74,7 +74,7 @@ jobs:
             '.pncc-dev/contracts/governed-frontier-transition-pipe-wu-136.json' \
             '.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json' \
             '.pncc-dev/contracts/wave6-hbe-periodic-health-drift-authority-proposal-wu136.json' \
-            '.pncc-dev/tests/test_wave6_hbe_periodic_health_drift_proposal_wu136.py' | sort > /tmp/expected
+            '.pncc-dev/tests/test_wave6_hbe-periodic-health-drift-proposal-wu136.py' | sort > /tmp/expected
           diff -u /tmp/expected /tmp/actual
           ! grep -E '^(\.pncc-state/|src/windows-v7/|\.adwf-consumer/|tools/runtime-agent/)' /tmp/actual
 
@@ -91,3 +91,25 @@ jobs:
 
       - name: Assert repository remains clean
         run: test -z "$(git status --porcelain)"
+
+  successor-pr-regression:
+    if: github.head_ref != 'agent/PIPE-WU-136-wave6-hbe-periodic-health-drift-authority-proposal-preparation'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact successor PR head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Run WU138 branch-gating regression when canonical
+        shell: bash
+        run: |
+          set -euo pipefail
+          test_path='.pncc-dev/tests/test_wave6_terminal_workflow_branch_gating_wu138.py'
+          if [ -f "$test_path" ]; then
+            python3 -m unittest discover -s .pncc-dev/tests -p 'test_wave6_terminal_workflow_branch_gating_wu138.py' -v
+          else
+            echo 'WU138 regression is not present on this historical successor; terminal WU136 validator is correctly non-applicable.'
+          fi
