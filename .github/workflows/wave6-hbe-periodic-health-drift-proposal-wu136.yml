@@ -68,6 +68,7 @@ jobs:
           test "$(git merge-base "$BASE_SHA" "$HEAD_SHA")" = "$BASE_SHA"
           git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort > /tmp/actual
           printf '%s\n' \
+            '.github/workflows/wave6-hbe-pipeline-health-drift-wu135.yml' \
             '.github/workflows/wave6-hbe-periodic-health-drift-proposal-wu136.yml' \
             '.pncc-dev/contracts/governed-frontier-transition-pipe-wu-136.json' \
             '.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json' \
