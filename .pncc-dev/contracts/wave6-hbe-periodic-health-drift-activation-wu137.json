@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "role": "WAVE6_HBE_PERIODIC_HEALTH_DRIFT_ACTIVATION",
+  "activation_state": "OWNER_AUTHORIZED_ACTIVE",
+  "repository": "kmephis-ai/VPS-Control-PNCC",
+  "work_unit": {
+    "work_unit_id": "PIPE-WU-137",
+    "issue_number": 322,
+    "conflict_domain": "wave6-hbe-periodic-health-drift-activation-existing-authority-only",
+    "base_sha": "107f0e3ac66f3fa53bddf6ad30f1afbbccc49ada",
+    "branch": "agent/PIPE-WU-137-wave6-hbe-periodic-health-drift-activation",
+    "runtime_required": false
+  },
+  "proposal_binding": {
+    "path": ".pncc-dev/contracts/wave6-hbe-periodic-health-drift-authority-proposal-wu136.json",
+    "blob_sha": "7605105488aafad7400c26c13a5c8f5515d40a02",
+    "proposal_state": "PREPARED_NON_AUTHORIZING"
+  },
+  "owner_authorization": {
+    "issue_number": 322,
+    "authorized_base_sha": "107f0e3ac66f3fa53bddf6ad30f1afbbccc49ada",
+    "authorized_proposal_blob_sha": "7605105488aafad7400c26c13a5c8f5515d40a02",
+    "authorized_cadence_seconds": 3600,
+    "authorization_tokens_must_remain_provider_visible": true
+  },
+  "monitoring": {
+    "mode": "READ_ONLY_PROVIDER_TRUTH_ONLY",
+    "cadence_seconds": 3600,
+    "cron_utc": "17 * * * *",
+    "snapshot_freshness_max_seconds": 300,
+    "future_clock_skew_max_seconds": 30,
+    "maximum_single_run_seconds": 600,
+    "overlap_policy": "SKIP_IF_PREVIOUS_RUN_ACTIVE",
+    "missed_run_policy": "NO_CATCH_UP_BURST_REEVALUATE_FRESH_PROVIDER_TRUTH",
+    "provider_truth_source": "FRESH_GITHUB_PROVIDER_READS_EACH_RUN",
+    "stored_checkpoint_authority": "NON_AUTHORITATIVE_HINT_ONLY",
+    "required_health_dimensions": [
+      "FRESH_PROVIDER_TRUTH",
+      "MAIN_IDENTITY",
+      "CANONICAL_FRONTIER",
+      "PROVIDER_STATE",
+      "RULESET_ENFORCEMENT",
+      "REQUIRED_CHECK_CONTEXTS",
+      "AUTHORITY_BOUNDARIES"
+    ],
+    "required_check_contexts": [
+      "repo-integrity",
+      "powershell-static",
+      "truth-contract"
+    ],
+    "outcome_routing": {
+      "HEALTHY": "NO_NOTIFICATION_NO_MUTATION",
+      "DRIFT_DETECTED": "OWNER_NOTIFICATION_AND_READ_ONLY_RECONCILIATION_ONLY",
+      "OWNER_EXCEPTION_REQUIRED": "OWNER_NOTIFICATION_AND_STOP",
+      "BLOCKED": "FAIL_CLOSED_OWNER_NOTIFICATION_IF_ACTIONABLE"
+    },
+    "owner_notification_channel": "GITHUB_ACTIONS_FAILURE_SIGNAL_AND_ANNOTATION"
+  },
+  "ruleset_binding": {
+    "ruleset_id": 21585301,
+    "enforcement": "active",
+    "configured_bypass_actor_count": 0,
+    "current_user_can_bypass": "never",
+    "strict_required_status_checks_policy": true,
+    "required_check_contexts": [
+      "repo-integrity",
+      "powershell-static",
+      "truth-contract"
+    ]
+  },
+  "writer_lease_acquisition_snapshot": {
+    "generation": 51,
+    "lease_id": "78994206-dd05-4ce0-9b09-408cf5c75969",
+    "provider_state_commit_sha": "b1d5c2a4cba94a253bc106b5ab034c807bb76e54",
+    "registry_blob_sha": "5cd18c8376dc65894dcbe8bebbeed3ab759bcb68",
+    "base_sha": "107f0e3ac66f3fa53bddf6ad30f1afbbccc49ada",
+    "branch": "agent/PIPE-WU-137-wave6-hbe-periodic-health-drift-activation"
+  },
+  "safety_contract": {
+    "primary_1081_role": "PRIMARY_AUTO",
+    "reserve_1080_role": "RESERVE_MANUAL_MANUAL_ONLY",
+    "reserve_1080_lifecycle_mutation_forbidden": true,
+    "primary_1081_lifecycle_mutation_forbidden": true,
+    "v631_expected_sha256": "385e5178f10e79b0b234376e6a6671b64ce523a3971b2b4341ec94ce1efee11e",
+    "ci_runtime_equivalence_forbidden": true,
+    "secrets_forbidden": true,
+    "public_self_hosted_runner_forbidden": true,
+    "ruleset_bypass_forbidden": true,
+    "force_update_forbidden": true
+  },
+  "authority": {
+    "provider_mutation_authority": false,
+    "writer_lease_mutation_authority": false,
+    "issue_mutation_authority": false,
+    "branch_mutation_authority": false,
+    "pull_request_mutation_authority": false,
+    "workflow_rerun_authority": false,
+    "runtime_action_authority": false,
+    "product_runtime_mutation_authority": false,
+    "adwf_repository_mutation_authority": false,
+    "release_tag_promotion_authority": false,
+    "ruleset_policy_mutation_authority": false,
+    "private_evidence_publication_authority": false,
+    "reserve_1080_lifecycle_mutation_authority": false,
+    "primary_1081_lifecycle_mutation_authority": false,
+    "unattended_provider_mutation_authority": false,
+    "higher_autonomy_authority": false
+  },
+  "canonical_successor_frontier": {
+    "state": "NONE",
+    "meaning": "PERIODIC_READ_ONLY_MONITOR_IS_STEADY_STATE_NOT_A_MUTATION_FRONTIER"
+  },
+  "next_boundary": "EXACT_HEAD_HOSTED_CI_THEN_EXISTING_REUSABLE_MERGE_CLOSE_AUTHORITY"
+}
