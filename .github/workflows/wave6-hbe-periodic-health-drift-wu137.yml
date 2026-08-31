@@ -120,7 +120,7 @@ jobs:
           printf '%s\n' \
             '.github/workflows/wave6-hbe-periodic-health-drift-wu137.yml' \
             '.pncc-dev/contracts/wave6-hbe-periodic-health-drift-activation-wu137.json' \
-            '.pncc-dev/scripts/evaluate_wave6-hbe-periodic_health_drift_wu137.py' \
+            '.pncc-dev/scripts/evaluate_wave6_hbe_periodic_health_drift_wu137.py' \
             '.pncc-dev/tests/test_wave6_hbe_periodic_health_drift_wu137.py' | sort > /tmp/expected
           diff -u /tmp/expected /tmp/actual
           ! grep -E '^(\.pncc-state/|src/windows-v7/|\.adwf-consumer/|tools/runtime-agent/|tools/release/)' /tmp/actual
