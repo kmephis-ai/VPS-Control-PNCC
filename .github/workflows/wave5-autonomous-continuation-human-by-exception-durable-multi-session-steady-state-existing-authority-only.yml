@@ -30,4 +30,4 @@ jobs:
       - name: Validate PIPE-WU-132 evidence
         run: python .pncc-dev/scripts/validate_autonomous_continuation_human_by_exception_durable_multi_session_steady_state_wu132.py
       - name: Run PIPE-WU-132 regression tests
-        run: python -m pytest -q .pncc-dev/tests/test_autonomous_continuation_human_by_exception_durable_multi_session_steady_state_wu132.py
+        run: python -m unittest discover -s .pncc-dev/tests -p 'test_autonomous_continuation_human_by_exception_durable_multi_session_steady_state_wu132.py' -v
