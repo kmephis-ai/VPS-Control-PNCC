@@ -75,13 +75,21 @@ jobs:
           test -n "$WU_ID"
           WU_LOWER="$(printf '%s' "$WU_ID" | tr '[:upper:]' '[:lower:]')"
           TRANSITION=".pncc-dev/contracts/governed-frontier-transition-${WU_LOWER}.json"
-          test -f "$TRANSITION"
           git fetch --no-tags --depth=1 origin "$BASE_SHA"
+          git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort > /tmp/frontier-changed
+          FRONTIER_CHANGED=0
+          TRANSITION_CHANGED=0
+          if grep -Fxq "$FRONTIER" /tmp/frontier-changed; then FRONTIER_CHANGED=1; fi
+          if grep -Fxq "$TRANSITION" /tmp/frontier-changed; then TRANSITION_CHANGED=1; fi
+          if [ "$FRONTIER_CHANGED" -eq 0 ] && [ "$TRANSITION_CHANGED" -eq 0 ]; then
+            echo "NOT_APPLICABLE: governed frontier unchanged for $WU_ID"
+            exit 0
+          fi
+          test "$FRONTIER_CHANGED" -eq 1
+          test "$TRANSITION_CHANGED" -eq 1
+          test -f "$TRANSITION"
           git show "$BASE_SHA:$FRONTIER" > /tmp/predecessor-frontier.json
           cp "$FRONTIER" /tmp/successor-frontier.json
-          git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort > /tmp/frontier-changed
-          grep -Fx "$FRONTIER" /tmp/frontier-changed
-          grep -Fx "$TRANSITION" /tmp/frontier-changed
           python3 .pncc-dev/scripts/evaluate_governed_frontier_lifecycle.py \
             --transition "$TRANSITION" \
             --predecessor /tmp/predecessor-frontier.json \

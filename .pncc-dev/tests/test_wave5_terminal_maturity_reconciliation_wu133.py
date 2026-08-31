@@ -57,6 +57,23 @@ class Wave5TerminalMaturityReconciliationTests(unittest.TestCase):
         self.assertFalse(self.data["stable_or_promotion_claimed"])
         self.assertTrue(all(value is False for value in self.data["forbidden_mutations"].values()))
 
+    def test_frontier_lifecycle_harness_is_not_applicable_without_frontier_diff(self):
+        workflow = (ROOT / ".github/workflows/pipeline-state.yml").read_text(encoding="utf-8")
+        diff_probe = 'git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort > /tmp/frontier-changed'
+        transition_probe = 'test -f "$TRANSITION"'
+        self.assertIn(diff_probe, workflow)
+        self.assertIn('FRONTIER_CHANGED=0', workflow)
+        self.assertIn('TRANSITION_CHANGED=0', workflow)
+        self.assertIn('if [ "$FRONTIER_CHANGED" -eq 0 ] && [ "$TRANSITION_CHANGED" -eq 0 ]; then', workflow)
+        self.assertIn('NOT_APPLICABLE: governed frontier unchanged for $WU_ID', workflow)
+        self.assertLess(workflow.index(diff_probe), workflow.index(transition_probe))
+
+    def test_frontier_lifecycle_harness_fails_closed_on_partial_transition(self):
+        workflow = (ROOT / ".github/workflows/pipeline-state.yml").read_text(encoding="utf-8")
+        self.assertIn('test "$FRONTIER_CHANGED" -eq 1', workflow)
+        self.assertIn('test "$TRANSITION_CHANGED" -eq 1', workflow)
+        self.assertIn('test -f "$TRANSITION"', workflow)
+
 
 if __name__ == "__main__":
     unittest.main()
