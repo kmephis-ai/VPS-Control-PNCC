@@ -36,7 +36,7 @@ def healthy_snapshot():
         "authorization_tokens_present": True,
         "ruleset_id": 21585301,
         "ruleset_enforcement": "active",
-        "ruleset_bypass_actor_count": 0,
+        "ruleset_updated_at": "2026-08-26T21:32:07.589+03:00",
         "ruleset_current_user_can_bypass": "never",
         "ruleset_rule_types": ["deletion", "non_fast_forward", "pull_request", "required_status_checks"],
         "strict_required_status_checks_policy": True,
@@ -84,10 +84,12 @@ class TestWU137PeriodicHealthDrift(unittest.TestCase):
         self.assertEqual(r["outcome"], "DRIFT_DETECTED")
         self.assertIn("REQUIRED_CHECK_NOT_SUCCESS:truth-contract", r["reasons"])
 
-    def test_ruleset_bypass_requires_owner_exception(self):
+    def test_ruleset_updated_at_drift_detects_hidden_configuration_change(self):
         s = healthy_snapshot()
-        s["ruleset_bypass_actor_count"] = 1
-        self.assertEqual(self.evaluate(s)["outcome"], "OWNER_EXCEPTION_REQUIRED")
+        s["ruleset_updated_at"] = "2026-08-31T17:00:00Z"
+        r = self.evaluate(s)
+        self.assertEqual(r["outcome"], "DRIFT_DETECTED")
+        self.assertIn("RULESET_UPDATED_AT_DRIFT", r["reasons"])
 
     def test_ruleset_bypass_capability_requires_owner_exception(self):
         s = healthy_snapshot()
