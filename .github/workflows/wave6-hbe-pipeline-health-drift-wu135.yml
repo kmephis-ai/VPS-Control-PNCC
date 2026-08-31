@@ -76,6 +76,7 @@ jobs:
               required==attestation.get('required_check_contexts') and
               strict_checks == attestation.get('strict_required_status_checks_policy')
           )
+          print('RULESET_PUBLIC_FINGERPRINT', json.dumps({'id':ruleset.get('id'),'name':ruleset.get('name'),'target':ruleset.get('target'),'source_type':ruleset.get('source_type'),'source':ruleset.get('source'),'updated_at':ruleset.get('updated_at'),'enforcement':ruleset.get('enforcement'),'required_check_contexts':required,'strict_required_status_checks_policy':strict_checks,'attestation_valid':attestation_valid,'visible_matches_attestation':visible_matches_attestation},sort_keys=True))
           enforcement='ACTIVE_NO_BYPASS' if attestation_valid and visible_matches_attestation else 'DRIFT'
           snapshot={
               'observed_at':os.environ['WU135_OBSERVED_AT'],
