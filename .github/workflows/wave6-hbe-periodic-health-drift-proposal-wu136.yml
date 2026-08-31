@@ -11,6 +11,7 @@ permissions:
 
 jobs:
   wave6-hbe-periodic-health-drift-proposal:
+    if: github.head_ref == 'agent/PIPE-WU-136-wave6-hbe-periodic-health-drift-authority-proposal-preparation'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -90,3 +91,25 @@ jobs:
 
       - name: Assert repository remains clean
         run: test -z "$(git status --porcelain)"
+
+  successor-pr-regression:
+    if: github.head_ref != 'agent/PIPE-WU-136-wave6-hbe-periodic-health-drift-authority-proposal-preparation'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact successor PR head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Run WU138 branch-gating regression when canonical
+        shell: bash
+        run: |
+          set -euo pipefail
+          test_path='.pncc-dev/tests/test_wave6_terminal_workflow_branch_gating_wu138.py'
+          if [ -f "$test_path" ]; then
+            python3 -m unittest discover -s .pncc-dev/tests -p 'test_wave6_terminal_workflow_branch_gating_wu138.py' -v
+          else
+            echo 'WU138 regression is not present on this historical successor; terminal WU136 validator is correctly non-applicable.'
+          fi

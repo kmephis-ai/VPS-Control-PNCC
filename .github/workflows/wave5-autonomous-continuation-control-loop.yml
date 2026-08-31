@@ -27,6 +27,9 @@ jobs:
       - name: Run WU-108 adversarial control-loop tests
         run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_autonomous_continuation_control_loop_wu108.py' -v
 
+      - name: Run WU139 live no-frontier harness regression
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_autonomous_continuation_control_loop_live_harness_wu139.py' -v
+
       - name: Assert exact control-loop anchors
         shell: bash
         run: |
@@ -95,6 +98,13 @@ jobs:
               req=urllib.request.Request(url,headers=headers)
               with urllib.request.urlopen(req,timeout=30) as response: return json.load(response)
           cont=json.load(open(cont_path,encoding='utf-8')); ci=json.load(open(ci_path,encoding='utf-8'))
+          if cont.get('decision')=='NO_FRONTIER':
+              if cont.get('selected') is not None: raise SystemExit('NO_FRONTIER_SELECTED_WORK_UNIT_PRESENT')
+              main_ref=get(f'https://api.github.com/repos/{repo}/git/ref/heads/main'); main=((main_ref.get('object') or {}).get('sha'))
+              snap={'schema_version':1,'role':'AUTONOMOUS_CONTINUATION_CONTROL_LOOP_SNAPSHOT','repository':repo,'default_branch':'main','provider_truth_fresh':True,
+                    'current_main_sha':main,'continuation_decision':cont,'execution_state':None,'ci_decision':None}
+              with open(out,'w',encoding='utf-8') as f: json.dump(snap,f,sort_keys=True,indent=2); f.write('\n')
+              raise SystemExit(0)
           selected=cont.get('selected') or {}
           wu=selected.get('work_unit_id'); issue_number=selected.get('issue')
           if not isinstance(wu,str) or re.fullmatch(r'PIPE-WU-[0-9]+',wu) is None: raise SystemExit('LIVE_SELECTED_WORK_UNIT_REQUIRED')
@@ -120,6 +130,15 @@ jobs:
           python3 - "$RUNNER_TEMP/ci-decision.json" "$RUNNER_TEMP/control-loop-decision.json" <<'PY'
           import json,sys
           ci=json.load(open(sys.argv[1],encoding='utf-8')); loop=json.load(open(sys.argv[2],encoding='utf-8'))
+          if loop.get('decision')=='STOP_NO_FRONTIER':
+              if loop.get('delegated_authority')!='NONE_TERMINAL': raise SystemExit('NO_FRONTIER_DELEGATION_DRIFT')
+              if loop.get('selected_work_unit_id') is not None or loop.get('selected_issue_number') is not None: raise SystemExit('NO_FRONTIER_SYNTHETIC_SELECTION')
+              if loop.get('execution_state') is not None or loop.get('ci_decision') is not None: raise SystemExit('NO_FRONTIER_SYNTHETIC_EXECUTION_STATE')
+              for field in ('provider_mutation_performed','issue_mutation_performed','branch_mutation_performed','pull_request_mutation_performed',
+                            'writer_lease_mutation_performed','workflow_rerun_performed','merge_performed','runtime_action_performed','product_runtime_mutation_performed'):
+                  if loop.get(field) is not False: raise SystemExit('NO_FRONTIER_MUTATION_REPORTED:'+field)
+              print('LIVE_CONTROL_LOOP_DECISION='+loop['decision'])
+              raise SystemExit(0)
           expected={'CI_PENDING':'WAIT_FOR_EXACT_HEAD_CI','CI_SUCCESS':'PLAN_EXISTING_WRITER_LEASE_RELEASE',
                     'HARNESS_OR_VALIDATION_DEFECT_CANDIDATE':'PLAN_CLASSIFIED_FAILURE_RECOVERY',
                     'PRODUCT_RUNTIME_DEFECT_CANDIDATE':'PLAN_CLASSIFIED_FAILURE_RECOVERY','PROVIDER_ENVIRONMENT_AMBIGUITY':'PLAN_CLASSIFIED_FAILURE_RECOVERY'}

@@ -27,7 +27,11 @@ jobs:
       - name: Run WU-109 adversarial admission tests
         run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_autonomous_continuation_execution_admission_wu109.py' -v
 
+      - name: Run WU140 terminal-validator regression
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_autonomous_continuation_execution_admission_terminal_validator_wu140.py' -v
+
       - name: Assert exact admission anchors
+        if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'agent/PIPE-WU-109-')
         shell: bash
         run: |
           set -euo pipefail
