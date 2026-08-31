@@ -34,9 +34,9 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git hash-object .pncc-dev/contracts/wave6-hbe-periodic-health-drift-authority-proposal-wu136.json)" = "7605105488aafad7400c26c13a5c8f5515d40a02"
-          test "$(git hash-object .pncc-dev/contracts/wave6-hbe-periodic-health-drift-activation-wu137.json)" = "dcf0644aa400ba0d33ca041508ec66d26912e384"
-          test "$(git hash-object .pncc-dev/scripts/evaluate_wave6_hbe_periodic_health_drift_wu137.py)" = "1d87aa0a229b396fa10afd21216444d2d5fc77a2"
-          test "$(git hash-object .pncc-dev/tests/test_wave6_hbe_periodic_health_drift_wu137.py)" = "7c16fece5e6b8796999dacec4bea11c43a42c41f"
+          test "$(git hash-object .pncc-dev/contracts/wave6-hbe-periodic-health-drift-activation-wu137.json)" = "37e08c46e021e04f1be6b799009b6f24111c1ac3"
+          test "$(git hash-object .pncc-dev/scripts/evaluate_wave6_hbe_periodic_health_drift_wu137.py)" = "51ec50b9cadeaa114055978ff29e5d90b427882f"
+          test "$(git hash-object .pncc-dev/tests/test_wave6_hbe_periodic_health_drift_wu137.py)" = "de2c7315ae9fe822ab5d8fe82be1a1dfaf1abfe7"
           python3 - <<'PY'
           import json
           from pathlib import Path
@@ -48,6 +48,9 @@ jobs:
           assert a['monitoring']['cron_utc']=='17 * * * *'
           assert a['monitoring']['overlap_policy']=='SKIP_IF_PREVIOUS_RUN_ACTIVE'
           assert a['monitoring']['missed_run_policy']=='NO_CATCH_UP_BURST_REEVALUATE_FRESH_PROVIDER_TRUTH'
+          assert a['ruleset_binding']['activation_observed_bypass_actor_count']==0
+          assert a['ruleset_binding']['ruleset_updated_at']=='2026-08-26T21:32:07.589+03:00'
+          assert a['ruleset_binding']['bypass_actor_list_revalidation_via_read_only_token']=='UNAVAILABLE_BY_GITHUB_API_DESIGN'
           assert all(v is False for v in a['authority'].values())
           PY
 
@@ -98,7 +101,9 @@ jobs:
           assert all(t in body for t in required_tokens)
           assert ruleset.get('id')==21585301
           assert ruleset.get('enforcement')=='active'
-          assert ruleset.get('bypass_actors')==[]
+          assert ruleset.get('updated_at')=='2026-08-26T21:32:07.589+03:00'
+          if 'bypass_actors' in ruleset:
+              assert ruleset['bypass_actors']==[]
           assert ruleset.get('current_user_can_bypass')=='never'
           rules={r.get('type'):r for r in ruleset.get('rules',[])}
           assert set(rules)=={'deletion','non_fast_forward','pull_request','required_status_checks'}
@@ -243,7 +248,7 @@ jobs:
               'authorization_tokens_present':all(t in body for t in auth_tokens),
               'ruleset_id':ruleset.get('id'),
               'ruleset_enforcement':ruleset.get('enforcement'),
-              'ruleset_bypass_actor_count':len(ruleset.get('bypass_actors') or []),
+              'ruleset_updated_at':ruleset.get('updated_at'),
               'ruleset_current_user_can_bypass':ruleset.get('current_user_can_bypass'),
               'ruleset_rule_types':sorted(rule_map),
               'strict_required_status_checks_policy':status_params.get('strict_required_status_checks_policy'),
