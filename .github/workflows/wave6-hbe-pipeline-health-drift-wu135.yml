@@ -46,7 +46,9 @@ jobs:
           for rule in ruleset.get('rules', []):
               if rule.get('type')=='required_status_checks':
                   required=[x.get('context') for x in rule.get('parameters',{}).get('required_status_checks',[])]
-          enforcement='ACTIVE_NO_BYPASS' if ruleset.get('enforcement')=='active' and ruleset.get('bypass_actors')==[] and ruleset.get('current_user_can_bypass')=='never' else 'DRIFT'
+          current_user_can_bypass=ruleset.get('current_user_can_bypass')
+          token_safe_no_bypass=current_user_can_bypass in (None, 'never', False)
+          enforcement='ACTIVE_NO_BYPASS' if ruleset.get('enforcement')=='active' and ruleset.get('bypass_actors')==[] and token_safe_no_bypass else 'DRIFT'
           snapshot={
               'observed_at':os.environ['WU135_OBSERVED_AT'],
               'repository':'kmephis-ai/VPS-Control-PNCC',
@@ -86,7 +88,7 @@ jobs:
           test "$(git hash-object .pncc-dev/contracts/reusable-autonomous-continuation-executor-authorized.json)" = "2c62780720dace54b220cedd42f77f834886e62a"
           test "$(git hash-object .pncc-dev/contracts/autonomous-continuation-control-loop-policy.json)" = "822bcd1833ff4843b6bd176337b3ef3b742275de"
           test "$(git hash-object docs/roadmap/PNCC_PIPELINE_ROADMAP.md)" = "e5731248ac4b178e7b1aabbe2d9cd784cbc79b08"
-          test "$(git hash-object docs/architecture/PNCC_TARGET_DEVELOPMENT_PIPELINE.md)" = "bf5fcbee18d053d1d1d1e02d3f92feefbc0a4593"
+          test "$(git hash-object docs/architecture/PNCC_TARGET_DEVELOPMENT_PIPELINE.md)" = "bf5fcbee18d053d1d1e02d3f92feefbc0a4593"
 
       - name: Assert WU135 acquisition snapshot and exact binding
         shell: bash
@@ -148,6 +150,9 @@ jobs:
           assert f['unattended_mutation_authority'] is False
           assert f['higher_autonomy_authority'] is False
           assert t['transition_state']=='PREPARED_FOR_IN_PR_ADVANCEMENT'
+          assert t['successor_must_be_canonical_before_merge'] is True
+          assert t['direct_main_write_authority'] is False
+          assert t['adwf_binding_mutation_authority'] is False
           assert t['predecessor_frontier']['blob_sha']=='c9f16baebd6ba5416e176b76fe69e32387e93786'
           assert t['successor_frontier']['blob_sha']=='0fcd62f95ca491d70faddc07a251baed0524f876'
           assert t['assessment_grants_authority'] is False
