@@ -12,7 +12,7 @@ ROOT = HERE.parents[1]
 SCRIPT = ROOT / ".pncc-dev/scripts/evaluate_wave6_hbe_frontier_bootstrap.py"
 POLICY = ROOT / ".pncc-dev/contracts/wave6-hbe-frontier-bootstrap-policy.json"
 TRANSITION = ROOT / ".pncc-dev/contracts/wave6-hbe-frontier-bootstrap-pipe-wu-134.json"
-FRONTIER = ROOT / ".pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json"
+SUCCESSOR_FIXTURE = ROOT / ".pncc-dev/tests/fixtures/wave6-hbe-frontier-bootstrap-wu134-successor.json"
 
 spec = importlib.util.spec_from_file_location("wu134_bootstrap", SCRIPT)
 module = importlib.util.module_from_spec(spec)
@@ -31,7 +31,8 @@ class Wave6HbeFrontierBootstrapWu134Tests(unittest.TestCase):
         cls.policy_bytes = POLICY.read_bytes()
         cls.policy = module.loads_strict(cls.policy_bytes)
         cls.transition = module.load_json(TRANSITION)
-        cls.successor_bytes = FRONTIER.read_bytes()
+        cls.successor_bytes = SUCCESSOR_FIXTURE.read_bytes()
+        assert module.git_blob_sha_bytes(cls.successor_bytes) == "c9f16baebd6ba5416e176b76fe69e32387e93786"
 
     def evaluate(self, transition=None, predecessor=None, successor=None, policy=None, policy_bytes=None, **kwargs):
         return module.evaluate_bootstrap(
