@@ -47,6 +47,7 @@ jobs:
               if rule.get('type')=='required_status_checks':
                   required=[x.get('context') for x in rule.get('parameters',{}).get('required_status_checks',[])]
           configured_no_bypass=ruleset.get('bypass_actors')==[]
+          print('RULESET_SAFE_DIAGNOSTIC', json.dumps({'enforcement':ruleset.get('enforcement'),'bypass_actors_present':'bypass_actors' in ruleset,'bypass_actor_count':len(ruleset.get('bypass_actors',[])) if isinstance(ruleset.get('bypass_actors'),list) else None,'top_level_keys':sorted(ruleset.keys())}, sort_keys=True))
           enforcement='ACTIVE_NO_BYPASS' if ruleset.get('enforcement')=='active' and configured_no_bypass else 'DRIFT'
           snapshot={
               'observed_at':os.environ['WU135_OBSERVED_AT'],
