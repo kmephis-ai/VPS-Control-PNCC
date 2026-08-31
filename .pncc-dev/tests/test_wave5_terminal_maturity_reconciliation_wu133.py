@@ -44,11 +44,12 @@ class Wave5TerminalMaturityReconciliationTests(unittest.TestCase):
         self.assertFalse(proposal["authority_granted"])
         self.assertTrue(proposal["requires_explicit_owner_authorization"])
 
-    def test_terminal_frontier_and_immutable_anchors_remain_exact(self):
+    def test_terminal_frontier_snapshot_and_immutable_anchors_remain_exact(self):
         provider = self.data["provider_truth"]
-        frontier = ROOT / provider["frontier_path"]
-        self.assertEqual(json.loads(frontier.read_text(encoding="utf-8")), mod.EXPECTED_FRONTIER)
-        self.assertEqual(mod.git_blob_sha(frontier), provider["frontier_blob_sha"])
+        self.assertEqual(provider["frontier_state"], "NONE")
+        self.assertFalse(provider["frontier_mutation_performed"])
+        self.assertEqual(provider["frontier_path"], mod.EXPECTED_FRONTIER_PATH)
+        self.assertEqual(provider["frontier_blob_sha"], mod.EXPECTED_FRONTIER_BLOB)
         for rel, expected in self.data["anchor_impact"]["immutable_anchor_expectations"].items():
             self.assertEqual(mod.git_blob_sha(ROOT / rel), expected)
 
@@ -61,18 +62,23 @@ class Wave5TerminalMaturityReconciliationTests(unittest.TestCase):
         workflow = (ROOT / ".github/workflows/pipeline-state.yml").read_text(encoding="utf-8")
         diff_probe = 'git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort > /tmp/frontier-changed'
         transition_probe = 'test -f "$TRANSITION"'
+        bootstrap_probe = 'test -f "$BOOTSTRAP"'
         self.assertIn(diff_probe, workflow)
         self.assertIn('FRONTIER_CHANGED=0', workflow)
         self.assertIn('TRANSITION_CHANGED=0', workflow)
-        self.assertIn('if [ "$FRONTIER_CHANGED" -eq 0 ] && [ "$TRANSITION_CHANGED" -eq 0 ]; then', workflow)
+        self.assertIn('BOOTSTRAP_CHANGED=0', workflow)
+        self.assertIn('if [ "$FRONTIER_CHANGED" -eq 0 ] && [ "$TRANSITION_CHANGED" -eq 0 ] && [ "$BOOTSTRAP_CHANGED" -eq 0 ]; then', workflow)
         self.assertIn('NOT_APPLICABLE: governed frontier unchanged for $WU_ID', workflow)
         self.assertLess(workflow.index(diff_probe), workflow.index(transition_probe))
+        self.assertLess(workflow.index(diff_probe), workflow.index(bootstrap_probe))
 
     def test_frontier_lifecycle_harness_fails_closed_on_partial_transition(self):
         workflow = (ROOT / ".github/workflows/pipeline-state.yml").read_text(encoding="utf-8")
         self.assertIn('test "$FRONTIER_CHANGED" -eq 1', workflow)
-        self.assertIn('test "$TRANSITION_CHANGED" -eq 1', workflow)
+        self.assertIn('test $((TRANSITION_CHANGED + BOOTSTRAP_CHANGED)) -eq 1', workflow)
         self.assertIn('test -f "$TRANSITION"', workflow)
+        self.assertIn('test -f "$BOOTSTRAP"', workflow)
+        self.assertIn('test "$WU_ID" = "PIPE-WU-134"', workflow)
 
 
 if __name__ == "__main__":

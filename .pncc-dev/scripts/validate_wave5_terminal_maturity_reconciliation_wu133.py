@@ -21,6 +21,8 @@ EXPECTED_FRONTIER = {
     "role": "WAVE5_NEXT_GOVERNED_WORK_UNIT_FRONTIER",
     "state": "NONE",
 }
+EXPECTED_FRONTIER_PATH = ".pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json"
+EXPECTED_FRONTIER_BLOB = "b4cf4f19e0d89884598427ad0a6729c997e7f1fe"
 
 
 def git_blob_sha(path):
@@ -54,16 +56,8 @@ def validate(data):
     require(provider.get("writer_lease_generation") == 43, "writer lease generation mismatch")
     require(provider.get("frontier_state") == "NONE", "frontier state must remain NONE")
     require(provider.get("frontier_mutation_performed") is False, "frontier mutation must remain false")
-    frontier_path = ROOT / provider.get("frontier_path", "")
-    require(frontier_path.is_file(), "frontier path missing")
-    if frontier_path.is_file():
-        try:
-            frontier = json.loads(frontier_path.read_text(encoding="utf-8"))
-        except Exception as exc:
-            errors.append(f"frontier JSON invalid: {exc}")
-        else:
-            require(frontier == EXPECTED_FRONTIER, "canonical frontier must remain terminal NONE")
-            require(git_blob_sha(frontier_path) == provider.get("frontier_blob_sha"), "frontier blob mismatch")
+    require(provider.get("frontier_path") == EXPECTED_FRONTIER_PATH, "historical frontier path mismatch")
+    require(provider.get("frontier_blob_sha") == EXPECTED_FRONTIER_BLOB, "historical frontier blob mismatch")
 
     criteria = data.get("wave5_exit_criteria", [])
     require(isinstance(criteria, list), "exit criteria must be a list")
@@ -114,7 +108,7 @@ def validate(data):
     require(proposal.get("proposal_state") == "NON_AUTHORIZING_PROPOSAL_ONLY", "proposal must be non-authorizing")
     require(proposal.get("materialized") is False, "proposal must not be materialized")
     require(proposal.get("authority_granted") is False, "proposal must not grant authority")
-    require(proposal.get("current_frontier_remains_none") is True, "current frontier must remain NONE")
+    require(proposal.get("current_frontier_remains_none") is True, "historical WU133 frontier must remain NONE")
     require(proposal.get("proposed_next_work_unit_id") == "PIPE-WU-134", "next proposed WU id mismatch")
     require(proposal.get("requires_explicit_owner_authorization") is True, "next boundary must require explicit owner authorization")
     require(proposal.get("suggested_next_boundary") == "OWNER_DECISION_POST_WAVE5_HBE_FRONTIER", "next proposal boundary mismatch")
