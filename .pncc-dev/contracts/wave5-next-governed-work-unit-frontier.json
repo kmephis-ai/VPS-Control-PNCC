@@ -2,35 +2,30 @@
   "schema_version": 1,
   "role": "WAVE5_NEXT_GOVERNED_WORK_UNIT_FRONTIER",
   "state": "ACTIVE",
-  "frontier_id": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_STEADY_STATE_EXECUTION_WITH_EXISTING_AUTHORITY_ONLY",
-  "title_template": "{work_unit_id} — Execute Human-by-Exception steady-state under existing authority only",
-  "goal": "Execute and validate at least two fresh Human-by-Exception steady-state iterations using only already-canonical delegated authority, with at most one delegated transaction per iteration, exact cross-iteration Provider Truth/readback chaining, and no replay or authority expansion.",
-  "conflict_domain": "wave5-autonomous-continuation-human-by-exception-steady-state-execution-existing-authority-only",
+  "frontier_id": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_DURABLE_SESSION_RESUME_WITH_EXISTING_AUTHORITY_ONLY",
+  "title_template": "{work_unit_id} — Define Human-by-Exception durable session resume under existing authority only",
+  "goal": "Define a durable Human-by-Exception session-resume contract that can recover from interrupted sessions and expired historical Writer Leases using only already-canonical authority, fresh Provider Truth and explicit no-replay boundaries.",
+  "conflict_domain": "wave5-autonomous-continuation-human-by-exception-durable-session-resume-existing-authority-only",
   "runtime_required": false,
-  "steady_state_policy_input": {
-    "path": ".pncc-dev/contracts/autonomous-continuation-human-by-exception-steady-state-policy-wu128.json",
-    "blob_sha": "d229b6a7453447364ded12d8a349b6d5e15b5f98",
-    "evaluator_path": ".pncc-dev/scripts/evaluate_autonomous_continuation_human_by_exception_steady_state.py",
-    "evaluator_blob_sha": "4a6ce0f528c879804723dd5c75d673f908188b19",
-    "maximum_delegated_transactions_per_iteration": 1
+  "steady_state_execution_input": {
+    "path": ".pncc-dev/contracts/autonomous-continuation-human-by-exception-steady-state-execution-wu129.json",
+    "blob_sha": "b644be019b821a7f2de30a05102f1ae8efb8d964",
+    "required_completed_iterations": 2,
+    "recovery_generation_evidenced": 38
   },
   "scope": [
-    "execute at least two fresh Human-by-Exception steady-state iterations",
-    "re-evaluate fresh Provider Truth, control-loop, execution admission and operationalization for every iteration",
-    "permit at most one delegated transaction per iteration and only through an exact already-canonical authority",
-    "prove exact fresh readback after each delegated transaction before any next iteration",
-    "prove cross-iteration Provider Truth chaining without stale decision reuse",
-    "preserve OWNER_ESCALATION_REQUIRED as out-of-band owner-visible no-mutation no-replay behavior",
-    "preserve WAIT_ONLY as no-mutation no-replay behavior",
-    "preserve STOP_ONLY as terminal behavior",
-    "preserve SEPARATE_AUTHORITY_REQUIRED and BLOCKED as fail-closed behavior"
+    "define durable checkpoint fields for Human-by-Exception control-plane continuation",
+    "require fresh canonical main, Provider Truth, open work-unit and branch readback before resume",
+    "classify expired historical ACTIVE Writer Leases as historical observations that are never reused",
+    "require a fresh monotonic Writer Lease generation when continuation resumes after lease expiry",
+    "bind resumed execution to the same canonical work unit and bounded branch without replaying completed transactions",
+    "preserve OWNER_ESCALATION_REQUIRED, WAIT_ONLY, STOP_ONLY, SEPARATE_AUTHORITY_REQUIRED and BLOCKED as no-mutation or fail-closed outcomes"
   ],
   "forbidden_scope": [
     "create, infer or broaden provider-state, issue, branch, pull-request, merge, runtime, product, release, ruleset, ADWF or higher-autonomy authority",
-    "batch multiple delegated transactions into one iteration",
-    "advance to a next iteration before exact fresh readback is complete",
-    "reuse stale Provider Truth, control-loop, execution admission or operationalization decisions",
-    "automatically replay owner escalation, WAIT, STOP, separate-authority or BLOCKED outcomes",
+    "rewrite or retrospectively release expired historical Writer Lease records without separate exact authority",
+    "replay completed steady-state transactions after session interruption",
+    "resume from stale Provider Truth, stale canonical main, stale work-unit selection or stale branch state",
     "mutate product/runtime source or physical runtime",
     "mutate ADWF binding/repository, release/tag/promotion, ruleset/security policy, PRIVATE evidence or 1080/1081 lifecycle"
   ],
@@ -38,20 +33,20 @@
     "pipeline-state",
     "wave5-provider-work-unit-selection",
     "wave5-writer-lease-registry-topology",
-    "wave5-autonomous-continuation-human-by-exception-controlled-execution-existing-authority-only",
     "wave5-autonomous-continuation-human-by-exception-steady-state-existing-authority-only",
+    "wave5-autonomous-continuation-human-by-exception-steady-state-execution-existing-authority-only",
     "public-safety",
     "quality-fast",
     "quality-deep"
   ],
   "exit_criteria": [
-    "at least two iterations are evidenced with fresh per-iteration inputs",
-    "no iteration contains more than one delegated transaction",
-    "every performed delegated transaction has exact fresh readback before the next iteration",
-    "cross-iteration Provider Truth chain is exact and stale reuse is absent",
+    "durable checkpoint and resume inputs are machine-verifiable and bound to fresh Provider Truth",
+    "expired historical Writer Leases are never reused, reactivated or silently stolen",
+    "resume requires a fresh monotonic claim when no unexpired owned lease exists",
+    "completed steady-state transactions cannot replay after interruption",
     "automatic continuation remains limited to explicit already-canonical delegated authority",
     "owner escalation, WAIT, STOP, separate-authority and BLOCKED remain distinct no-mutation/fail-closed outcomes",
-    "execution grants no new mutation authority",
+    "resume contract grants no new mutation authority",
     "exact-head hosted CI passes with no product/runtime, ADWF or 1080/1081 mutation"
   ],
   "provider_mutation_authority": false,
@@ -74,5 +69,5 @@
   "primary_1081_lifecycle_mutation_authority": false,
   "higher_autonomy_authority": false,
   "owner_boundary_override": false,
-  "next_natural_boundary": "DETERMINED_BY_HUMAN_BY_EXCEPTION_STEADY_STATE_EXECUTION_WITH_EXISTING_AUTHORITY_ONLY"
+  "next_natural_boundary": "AUTONOMOUS_CONTINUATION_HUMAN_BY_EXCEPTION_DURABLE_SESSION_RESUME_EXECUTION_WITH_EXISTING_AUTHORITY_ONLY"
 }
