@@ -36,6 +36,7 @@ jobs:
           export WU135_PROVIDER_STATE_SHA="$(git rev-parse origin/pncc-provider-state)"
           python3 - <<'PY'
           import json, os
+          from datetime import datetime, timezone
           from pathlib import Path
           issue=json.loads(Path('/tmp/wu135-issue.json').read_text())
           ruleset=json.loads(Path('/tmp/wu135-ruleset.json').read_text())
@@ -50,6 +51,15 @@ jobs:
                   params=rule.get('parameters',{})
                   required=[x.get('context') for x in params.get('required_status_checks',[])]
                   strict_checks=params.get('strict_required_status_checks_policy')
+          def parse_rfc3339_instant(value):
+              if not isinstance(value, str):
+                  return None
+              try:
+                  return datetime.fromisoformat(value.replace('Z', '+00:00')).astimezone(timezone.utc)
+              except ValueError:
+                  return None
+          live_updated_at=parse_rfc3339_instant(ruleset.get('updated_at'))
+          attested_updated_at=parse_rfc3339_instant(attestation.get('ruleset_updated_at'))
           attestation_valid=(
               attestation.get('schema_version')==1 and
               attestation.get('role')=='WAVE6_HBE_RULESET_PROVIDER_TRUTH_ATTESTATION' and
@@ -71,7 +81,9 @@ jobs:
               ruleset.get('target')==attestation.get('target') and
               ruleset.get('source_type')==attestation.get('source_type') and
               ruleset.get('source')==attestation.get('source') and
-              ruleset.get('updated_at')==attestation.get('ruleset_updated_at') and
+              live_updated_at is not None and
+              attested_updated_at is not None and
+              live_updated_at==attested_updated_at and
               ruleset.get('enforcement')==attestation.get('enforcement') and
               required==attestation.get('required_check_contexts') and
               strict_checks == attestation.get('strict_required_status_checks_policy')
