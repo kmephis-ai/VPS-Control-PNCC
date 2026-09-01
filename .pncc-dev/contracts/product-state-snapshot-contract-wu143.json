@@ -82,6 +82,29 @@
       "automation_may_manage_lifecycle": false
     }
   ],
+  "ci_harness_repair": {
+    "classification": "HARNESS_OR_VALIDATION_DEFECT",
+    "reason": "HISTORICAL_WU105_EXACT_PROVENANCE_GUARD_RAN_ON_ALL_FUTURE_SRC_PULL_REQUESTS",
+    "workflow_path": ".github/workflows/wave5-writer-lease-registry-topology.yml",
+    "pre_repair_workflow_blob_sha": "d031588f5f9a675c5e3dde03bf327e229f2aa1a8",
+    "post_repair_workflow_blob_sha": "2900644a2355e2c7dbd3b25507d8c94a73fc1352",
+    "validator_path": ".pncc-dev/scripts/check_wu105_provenance_compatibility.py",
+    "validator_blob_sha": "bd597373ac25d932b772316540d5bdc57d41bf7f",
+    "validator_modified": false,
+    "historical_wu105_branch": "agent/PIPE-WU-105-adwf-consumer-provenance-reconciliation",
+    "guard_branch_gated": true,
+    "topology_validation_remains_global": true,
+    "registry_adversarial_tests_remain_global": true,
+    "durable_state_validation_remains_global": true,
+    "read_only_authority_assertion_remains_global": true,
+    "repository_clean_assertion_remains_global": true,
+    "workflow_permissions_unchanged": true,
+    "workflow_permissions": {
+      "contents": "read"
+    },
+    "product_runtime_semantics_changed": false,
+    "ruleset_or_security_policy_changed": false
+  },
   "byte_preserved_existing_product_anchors": {
     "src/windows-v7/VPS-Control-v7.ps1": "5ec83f2de8be1c468ee3991032e917ea21f5d212",
     "src/windows-v7/modules/V7-StatusCenter.ps1": "2f3f73799c5d70dbfc2f24870a3cd86cf91b0496",
@@ -106,6 +129,8 @@
   },
   "mutation_report": {
     "existing_product_file_modified": false,
+    "ci_harness_modified": true,
+    "historical_wu105_validator_modified": false,
     "routing_semantics_modified": false,
     "wu137_modified": false,
     "reserve_1080_lifecycle_modified": false,
