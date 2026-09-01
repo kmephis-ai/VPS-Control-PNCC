@@ -1,0 +1,133 @@
+name: wave6-wu144-provider-delivery-qualification-wu145
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/wave6-wu144-provider-delivery-qualification-wu145.yml'
+      - '.pncc-dev/contracts/wave6-wu144-provider-delivery-qualification-wu145.json'
+      - '.pncc-dev/scripts/evaluate_wave6_wu144_provider_delivery_qualification_wu145.py'
+      - '.pncc-dev/tests/test_wave6_wu144_provider_delivery_qualification_wu145.py'
+
+permissions:
+  contents: read
+  issues: read
+
+env:
+  AUTHORIZED_BASE_SHA: 9c8a5f4d18ce0557a121d3d0bcc66f8cc7e19367
+
+jobs:
+  validate-wu145:
+    if: github.head_ref == 'agent/PIPE-WU-145-wu144-observer-provider-delivery-qualification'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact WU145 PR head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Run WU145 regression suite
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_wave6_wu144_provider_delivery_qualification_wu145.py' -v
+
+      - name: Compile qualification evaluators
+        run: |
+          python3 -m py_compile .pncc-dev/scripts/evaluate_wave6_wu144_provider_delivery_qualification_wu145.py
+          python3 -m py_compile .pncc-dev/scripts/evaluate_wave6_wu137_redundant_observer_wu144.py
+
+      - name: Validate exact base, bounded diff, immutable pins and read-only authority
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$BASE_SHA" = "$AUTHORIZED_BASE_SHA"
+          test "$(git merge-base "$AUTHORIZED_BASE_SHA" "$HEAD_SHA")" = "$AUTHORIZED_BASE_SHA"
+          python3 - <<'PY'
+          import json
+          import subprocess
+          from pathlib import Path
+
+          expected_diff = {
+              '.github/workflows/wave6-wu144-provider-delivery-qualification-wu145.yml',
+              '.pncc-dev/contracts/wave6-wu144-provider-delivery-qualification-wu145.json',
+              '.pncc-dev/scripts/evaluate_wave6_wu144_provider_delivery_qualification_wu145.py',
+              '.pncc-dev/tests/test_wave6_wu144_provider_delivery_qualification_wu145.py',
+          }
+          actual = set(subprocess.check_output(
+              ['git', 'diff', '--name-only', '9c8a5f4d18ce0557a121d3d0bcc66f8cc7e19367', 'HEAD'],
+              text=True,
+          ).splitlines())
+          assert actual == expected_diff, (actual, expected_diff)
+
+          immutable = {
+              '.github/workflows/wave6-wu137-redundant-observer-wu144.yml': 'cf4bb67b8860bcb81f645eded3c34b863af8b0e0',
+              '.pncc-dev/contracts/wave6-wu137-redundant-observer-activation-wu144.json': '278a5e82bfe71c0a0aa64d68aebb1e825284096d',
+              '.pncc-dev/scripts/evaluate_wave6_wu137_redundant_observer_wu144.py': 'b91d2874395180146016e54536b62765ca8c048f',
+              '.pncc-dev/tests/test_wave6_wu137_redundant_observer_wu144.py': '49666b17da3c211fbdf2171c72b7b648c26c16e1',
+              '.github/workflows/wave6-hbe-periodic-health-drift-wu137.yml': '524ff581fb1c68d25a9c4d3b3ed56cd995fa82f2',
+              '.pncc-dev/contracts/wave6-wu137-provider-scheduler-delivery-qualification-wu141.json': '6414fac73150e8d4e9f004a7fa03fa19aed9c470',
+              '.pncc-dev/contracts/wave6-wu137-provider-scheduler-degradation-remediation-proposal-wu142.json': '00dbcdcf1c2cdc75021d75a0ae3a0dbe818bfcdf',
+          }
+          for path, expected in immutable.items():
+              actual_blob = subprocess.check_output(['git', 'hash-object', path], text=True).strip()
+              assert actual_blob == expected, (path, actual_blob, expected)
+
+          contract = json.loads(Path('.pncc-dev/contracts/wave6-wu144-provider-delivery-qualification-wu145.json').read_text())
+          assert contract['authorized_base_sha'] == '9c8a5f4d18ce0557a121d3d0bcc66f8cc7e19367'
+          assert contract['runtime_required'] is False
+          assert contract['observer_delivery_policy']['first_delivery_deadline_at'] == '2026-09-01T16:52:00Z'
+          for key, value in contract['authority'].items():
+              assert value is False, (key, value)
+
+          script = Path('.pncc-dev/scripts/evaluate_wave6_wu144_provider_delivery_qualification_wu145.py').read_text().lower()
+          required = (
+              'waiting_mature_observation_window',
+              'observer_delivery_healthy',
+              'observer_delivery_miss_observed',
+              'blocked_provider_data',
+              'mutation_authority',
+              'reserve_1080_lifecycle_mutation_authority',
+              'primary_1081_lifecycle_mutation_authority',
+          )
+          for token in required:
+              assert token in script, token
+          forbidden = (
+              'subprocess.', 'requests.', 'urllib.request', 'socket.', 'git push',
+              'workflow_dispatch', 'repository_dispatch', '127.0.0.1:1080', '127.0.0.1:1081',
+          )
+          for token in forbidden:
+              assert token not in script, token
+          PY
+          test -z "$(git status --porcelain)"
+
+      - name: Revalidate canonical Issue and active Writer Lease
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main pncc-provider-state
+          test "$(git rev-parse origin/main)" = "$AUTHORIZED_BASE_SHA"
+          git show origin/pncc-provider-state:.pncc-state/writer-lease-registry.json > /tmp/wu145-registry.json
+          curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/kmephis-ai/VPS-Control-PNCC/issues/335 > /tmp/wu145-issue.json
+          python3 - <<'PY'
+          import json
+          issue = json.load(open('/tmp/wu145-issue.json'))
+          registry = json.load(open('/tmp/wu145-registry.json'))
+          marker = '<!-- PNCC-WORK-UNIT schema=1 id=PIPE-WU-145 state=READY conflict_domain=wave6-wu144-redundant-observer-provider-delivery-qualification base=9c8a5f4d18ce0557a121d3d0bcc66f8cc7e19367 runtime_required=false -->'
+          assert issue.get('number') == 335 and issue.get('state') == 'open'
+          assert marker in (issue.get('body') or '')
+          assert registry.get('generation') == 59
+          rows = [x for x in registry.get('entries', []) if x.get('lease_id') == 'b064a29f-264e-4c5a-8a1c-084113dc0aa9']
+          assert len(rows) == 1
+          lease = rows[0]
+          assert lease['work_unit_id'] == 'PIPE-WU-145'
+          assert lease['conflict_domain'] == 'wave6-wu144-redundant-observer-provider-delivery-qualification'
+          assert lease['base_sha'] == '9c8a5f4d18ce0557a121d3d0bcc66f8cc7e19367'
+          assert lease['branch'] == 'agent/PIPE-WU-145-wu144-observer-provider-delivery-qualification'
+          assert lease['state'] == 'ACTIVE' and lease['generation'] == 59
+          PY
