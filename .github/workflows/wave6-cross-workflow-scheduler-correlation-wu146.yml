@@ -99,8 +99,8 @@ jobs:
         run: |
           set -euo pipefail
           test "${{ github.event.pull_request.base.sha }}" = "9d5f3cc3bc0482e0d953f786551eb1321cd951d6"
-          test "$(git merge-base 9d5f3cc3bc0482e0d953f786551eb1321cd951d6 ${{ github.event.pull_request.head.sha }})" = "9d5f3cc3bc0482e0d953f786551eb1321cd951d6"
           git fetch --no-tags --depth=1 origin "${{ github.event.pull_request.base.sha }}"
+          test "$(git merge-base 9d5f3cc3bc0482e0d953f786551eb1321cd951d6 ${{ github.event.pull_request.head.sha }})" = "9d5f3cc3bc0482e0d953f786551eb1321cd951d6"
           git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}" | sort > /tmp/actual
           printf '%s\n' \
             '.github/workflows/wave6-cross-workflow-scheduler-correlation-wu146.yml' \
