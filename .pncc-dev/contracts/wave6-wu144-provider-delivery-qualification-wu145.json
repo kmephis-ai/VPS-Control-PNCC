@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "role": "WAVE6_WU144_PROVIDER_DELIVERY_QUALIFICATION",
+  "work_unit_id": "PIPE-WU-145",
+  "issue_number": 335,
+  "state": "ACTIVE",
+  "repository": "kmephis-ai/VPS-Control-PNCC",
+  "authorized_base_sha": "9c8a5f4d18ce0557a121d3d0bcc66f8cc7e19367",
+  "authorized_branch": "agent/PIPE-WU-145-wu144-observer-provider-delivery-qualification",
+  "conflict_domain": "wave6-wu144-redundant-observer-provider-delivery-qualification",
+  "runtime_required": false,
+  "purpose": "Read-only qualification of GitHub provider delivery for the WU144 redundant observer, composed with the immutable WU144 evaluator for WU137 delivery observation.",
+  "observer_delivery_policy": {
+    "canonical_cron_utc": "7 * * * *",
+    "canonical_cadence_seconds": 3600,
+    "bounded_delivery_lag_minutes": 45,
+    "activation_main_sha": "9c8a5f4d18ce0557a121d3d0bcc66f8cc7e19367",
+    "activation_merged_at": "2026-09-01T15:12:58Z",
+    "first_nominal_at": "2026-09-01T16:07:00Z",
+    "first_delivery_deadline_at": "2026-09-01T16:52:00Z",
+    "provider_snapshot_max_age_seconds": 300,
+    "immature_window_state": "WAITING_MATURE_OBSERVATION_WINDOW",
+    "healthy_state": "OBSERVER_DELIVERY_HEALTHY",
+    "miss_state": "OBSERVER_DELIVERY_MISS_OBSERVED",
+    "blocked_state": "BLOCKED_PROVIDER_DATA"
+  },
+  "composition": {
+    "observer_delivery_source": "GITHUB_ACTIONS_WU144_SCHEDULE_RUN_HISTORY_ONLY",
+    "wu137_delivery_source": "GITHUB_ACTIONS_WU137_SCHEDULE_RUN_HISTORY_ONLY",
+    "wu137_evaluator_reused_without_mutation": ".pncc-dev/scripts/evaluate_wave6_wu137_redundant_observer_wu144.py"
+  },
+  "immutable_anchor_blobs": {
+    ".github/workflows/wave6-wu137-redundant-observer-wu144.yml": "cf4bb67b8860bcb81f645eded3c34b863af8b0e0",
+    ".pncc-dev/contracts/wave6-wu137-redundant-observer-activation-wu144.json": "278a5e82bfe71c0a0aa64d68aebb1e825284096d",
+    ".pncc-dev/scripts/evaluate_wave6_wu137_redundant_observer_wu144.py": "b91d2874395180146016e54536b62765ca8c048f",
+    ".pncc-dev/tests/test_wave6_wu137_redundant_observer_wu144.py": "49666b17da3c211fbdf2171c72b7b648c26c16e1",
+    ".github/workflows/wave6-hbe-periodic-health-drift-wu137.yml": "524ff581fb1c68d25a9c4d3b3ed56cd995fa82f2",
+    ".pncc-dev/contracts/wave6-wu137-provider-scheduler-delivery-qualification-wu141.json": "6414fac73150e8d4e9f004a7fa03fa19aed9c470",
+    ".pncc-dev/contracts/wave6-wu137-provider-scheduler-degradation-remediation-proposal-wu142.json": "00dbcdcf1c2cdc75021d75a0ae3a0dbe818bfcdf",
+    ".pncc-dev/scripts/evaluate_wave6_wu144_provider_delivery_qualification_wu145.py": "52cf244a373e1ff98a27cc94ae874011beba009b",
+    ".pncc-dev/tests/test_wave6_wu144_provider_delivery_qualification_wu145.py": "2319c9133a7c9d60c8c7c9d255fdf08fbdb0c11e"
+  },
+  "classification_rules": {
+    "no_matured_observer_opportunity": "WAITING_MATURE_OBSERVATION_WINDOW",
+    "latest_matured_opportunity_has_completed_success": "OBSERVER_DELIVERY_HEALTHY",
+    "latest_matured_opportunity_has_no_completed_success": "OBSERVER_DELIVERY_MISS_OBSERVED",
+    "terminal_non_success_present": "OBSERVER_EXECUTION_UNHEALTHY_OBSERVED",
+    "nonterminal_present": "OBSERVER_EXECUTION_NONTERMINAL_OBSERVED",
+    "malformed_stale_or_contradictory_provider_truth": "BLOCKED_PROVIDER_DATA"
+  },
+  "authority": {
+    "mutation_authority": false,
+    "scheduler_mutation_authority": false,
+    "workflow_dispatch_authority": false,
+    "external_scheduler_or_fallback_authority": false,
+    "runtime_action_authority": false,
+    "product_runtime_mutation_authority": false,
+    "ruleset_mutation_authority": false,
+    "release_tag_promotion_authority": false,
+    "reserve_1080_lifecycle_mutation_authority": false,
+    "primary_1081_lifecycle_mutation_authority": false,
+    "v631_mutation_authority": false,
+    "force_or_bypass_authority": false
+  },
+  "next_boundary": "QUALIFICATION_ACTIVE_THEN_FRESH_MATURE_PROVIDER_TRUTH_DECISION"
+}
