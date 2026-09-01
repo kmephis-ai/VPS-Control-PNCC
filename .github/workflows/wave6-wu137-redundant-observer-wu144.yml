@@ -1,0 +1,157 @@
+name: wave6-wu137-redundant-observer-wu144
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/wave6-wu137-redundant-observer-wu144.yml'
+      - '.pncc-dev/contracts/wave6-wu137-redundant-observer-activation-wu144.json'
+      - '.pncc-dev/scripts/evaluate_wave6_wu137_redundant_observer_wu144.py'
+      - '.pncc-dev/tests/test_wave6_wu137_redundant_observer_wu144.py'
+  schedule:
+    - cron: '7 * * * *'
+
+permissions:
+  contents: read
+  issues: read
+  actions: read
+
+jobs:
+  validate-wu144:
+    if: github.event_name == 'pull_request' && github.head_ref == 'agent/PIPE-WU-144-wu137-github-native-redundant-observer'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact WU144 PR head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Run WU144 observer regression
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_wave6_wu137_redundant_observer_wu144.py' -v
+
+      - name: Validate WU144 pins, ancestry, diff, and read-only surface
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import subprocess
+          from pathlib import Path
+
+          expected_blobs = {
+              '.pncc-dev/contracts/wave6-wu137-redundant-observer-activation-wu144.json': '278a5e82bfe71c0a0aa64d68aebb1e825284096d',
+              '.pncc-dev/scripts/evaluate_wave6_wu137_redundant_observer_wu144.py': 'b91d2874395180146016e54536b62765ca8c048f',
+              '.pncc-dev/tests/test_wave6_wu137_redundant_observer_wu144.py': '49666b17da3c211fbdf2171c72b7b648c26c16e1',
+              '.github/workflows/wave6-hbe-periodic-health-drift-wu137.yml': '524ff581fb1c68d25a9c4d3b3ed56cd995fa82f2',
+              '.pncc-dev/contracts/wave6-hbe-periodic-health-drift-activation-wu137.json': '37e08c46e021e04f1be6b799009b6f24111c1ac3',
+              '.pncc-dev/scripts/evaluate_wave6_hbe_periodic_health_drift_wu137.py': 'd478fdc13afcf81b30d59952a44cc2aad8d5d5fe',
+              '.pncc-dev/tests/test_wave6_hbe_periodic_health_drift_wu137.py': 'd1e292178284663e4a5b6636d857c145aa31748e',
+              '.pncc-dev/contracts/wave6-hbe-periodic-health-drift-authority-proposal-wu136.json': '7605105488aafad7400c26c13a5c8f5515d40a02',
+              '.pncc-dev/contracts/wave6-wu137-provider-scheduler-delivery-qualification-wu141.json': '6414fac73150e8d4e9f004a7fa03fa19aed9c470',
+              '.pncc-dev/contracts/wave6-wu137-provider-scheduler-degradation-remediation-proposal-wu142.json': '00dbcdcf1c2cdc75021d75a0ae3a0dbe818bfcdf',
+              '.github/workflows/wave6-wu137-provider-scheduler-degradation-remediation-proposal-wu142.yml': '53154aab9f6fff830faf4b2eab4d39812abea2e8',
+          }
+          for path, expected in expected_blobs.items():
+              actual=subprocess.check_output(['git','hash-object',path], text=True).strip()
+              assert actual == expected, (path, actual, expected)
+
+          base='9e11e2b9288c199754ee39133560b35d82471367'
+          assert __import__('os').environ['BASE_SHA'] == base
+          merge_base=subprocess.check_output(['git','merge-base',base,__import__('os').environ['HEAD_SHA']], text=True).strip()
+          assert merge_base == base
+          actual=set(subprocess.check_output(['git','diff','--name-only',base,__import__('os').environ['HEAD_SHA']], text=True).splitlines())
+          expected={
+              '.github/workflows/wave6-wu137-redundant-observer-wu144.yml',
+              '.pncc-dev/contracts/wave6-wu137-redundant-observer-activation-wu144.json',
+              '.pncc-dev/scripts/evaluate_wave6_wu137_redundant_observer_wu144.py',
+              '.pncc-dev/tests/test_wave6_wu137_redundant_observer_wu144.py',
+          }
+          assert actual == expected, (actual, expected)
+
+          text=Path('.github/workflows/wave6-wu137-redundant-observer-wu144.yml').read_text(encoding='utf-8').lower()
+          for required in ('contents: read','issues: read','actions: read',"cron: '7 * * * *'"):
+              assert required in text, required
+          forbidden=[
+              'workflow_'+'dispatch:', 'repository_'+'dispatch:', 'contents:'+' write',
+              'issues:'+' write', 'actions:'+' write', 'pull-requests:'+' write',
+              'checks:'+' write', 'self-'+'hosted', 'git'+' push', 'gh pr'+' merge',
+              'gh issue'+' close', '--method'+' post', '--method'+' patch',
+              '--method'+' put', '--method'+' delete', '127.0.0.1:'+'1080',
+              '127.0.0.1:'+'1081',
+          ]
+          for token in forbidden:
+              assert token not in text, token
+          PY
+          test -z "$(git status --porcelain)"
+
+      - name: Revalidate canonical Issue and active Writer Lease
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main pncc-provider-state
+          test "$(git rev-parse origin/main)" = "9e11e2b9288c199754ee39133560b35d82471367"
+          git show origin/pncc-provider-state:.pncc-state/writer-lease-registry.json > /tmp/wu144-registry.json
+          curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/kmephis-ai/VPS-Control-PNCC/issues/333 > /tmp/wu144-issue.json
+          python3 - <<'PY'
+          import json
+          issue=json.load(open('/tmp/wu144-issue.json'))
+          registry=json.load(open('/tmp/wu144-registry.json'))
+          marker='<!-- PNCC-WORK-UNIT schema=1 id=PIPE-WU-144 state=READY conflict_domain=wave6-wu137-github-native-redundant-observer-separate-workflow base=9e11e2b9288c199754ee39133560b35d82471367 runtime_required=false -->'
+          assert issue.get('number') == 333 and issue.get('state') == 'open'
+          assert marker in (issue.get('body') or '')
+          assert registry.get('generation') == 58
+          rows=[x for x in registry.get('entries',[]) if x.get('lease_id') == 'fecd6346-90dd-47c4-98ce-bed3c22022cf']
+          assert len(rows) == 1
+          lease=rows[0]
+          assert lease['work_unit_id'] == 'PIPE-WU-144'
+          assert lease['conflict_domain'] == 'wave6-wu137-github-native-redundant-observer-separate-workflow'
+          assert lease['base_sha'] == '9e11e2b9288c199754ee39133560b35d82471367'
+          assert lease['branch'] == 'agent/PIPE-WU-144-wu137-github-native-redundant-observer'
+          assert lease['state'] == 'ACTIVE' and lease['generation'] == 58
+          PY
+
+  observe-wu137-delivery:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact scheduled default-branch SHA
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Read WU137 schedule Provider Truth
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          export OBSERVED_AT="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/kmephis-ai/VPS-Control-PNCC/actions/workflows/wave6-hbe-periodic-health-drift-wu137.yml/runs?event=schedule&per_page=100" > /tmp/wu137-runs.json
+          python3 - <<'PY'
+          import json, os
+          raw=json.load(open('/tmp/wu137-runs.json'))
+          fields=('id','event','status','conclusion','created_at','head_sha')
+          out={'observed_at':os.environ['OBSERVED_AT'],'workflow_runs':[{key:run.get(key) for key in fields} for run in raw.get('workflow_runs',[])]}
+          json.dump(out,open('/tmp/wu144-input.json','w'),separators=(',',':'))
+          PY
+
+      - name: Evaluate matured WU137 opportunities
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .pncc-dev/scripts/evaluate_wave6_wu137_redundant_observer_wu144.py /tmp/wu144-input.json > /tmp/wu144-result.json
+          cat /tmp/wu144-result.json
+          cat /tmp/wu144-result.json >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Prove observer produced no repository mutation
+        run: test -z "$(git status --porcelain)"
