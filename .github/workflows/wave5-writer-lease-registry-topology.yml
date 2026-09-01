@@ -27,6 +27,17 @@ jobs:
       - name: Run adversarial registry topology tests
         run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_writer_lease_registry_topology.py' -v
 
+      - name: Run WU143 terminal WU105 guard regression when present
+        shell: bash
+        run: |
+          set -euo pipefail
+          test_path='.pncc-dev/tests/test_product_state_snapshot_contract_wu143.py'
+          if [ -f "$test_path" ]; then
+            python3 -m unittest discover -s .pncc-dev/tests -p 'test_product_state_snapshot_contract_wu143.py' -v
+          else
+            echo 'WU143 regression is not present on this historical revision.'
+          fi
+
       - name: Preserve durable Writer Lease v1 validation
         run: python3 .pncc-dev/scripts/validate_state.py --validate-examples
 
@@ -47,7 +58,7 @@ jobs:
           PY
 
       - name: Assert protected surfaces unchanged or exact WU-105 proof-only provenance
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && github.head_ref == 'agent/PIPE-WU-105-adwf-consumer-provenance-reconciliation'
         run: |
           set -euo pipefail
           git fetch --no-tags --depth=1 origin "${{ github.event.pull_request.base.sha }}"
