@@ -1,0 +1,115 @@
+name: wave6-cross-workflow-scheduler-correlation-wu146
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/wave6-cross-workflow-scheduler-correlation-wu146.yml'
+      - '.pncc-dev/contracts/wave6-cross-workflow-scheduler-delivery-correlation-qualification-wu146.json'
+      - '.pncc-dev/scripts/evaluate_wave6_cross_workflow_scheduler_correlation_wu146.py'
+      - '.pncc-dev/tests/test_wave6_cross_workflow_scheduler_correlation_wu146.py'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/wave6-cross-workflow-scheduler-correlation-wu146.yml'
+      - '.pncc-dev/contracts/wave6-cross-workflow-scheduler-delivery-correlation-qualification-wu146.json'
+      - '.pncc-dev/scripts/evaluate_wave6_cross_workflow_scheduler_correlation_wu146.py'
+      - '.pncc-dev/tests/test_wave6_cross_workflow_scheduler_correlation_wu146.py'
+
+permissions:
+  contents: read
+
+jobs:
+  correlation-qualification:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact PNCC revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Run WU146 adversarial evaluator tests
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_wave6_cross_workflow_scheduler_correlation_wu146.py' -v
+
+      - name: Validate durable repository contracts
+        run: python3 .pncc-dev/scripts/validate_state.py --validate-examples
+
+      - name: Assert WU146 contract identity and zero authority
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('.pncc-dev/contracts/wave6-cross-workflow-scheduler-delivery-correlation-qualification-wu146.json').read_text(encoding='utf-8'))
+          assert p['role']=='WAVE6_CROSS_WORKFLOW_SCHEDULER_DELIVERY_CORRELATION_QUALIFICATION'
+          assert p['work_unit_id']=='PIPE-WU-146'
+          assert p['authorized_base_sha']=='9d5f3cc3bc0482e0d953f786551eb1321cd951d6'
+          assert p['runtime_required'] is False
+          assert p['provider_truth_observation']['wu144_first_matured_window_completed_success_run_count']==0
+          assert p['provider_truth_observation']['total_schedule_run_count']==5
+          assert p['provider_truth_observation']['wu137_schedule_run_count']==5
+          assert p['provider_truth_observation']['wu144_schedule_run_count']==0
+          assert p['provider_truth_observation']['wu144_second_window_matured_at_observation'] is True
+          assert p['provider_truth_observation']['wu144_second_matured_window_completed_success_run_count']==0
+          assert p['expected_result']['wu144_second_consecutive_matured_delivery_miss_proven'] is True
+          assert p['expected_result']['state']=='CROSS_WORKFLOW_SCHEDULE_DELIVERY_DEGRADATION_CORRELATED'
+          assert p['expected_result']['provider_root_cause_proven'] is False
+          assert p['expected_result']['global_github_outage_proven'] is False
+          authority=p['authority']
+          assert authority and all(v is False for v in authority.values())
+          PY
+
+      - name: Assert immutable predecessor anchors
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          p=json.loads(Path('.pncc-dev/contracts/wave6-cross-workflow-scheduler-delivery-correlation-qualification-wu146.json').read_text(encoding='utf-8'))
+          for rel,expected in p['immutable_anchor_blobs'].items():
+              b=Path(rel).read_bytes()
+              actual=hashlib.sha1(f'blob {len(b)}\0'.encode()+b).hexdigest()
+              assert actual==expected,(rel,expected,actual)
+          PY
+
+      - name: Assert WU146 workflow and evaluator are read only
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          paths=[
+            '.github/workflows/wave6-cross-workflow-scheduler-correlation-wu146.yml',
+            '.pncc-dev/scripts/evaluate_wave6_cross_workflow_scheduler_correlation_wu146.py',
+          ]
+          text='\n'.join(Path(p).read_text(encoding='utf-8').lower() for p in paths)
+          forbidden=[
+            'contents:'+' write','issues:'+' write','pull-requests:'+' write','actions:'+' write',
+            'git'+' push','git'+' tag','gh'+' pr merge','gh'+' issue close',
+            '--method'+' post','--method'+' patch','--method'+' put','--method'+' delete',
+            'workflow_'+'dispatch:', 'repository_'+'dispatch:', 'self-'+'hosted'
+          ]
+          for token in forbidden:
+              assert token not in text,token
+          PY
+
+      - name: Assert exact WU146 bounded diff
+        if: github.event_name == 'pull_request' && github.head_ref == 'agent/PIPE-WU-146-cross-workflow-scheduler-correlation'
+        run: |
+          set -euo pipefail
+          test "${{ github.event.pull_request.base.sha }}" = "9d5f3cc3bc0482e0d953f786551eb1321cd951d6"
+          git fetch --no-tags --depth=1 origin "${{ github.event.pull_request.base.sha }}"
+          test "$(git merge-base 9d5f3cc3bc0482e0d953f786551eb1321cd951d6 ${{ github.event.pull_request.head.sha }})" = "9d5f3cc3bc0482e0d953f786551eb1321cd951d6"
+          git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}" | sort > /tmp/actual
+          printf '%s\n' \
+            '.github/workflows/wave6-cross-workflow-scheduler-correlation-wu146.yml' \
+            '.pncc-dev/contracts/wave6-cross-workflow-scheduler-delivery-correlation-qualification-wu146.json' \
+            '.pncc-dev/scripts/evaluate_wave6_cross_workflow_scheduler_correlation_wu146.py' \
+            '.pncc-dev/tests/test_wave6_cross_workflow_scheduler_correlation_wu146.py' | sort > /tmp/expected
+          diff -u /tmp/expected /tmp/actual
+          python3 .pncc-dev/scripts/check_wu105_provenance_compatibility.py --base "${{ github.event.pull_request.base.sha }}" --head "${{ github.event.pull_request.head.sha }}"
+
+      - name: Assert repository remains clean
+        run: test -z "$(git status --porcelain)"
