@@ -5,10 +5,12 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SOURCE = ROOT / 'src/windows-v7/modules/V7-StateSnapshot.ps1'
+SOURCE = ROOT / 'src/foundations/windows-v7/V7-StateSnapshot.ps1'
 CONTRACT = ROOT / '.pncc-dev/contracts/product-state-snapshot-contract-wu143.json'
 TOPOLOGY_WORKFLOW = ROOT / '.github/workflows/wave5-writer-lease-registry-topology.yml'
 WU105_VALIDATOR = ROOT / '.pncc-dev/scripts/check_wu105_provenance_compatibility.py'
+CANONICAL_PACKAGE_ROOT = 'src/windows-v7'
+CANONICAL_PACKAGE_TREE = 'e1ae13566acb61a084fe612c5b93fb5d6e278fcb'
 
 EXPECTED_ANCHORS = {
     'src/windows-v7/VPS-Control-v7.ps1': '5ec83f2de8be1c468ee3991032e917ea21f5d212',
@@ -22,6 +24,12 @@ EXPECTED_ANCHORS = {
 def git_blob(path: str) -> str:
     return subprocess.check_output(
         ['git', 'hash-object', path], cwd=ROOT, text=True
+    ).strip()
+
+
+def git_tree(path: str) -> str:
+    return subprocess.check_output(
+        ['git', 'rev-parse', f'HEAD:{path}'], cwd=ROOT, text=True
     ).strip()
 
 
@@ -42,12 +50,28 @@ class ProductStateSnapshotContractWU143Tests(unittest.TestCase):
         self.assertEqual(c['issue_number'], 331)
         self.assertEqual(c['authorized_base_sha'], '2db7048707ec4abcca660cdcf1659a49c9a9fe08')
         self.assertFalse(c['runtime_required'])
-        self.assertEqual(c['integration_state'], 'FOUNDATION_NOT_WIRED_NO_RUNTIME_CHANGE')
+        self.assertEqual(c['integration_state'], 'FOUNDATION_NOT_WIRED_OUTSIDE_CANONICAL_PACKAGE_NO_RUNTIME_CHANGE')
+        self.assertEqual(c['source']['path'], SOURCE.relative_to(ROOT).as_posix())
         self.assertEqual(c['source']['entrypoint'], 'New-V7StateSnapshotContract')
         self.assertEqual(c['source']['powershell_minimum'], '5.1')
         self.assertEqual(c['source']['blob_sha'], git_blob(str(SOURCE.relative_to(ROOT))))
         self.assertTrue(self.source_bytes.startswith(b'\xef\xbb\xbf'))
         self.assertTrue(self.source.startswith('#requires -Version 5.1'))
+
+    def test_foundation_is_deliberately_outside_current_candidate_package(self):
+        boundary = self.contract['packaging_boundary']
+        self.assertEqual(boundary['canonical_package_source_root'], CANONICAL_PACKAGE_ROOT)
+        self.assertEqual(boundary['authorized_base_tree_sha'], CANONICAL_PACKAGE_TREE)
+        self.assertEqual(git_tree(CANONICAL_PACKAGE_ROOT), CANONICAL_PACKAGE_TREE)
+        self.assertEqual(boundary['foundation_source_root'], 'src/foundations/windows-v7')
+        self.assertFalse(boundary['foundation_in_current_candidate_package'])
+        self.assertFalse(boundary['candidate_source_declaration_modified'])
+        self.assertFalse(boundary['candidate_provenance_modified'])
+        self.assertFalse(boundary['candidate_manifest_modified'])
+        self.assertFalse(boundary['candidate_version_modified'])
+        self.assertFalse(boundary['release_or_promotion_authority_claimed'])
+        self.assertTrue(SOURCE.relative_to(ROOT).as_posix().startswith(boundary['foundation_source_root'] + '/'))
+        self.assertFalse(SOURCE.relative_to(ROOT).as_posix().startswith(CANONICAL_PACKAGE_ROOT + '/'))
 
     def test_contract_is_read_only_and_contains_no_external_mutation_primitives(self):
         c = self.contract['contract']

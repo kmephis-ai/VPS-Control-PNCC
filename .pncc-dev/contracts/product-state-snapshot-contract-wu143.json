@@ -6,13 +6,25 @@
   "authorized_base_sha": "2db7048707ec4abcca660cdcf1659a49c9a9fe08",
   "state": "OWNER_AUTHORIZED_FOUNDATION",
   "runtime_required": false,
-  "integration_state": "FOUNDATION_NOT_WIRED_NO_RUNTIME_CHANGE",
+  "integration_state": "FOUNDATION_NOT_WIRED_OUTSIDE_CANONICAL_PACKAGE_NO_RUNTIME_CHANGE",
   "source": {
-    "path": "src/windows-v7/modules/V7-StateSnapshot.ps1",
+    "path": "src/foundations/windows-v7/V7-StateSnapshot.ps1",
     "blob_sha": "31c69ccf14d1654057b3490f2b741609910c8fb6",
     "entrypoint": "New-V7StateSnapshotContract",
     "powershell_minimum": "5.1",
     "utf8_bom_required": true
+  },
+  "packaging_boundary": {
+    "canonical_package_source_root": "src/windows-v7",
+    "authorized_base_tree_sha": "e1ae13566acb61a084fe612c5b93fb5d6e278fcb",
+    "foundation_source_root": "src/foundations/windows-v7",
+    "foundation_in_current_candidate_package": false,
+    "candidate_source_declaration_modified": false,
+    "candidate_provenance_modified": false,
+    "candidate_manifest_modified": false,
+    "candidate_version_modified": false,
+    "release_or_promotion_authority_claimed": false,
+    "rationale": "KEEP_FOUNDATION_OUTSIDE_IMMUTABLE_CURRENT_V7_0_1_PACKAGE_UNTIL_SEPARATE_LIFECYCLE_AUTHORITY"
   },
   "contract": {
     "name": "PNCC_STATE_SNAPSHOT",
@@ -124,11 +136,17 @@
     "ruleset": true,
     "adwf": true,
     "release_tag_promotion": true,
+    "candidate_release_lineage": true,
     "web_or_api_server": true,
     "stable_or_rc_declaration": true
   },
   "mutation_report": {
     "existing_product_file_modified": false,
+    "canonical_package_source_modified": false,
+    "candidate_source_declaration_modified": false,
+    "candidate_provenance_modified": false,
+    "candidate_manifest_modified": false,
+    "candidate_version_modified": false,
     "ci_harness_modified": true,
     "historical_wu105_validator_modified": false,
     "routing_semantics_modified": false,
