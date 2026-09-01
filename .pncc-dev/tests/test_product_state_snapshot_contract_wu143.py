@@ -7,6 +7,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / 'src/windows-v7/modules/V7-StateSnapshot.ps1'
 CONTRACT = ROOT / '.pncc-dev/contracts/product-state-snapshot-contract-wu143.json'
+TOPOLOGY_WORKFLOW = ROOT / '.github/workflows/wave5-writer-lease-registry-topology.yml'
+WU105_VALIDATOR = ROOT / '.pncc-dev/scripts/check_wu105_provenance_compatibility.py'
 
 EXPECTED_ANCHORS = {
     'src/windows-v7/VPS-Control-v7.ps1': '5ec83f2de8be1c468ee3991032e917ea21f5d212',
@@ -30,6 +32,7 @@ class ProductStateSnapshotContractWU143Tests(unittest.TestCase):
         cls.source_bytes = SOURCE.read_bytes()
         cls.source = cls.source_bytes.decode('utf-8-sig')
         cls.source_lower = cls.source.lower()
+        cls.topology_workflow = TOPOLOGY_WORKFLOW.read_text(encoding='utf-8')
 
     def test_identity_source_and_powershell_compatibility_are_exact(self):
         c = self.contract
@@ -128,13 +131,44 @@ class ProductStateSnapshotContractWU143Tests(unittest.TestCase):
             '385e5178f10e79b0b234376e6a6671b64ce523a3971b2b4341ec94ce1efee11e',
         )
 
+    def test_historical_wu105_provenance_guard_is_branch_gated_without_weakening_global_topology_checks(self):
+        repair = self.contract['ci_harness_repair']
+        self.assertEqual(repair['classification'], 'HARNESS_OR_VALIDATION_DEFECT')
+        self.assertEqual(repair['pre_repair_workflow_blob_sha'], 'd031588f5f9a675c5e3dde03bf327e229f2aa1a8')
+        self.assertEqual(repair['post_repair_workflow_blob_sha'], git_blob(str(TOPOLOGY_WORKFLOW.relative_to(ROOT))))
+        self.assertEqual(repair['validator_blob_sha'], 'bd597373ac25d932b772316540d5bdc57d41bf7f')
+        self.assertEqual(git_blob(str(WU105_VALIDATOR.relative_to(ROOT))), repair['validator_blob_sha'])
+        self.assertFalse(repair['validator_modified'])
+        self.assertTrue(repair['guard_branch_gated'])
+        self.assertTrue(repair['workflow_permissions_unchanged'])
+        self.assertFalse(repair['product_runtime_semantics_changed'])
+        self.assertFalse(repair['ruleset_or_security_policy_changed'])
+
+        exact_condition = "if: github.event_name == 'pull_request' && github.head_ref == 'agent/PIPE-WU-105-adwf-consumer-provenance-reconciliation'"
+        self.assertIn(exact_condition, self.topology_workflow)
+        self.assertIn('python3 .pncc-dev/scripts/check_wu105_provenance_compatibility.py', self.topology_workflow)
+        self.assertIn('permissions:\n  contents: read', self.topology_workflow)
+        self.assertNotIn('contents: write', self.topology_workflow)
+        for marker in (
+            'Validate topology policy',
+            'Run adversarial registry topology tests',
+            'Preserve durable Writer Lease v1 validation',
+            'Assert no live provider-state bootstrap or mutation exists',
+            'Assert repository remains clean',
+            'Run WU143 terminal WU105 guard regression when present',
+        ):
+            self.assertIn(marker, self.topology_workflow)
+
     def test_forbidden_scope_and_mutation_report_fail_closed(self):
         forbidden = self.contract['forbidden_mutations']
         self.assertTrue(forbidden)
         self.assertTrue(all(forbidden.values()))
         report = self.contract['mutation_report']
-        self.assertTrue(report)
-        self.assertTrue(all(value is False for value in report.values()))
+        self.assertTrue(report['ci_harness_modified'])
+        for key, value in report.items():
+            if key == 'ci_harness_modified':
+                continue
+            self.assertIs(value, False, key)
         self.assertEqual(
             self.contract['next_boundary'],
             'SEPARATE_OWNER_GOVERNED_INTEGRATION_INTO_WINFORMS_CLI_OR_API_CLIENT',
