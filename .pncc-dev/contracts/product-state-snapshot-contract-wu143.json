@@ -37,32 +37,8 @@
     "performs_persistence": false,
     "performs_routing_mutation": false,
     "performs_tunnel_lifecycle_action": false,
-    "top_level_fields": [
-      "SchemaVersion",
-      "Contract",
-      "CapturedAt",
-      "ReadOnly",
-      "SecretsIncluded",
-      "Overall",
-      "RuntimeEvidence",
-      "RoutingTunnelId",
-      "Tunnels",
-      "Modules",
-      "Watchdog",
-      "Proxifier",
-      "LastKnownGood"
-    ],
-    "module_fields": [
-      "Id",
-      "Desired",
-      "Configured",
-      "Observed",
-      "Effective",
-      "Reason",
-      "Health",
-      "LatencyMs",
-      "FailureClass"
-    ],
+    "top_level_fields": ["SchemaVersion","Contract","CapturedAt","ReadOnly","SecretsIncluded","Overall","RuntimeEvidence","RoutingTunnelId","Tunnels","Modules","Watchdog","Proxifier","LastKnownGood"],
+    "module_fields": ["Id","Desired","Configured","Observed","Effective","Reason","Health","LatencyMs","FailureClass"],
     "transition_semantics": {
       "Desired": "CURRENT_CONFIGURED_ROUTE_MODE_ALIAS_UNTIL_A_SEPARATE_DESIRED_STATE_STORE_EXISTS",
       "Configured": "NORMALIZED_CURRENT_ROUTING_CONFIG_MODE",
@@ -73,94 +49,42 @@
       "LatencyMs": "ONLY_FROM_EXISTING_RUNTIME_METRICS_MODULE_LATENCYMS_ELSE_NULL",
       "FailureClass": "ONLY_FROM_EXISTING_RUNTIME_METRICS_MODULE_FAILURECLASS_ELSE_NULL"
     },
-    "collection_shape": {
-      "Modules": "ALWAYS_ARRAY_ZERO_ONE_OR_MANY",
-      "Tunnels": "ALWAYS_ARRAY_EXACTLY_TWO_IN_CURRENT_DUAL_TUNNEL_CONTRACT"
-    }
+    "collection_shape": {"Modules":"ALWAYS_ARRAY_ZERO_ONE_OR_MANY","Tunnels":"ALWAYS_ARRAY_EXACTLY_TWO_IN_CURRENT_DUAL_TUNNEL_CONTRACT"}
   },
   "tunnel_invariants": [
-    {
-      "id": "PRIMARY_AUTO",
-      "host": "127.0.0.1",
-      "port": 1081,
-      "lifecycle": "AUTO",
-      "automation_may_manage_lifecycle": true
-    },
-    {
-      "id": "RESERVE_MANUAL",
-      "host": "127.0.0.1",
-      "port": 1080,
-      "lifecycle": "MANUAL_ONLY",
-      "automation_may_manage_lifecycle": false
-    }
+    {"id":"PRIMARY_AUTO","host":"127.0.0.1","port":1081,"lifecycle":"AUTO","automation_may_manage_lifecycle":true},
+    {"id":"RESERVE_MANUAL","host":"127.0.0.1","port":1080,"lifecycle":"MANUAL_ONLY","automation_may_manage_lifecycle":false}
   ],
   "ci_harness_repair": {
-    "classification": "HARNESS_OR_VALIDATION_DEFECT",
-    "reason": "HISTORICAL_WU105_EXACT_PROVENANCE_GUARD_RAN_ON_ALL_FUTURE_SRC_PULL_REQUESTS",
-    "workflow_path": ".github/workflows/wave5-writer-lease-registry-topology.yml",
-    "pre_repair_workflow_blob_sha": "d031588f5f9a675c5e3dde03bf327e229f2aa1a8",
-    "post_repair_workflow_blob_sha": "2900644a2355e2c7dbd3b25507d8c94a73fc1352",
-    "validator_path": ".pncc-dev/scripts/check_wu105_provenance_compatibility.py",
-    "validator_blob_sha": "bd597373ac25d932b772316540d5bdc57d41bf7f",
-    "validator_modified": false,
-    "historical_wu105_branch": "agent/PIPE-WU-105-adwf-consumer-provenance-reconciliation",
-    "guard_branch_gated": true,
-    "topology_validation_remains_global": true,
-    "registry_adversarial_tests_remain_global": true,
-    "durable_state_validation_remains_global": true,
-    "read_only_authority_assertion_remains_global": true,
-    "repository_clean_assertion_remains_global": true,
-    "workflow_permissions_unchanged": true,
-    "workflow_permissions": {
-      "contents": "read"
-    },
-    "product_runtime_semantics_changed": false,
-    "ruleset_or_security_policy_changed": false
+    "classification":"HARNESS_OR_VALIDATION_DEFECT",
+    "reason":"HISTORICAL_WU105_EXACT_PROVENANCE_GUARD_RAN_ON_ALL_FUTURE_SRC_PULL_REQUESTS",
+    "workflow_path":".github/workflows/wave5-writer-lease-registry-topology.yml",
+    "pre_repair_workflow_blob_sha":"d031588f5f9a675c5e3dde03bf327e229f2aa1a8",
+    "post_repair_workflow_blob_sha":"2900644a2355e2c7dbd3b25507d8c94a73fc1352",
+    "validator_path":".pncc-dev/scripts/check_wu105_provenance_compatibility.py",
+    "validator_blob_sha":"bd597373ac25d932b772316540d5bdc57d41bf7f",
+    "validator_modified":false,
+    "historical_wu105_branch":"agent/PIPE-WU-105-adwf-consumer-provenance-reconciliation",
+    "guard_branch_gated":true,
+    "topology_validation_remains_global":true,
+    "registry_adversarial_tests_remain_global":true,
+    "durable_state_validation_remains_global":true,
+    "read_only_authority_assertion_remains_global":true,
+    "repository_clean_assertion_remains_global":true,
+    "workflow_permissions_unchanged":true,
+    "workflow_permissions":{"contents":"read"},
+    "product_runtime_semantics_changed":false,
+    "ruleset_or_security_policy_changed":false
   },
   "byte_preserved_existing_product_anchors": {
-    "src/windows-v7/VPS-Control-v7.ps1": "5ec83f2de8be1c468ee3991032e917ea21f5d212",
-    "src/windows-v7/modules/V7-StatusCenter.ps1": "2f3f73799c5d70dbfc2f24870a3cd86cf91b0496",
-    "src/windows-v7/modules/V7-Observability.ps1": "ef9c446e4a131610d04a3e884c068e599a548e6c",
-    "src/windows-v7/VPS-Control-v7-TUNNEL-CONTRACT.json": "b77a594f1bc57b5961ab332a6e60b735ef317c3f",
-    ".github/workflows/wave6-hbe-periodic-health-drift-wu137.yml": "524ff581fb1c68d25a9c4d3b3ed56cd995fa82f2"
+    "src/windows-v7/VPS-Control-v7.ps1":"5ec83f2de8be1c468ee3991032e917ea21f5d212",
+    "src/windows-v7/modules/V7-StatusCenter.ps1":"2f3f73799c5d70dbfc2f24870a3cd86cf91b0496",
+    "src/windows-v7/modules/V7-Observability.ps1":"ef9c446e4a131610d04a3e884c068e599a548e6c",
+    "src/windows-v7/VPS-Control-v7-TUNNEL-CONTRACT.json":"b77a594f1bc57b5961ab332a6e60b735ef317c3f",
+    ".github/workflows/wave6-hbe-periodic-health-drift-wu137.yml":"524ff581fb1c68d25a9c4d3b3ed56cd995fa82f2"
   },
-  "stable_routing_baseline_sha256": "385e5178f10e79b0b234376e6a6671b64ce523a3971b2b4341ec94ce1efee11e",
-  "forbidden_mutations": {
-    "routing_semantics": true,
-    "wu137": true,
-    "reserve_1080_lifecycle": true,
-    "primary_1081_lifecycle": true,
-    "v6_3_1": true,
-    "vps_or_keenetic_mutation": true,
-    "credentials_or_security": true,
-    "ruleset": true,
-    "adwf": true,
-    "release_tag_promotion": true,
-    "candidate_release_lineage": true,
-    "web_or_api_server": true,
-    "stable_or_rc_declaration": true
-  },
-  "mutation_report": {
-    "existing_product_file_modified": false,
-    "canonical_package_source_modified": false,
-    "candidate_source_declaration_modified": false,
-    "candidate_provenance_modified": false,
-    "candidate_manifest_modified": false,
-    "candidate_version_modified": false,
-    "ci_harness_modified": true,
-    "historical_wu105_validator_modified": false,
-    "routing_semantics_modified": false,
-    "wu137_modified": false,
-    "reserve_1080_lifecycle_modified": false,
-    "primary_1081_lifecycle_modified": false,
-    "v6_3_1_modified": false,
-    "vps_or_keenetic_mutation_added": false,
-    "credentials_or_security_modified": false,
-    "ruleset_modified": false,
-    "adwf_modified": false,
-    "release_tag_promotion_performed": false,
-    "web_or_api_server_added": false,
-    "stable_or_rc_declared": false
-  },
-  "next_boundary": "SEPARATE_OWNER_GOVERNED_INTEGRATION_INTO_WINFORMS_CLI_OR_API_CLIENT"
+  "stable_routing_baseline_sha256":"385e5178f10e79b0b234376e6a6671b64ce523a3971b2b4341ec94ce1efee11e",
+  "forbidden_mutations":{"routing_semantics":true,"wu137":true,"reserve_1080_lifecycle":true,"primary_1081_lifecycle":true,"v6_3_1":true,"vps_or_keenetic_mutation":true,"credentials_or_security":true,"ruleset":true,"adwf":true,"release_tag_promotion":true,"candidate_release_lineage":true,"web_or_api_server":true,"stable_or_rc_declaration":true},
+  "mutation_report":{"existing_product_file_modified":false,"canonical_package_source_modified":false,"candidate_source_declaration_modified":false,"candidate_provenance_modified":false,"candidate_manifest_modified":false,"candidate_version_modified":false,"ci_harness_modified":true,"historical_wu105_validator_modified":false,"routing_semantics_modified":false,"wu137_modified":false,"reserve_1080_lifecycle_modified":false,"primary_1081_lifecycle_modified":false,"v6_3_1_modified":false,"vps_or_keenetic_mutation_added":false,"credentials_or_security_modified":false,"ruleset_modified":false,"adwf_modified":false,"release_tag_promotion_performed":false,"web_or_api_server_added":false,"stable_or_rc_declared":false},
+  "next_boundary":"SEPARATE_OWNER_GOVERNED_INTEGRATION_INTO_WINFORMS_CLI_OR_API_CLIENT"
 }
