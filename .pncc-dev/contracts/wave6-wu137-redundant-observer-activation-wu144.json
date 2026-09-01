@@ -1,0 +1,118 @@
+{
+  "schema_version": 1,
+  "role": "WAVE6_WU137_GITHUB_NATIVE_REDUNDANT_OBSERVER",
+  "work_unit_id": "PIPE-WU-144",
+  "issue_number": 333,
+  "repository": "kmephis-ai/VPS-Control-PNCC",
+  "authorized_base_sha": "9e11e2b9288c199754ee39133560b35d82471367",
+  "activation_state": "OWNER_AUTHORIZED_ACTIVE_READ_ONLY_OBSERVER",
+  "runtime_required": false,
+  "owner_authorized_scope": "GITHUB_NATIVE_REDUNDANT_OBSERVER_SEPARATE_WORKFLOW",
+  "observer": {
+    "workflow_name": "wave6-wu137-redundant-observer-wu144",
+    "schedule_cron_utc": "7 * * * *",
+    "runner": "ubuntu-24.04",
+    "provider_truth_source": "GITHUB_ACTIONS_WU137_SCHEDULE_RUN_HISTORY_ONLY",
+    "canonical_target_workflow": ".github/workflows/wave6-hbe-periodic-health-drift-wu137.yml",
+    "canonical_target_cron_utc": "17 * * * *",
+    "schedule_offset_rationale": "Run after the previous WU137 :17 opportunity's :02 delivery deadline and outside the beginning-of-hour high-load window; never replay or compensate for WU137.",
+    "writes_provider_state": false,
+    "writes_repository": false,
+    "writes_runtime": false
+  },
+  "delivery_assessment_policy": {
+    "canonical_cadence_seconds": 3600,
+    "bounded_delivery_lag_minutes": 45,
+    "observation_start_at": "2026-08-31T22:17:00Z",
+    "stable_delivery_observed": {
+      "required_consecutive_healthy_opportunities": 4,
+      "maximum_delivery_lag_minutes": 45,
+      "misses_allowed": 0
+    },
+    "remediation_review_eligible": {
+      "consecutive_missed_opportunities": 3,
+      "rolling_window_opportunities": 6,
+      "delivered_ratio_below": 0.5
+    },
+    "review_eligible_effect": "OWNER_REVIEW_NO_ACTIVATION",
+    "automatic_fallback_activation": false,
+    "automatic_wu137_mutation": false,
+    "automatic_external_fallback": false
+  },
+  "activation_provider_truth_snapshot": {
+    "observed_at": "2026-09-01T10:45:00Z",
+    "classification": "REMEDIATION_REVIEW_ELIGIBLE",
+    "rolling_six_opportunities": 6,
+    "rolling_healthy_delivered": 1,
+    "rolling_delivered_ratio": 0.16666666666666666,
+    "recovered_schedule_runs": [
+      {
+        "run_id": 33448268711,
+        "created_at": "2026-08-31T22:53:15Z",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 33460267213,
+        "created_at": "2026-09-01T01:50:20Z",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 33484101945,
+        "created_at": "2026-09-01T07:50:47Z",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "immutable_predecessor_blobs": {
+    ".github/workflows/wave6-hbe-periodic-health-drift-wu137.yml": "524ff581fb1c68d25a9c4d3b3ed56cd995fa82f2",
+    ".pncc-dev/contracts/wave6-hbe-periodic-health-drift-activation-wu137.json": "37e08c46e021e04f1be6b799009b6f24111c1ac3",
+    ".pncc-dev/scripts/evaluate_wave6_hbe_periodic_health_drift_wu137.py": "d478fdc13afcf81b30d59952a44cc2aad8d5d5fe",
+    ".pncc-dev/tests/test_wave6_hbe_periodic_health_drift_wu137.py": "d1e292178284663e4a5b6636d857c145aa31748e",
+    ".pncc-dev/contracts/wave6-hbe-periodic-health-drift-authority-proposal-wu136.json": "7605105488aafad7400c26c13a5c8f5515d40a02",
+    ".pncc-dev/contracts/wave6-wu137-provider-scheduler-delivery-qualification-wu141.json": "6414fac73150e8d4e9f004a7fa03fa19aed9c470",
+    ".pncc-dev/contracts/wave6-wu137-provider-scheduler-degradation-remediation-proposal-wu142.json": "00dbcdcf1c2cdc75021d75a0ae3a0dbe818bfcdf",
+    ".github/workflows/wave6-wu137-provider-scheduler-degradation-remediation-proposal-wu142.yml": "53154aab9f6fff830faf4b2eab4d39812abea2e8"
+  },
+  "authority": {
+    "observer_schedule_activation_authorized": true,
+    "repository_write_authority": false,
+    "provider_state_write_authority_from_observer": false,
+    "wu137_mutation_authority": false,
+    "fallback_activation_authority": false,
+    "external_scheduler_or_dispatch_authority": false,
+    "runtime_authority": false,
+    "product_authority": false,
+    "adwf_authority": false,
+    "ruleset_security_authority": false,
+    "release_tag_promotion_authority": false,
+    "v631_authority": false,
+    "reserve_1080_lifecycle_authority": false,
+    "primary_1081_lifecycle_authority": false,
+    "force_or_bypass_authority": false
+  },
+  "forbidden_mutations": [
+    "WU137_WORKFLOW_OR_EVALUATOR_OR_CONTRACT",
+    "PRODUCT_OR_RUNTIME",
+    "127.0.0.1:1080_LIFECYCLE",
+    "127.0.0.1:1081_LIFECYCLE",
+    "V6.3.1",
+    "ADWF",
+    "RULESET_OR_SECURITY",
+    "RELEASE_TAG_PROMOTION",
+    "WORKFLOW_DISPATCH",
+    "REPOSITORY_DISPATCH",
+    "EXTERNAL_SCHEDULER_OR_TOKEN",
+    "SELF_HOSTED_RUNNER",
+    "FORCE_OR_BYPASS"
+  ],
+  "outcome_routing": {
+    "STABLE_DELIVERY_OBSERVED": "OBSERVE_ONLY_NO_CHANGE",
+    "RECOVERED_INTERMITTENT": "OBSERVE_ONLY_NO_CHANGE",
+    "RECOVERED_SINGLE": "OBSERVE_ONLY_NO_CHANGE",
+    "REMEDIATION_REVIEW_ELIGIBLE": "OWNER_REVIEW_NO_ACTIVATION",
+    "WU137_EXECUTION_UNHEALTHY_OBSERVED": "OWNER_REVIEW_NO_ACTIVATION",
+    "WU137_EXECUTION_NONTERMINAL_OBSERVED": "OWNER_REVIEW_NO_ACTIVATION",
+    "BLOCKED_PROVIDER_DATA": "OWNER_REVIEW_NO_ACTIVATION"
+  },
+  "next_boundary": "READ_ONLY_OBSERVER_ACTIVE_THEN_PROVIDER_DELIVERY_QUALIFICATION"
+}
