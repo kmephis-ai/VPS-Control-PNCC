@@ -1,0 +1,140 @@
+{
+  "schema_version": 1,
+  "role": "WAVE6_WU137_PROVIDER_SCHEDULER_DEGRADATION_REMEDIATION_PROPOSAL",
+  "work_unit_id": "PIPE-WU-142",
+  "issue_number": 329,
+  "repository": "kmephis-ai/VPS-Control-PNCC",
+  "authorized_base_sha": "f8576dab46d08d7610fab7651979046e9e3fe839",
+  "proposal_state": "OWNER_AUTHORIZED_PROPOSAL_ONLY",
+  "runtime_required": false,
+  "activation_authority": false,
+  "current_recommendation": "OBSERVE_ONLY_NO_CHANGE",
+  "classification": {
+    "workflow_execution_health": "DELIVERY_HEALTHY_WHEN_DELIVERED",
+    "provider_event_delivery_health": "INTERMITTENT_PROVIDER_SCHEDULER_DELIVERY",
+    "fallback_activation_state": "NO_FALLBACK_ACTIVATION_AUTHORIZED",
+    "separate_owner_authorization_required": true,
+    "repository_configuration_defect_proven": false,
+    "provider_scheduler_permanent_failure_proven": false
+  },
+  "provider_recovery_evidence": {
+    "canonical_cron_utc": "17 * * * *",
+    "predecessor_wu141_verdict": "PROVIDER_SCHEDULER_DELIVERY_NOT_OBSERVED",
+    "predecessor_wu141_snapshot_schedule_run_count": 0,
+    "recovered_schedule_runs": [
+      {
+        "run_id": 33448268711,
+        "job_id": 99672132901,
+        "event": "schedule",
+        "head_sha": "f8576dab46d08d7610fab7651979046e9e3fe839",
+        "created_at": "2026-08-31T22:53:15Z",
+        "conclusion": "success",
+        "health_outcome": "HEALTHY"
+      },
+      {
+        "run_id": 33460267213,
+        "job_id": 99708757357,
+        "event": "schedule",
+        "head_sha": "f8576dab46d08d7610fab7651979046e9e3fe839",
+        "created_at": "2026-09-01T01:50:20Z",
+        "conclusion": "success",
+        "health_outcome": "HEALTHY"
+      }
+    ],
+    "interpretation": {
+      "delivery_has_recovered_at_least_once": true,
+      "delivered_runs_execute_full_monitoring_path": true,
+      "delivered_runs_are_healthy": true,
+      "hourly_delivery_stability_proven": false,
+      "material_delivery_delay_observed": true,
+      "missing_nominal_opportunities_remain_observed": true
+    }
+  },
+  "immutable_anchor_blobs": {
+    ".github/workflows/wave6-hbe-periodic-health-drift-wu137.yml": "524ff581fb1c68d25a9c4d3b3ed56cd995fa82f2",
+    ".pncc-dev/contracts/wave6-hbe-periodic-health-drift-activation-wu137.json": "37e08c46e021e04f1be6b799009b6f24111c1ac3",
+    ".pncc-dev/scripts/evaluate_wave6_hbe_periodic_health_drift_wu137.py": "d478fdc13afcf81b30d59952a44cc2aad8d5d5fe",
+    ".pncc-dev/tests/test_wave6_hbe_periodic_health_drift_wu137.py": "d1e292178284663e4a5b6636d857c145aa31748e",
+    ".pncc-dev/contracts/wave6-hbe-periodic-health-drift-authority-proposal-wu136.json": "7605105488aafad7400c26c13a5c8f5515d40a02",
+    ".pncc-dev/contracts/wave6-wu137-provider-scheduler-delivery-qualification-wu141.json": "6414fac73150e8d4e9f004a7fa03fa19aed9c470"
+  },
+  "delivery_assessment_policy_proposal": {
+    "provider_truth_source": "GITHUB_ACTIONS_SCHEDULE_RUN_HISTORY_ONLY",
+    "canonical_cadence_seconds": 3600,
+    "bounded_delivery_lag_minutes": 45,
+    "states": {
+      "RECOVERED_SINGLE": "At least one real healthy schedule run exists after the WU141 zero-run observation.",
+      "RECOVERED_INTERMITTENT": "At least two real healthy schedule runs exist, while one or more nominal hourly opportunities are absent or delivery lag exceeds the bounded lag window.",
+      "STABLE_DELIVERY_OBSERVED": "Four consecutive nominal hourly opportunities each create a real healthy schedule run within the bounded lag window, with no missed nominal opportunity.",
+      "REMEDIATION_REVIEW_ELIGIBLE": "Three consecutive nominal opportunities have no real schedule run within the bounded lag window, or the rolling six-hour delivered-opportunity ratio falls below 0.5."
+    },
+    "review_eligible_effect": "OWNER_ESCALATION_ONLY_NO_ACTIVATION",
+    "fresh_provider_truth_required_for_every_decision": true,
+    "automatic_fallback_activation": false,
+    "automatic_trigger_or_permission_mutation": false
+  },
+  "candidate_remediation_classes": [
+    {
+      "rank": 1,
+      "id": "OBSERVE_ONLY_NO_CHANGE",
+      "authority_delta": "NONE",
+      "activation_state": "CURRENT_RECOMMENDATION",
+      "description": "Keep canonical WU137 unchanged and continue provider-observed schedule-delivery qualification."
+    },
+    {
+      "rank": 2,
+      "id": "GITHUB_NATIVE_REDUNDANT_OBSERVER_SEPARATE_WORKFLOW",
+      "authority_delta": "SEPARATE_OWNER_AUTHORIZATION_REQUIRED",
+      "activation_state": "PROPOSAL_ONLY_DISABLED",
+      "description": "A future separately governed GitHub-native observer could provide independent delivery evidence without changing WU137; design and activation are outside PIPE-WU-142."
+    },
+    {
+      "rank": 3,
+      "id": "EXTERNAL_SCHEDULER_OR_DISPATCH",
+      "authority_delta": "STRONGER_SEPARATE_OWNER_AUTHORIZATION_REQUIRED",
+      "activation_state": "FORBIDDEN_IN_PIPE_WU_142",
+      "description": "External scheduler, external credential, workflow_dispatch, repository_dispatch, webhook or equivalent mechanisms are forbidden under this Work Unit."
+    }
+  ],
+  "official_provider_semantics_background": {
+    "source": "GitHub Actions documentation",
+    "facts": [
+      "Scheduled events may be delayed during high load and queued jobs may be dropped.",
+      "The schedule event runs only when the workflow file exists on the default branch and scheduled workflows run on the default branch."
+    ],
+    "decision_authority": "BACKGROUND_ONLY_NOT_A_SUBSTITUTE_FOR_REPOSITORY_PROVIDER_TRUTH"
+  },
+  "forbidden_mutations": {
+    "wu137_workflow_trigger_mutation": true,
+    "wu137_cron_mutation": true,
+    "wu137_evaluator_mutation": true,
+    "wu137_permission_mutation": true,
+    "wu137_provider_truth_source_mutation": true,
+    "wu137_outcome_routing_mutation": true,
+    "wu137_overlap_or_missed_run_policy_mutation": true,
+    "fallback_activation": true,
+    "workflow_dispatch_addition": true,
+    "repository_dispatch_addition": true,
+    "external_token_or_scheduler_addition": true,
+    "self_hosted_runner_addition": true,
+    "product_or_runtime_mutation": true,
+    "adwf_mutation": true,
+    "ruleset_or_security_mutation": true,
+    "release_tag_or_promotion_mutation": true,
+    "v631_mutation": true,
+    "reserve_1080_lifecycle_mutation": true,
+    "primary_1081_lifecycle_mutation": true,
+    "force_or_bypass": true
+  },
+  "mutation_report": {
+    "remediation_activated": false,
+    "fallback_activated": false,
+    "wu137_mutated": false,
+    "provider_permissions_expanded": false,
+    "runtime_action_performed": false,
+    "product_mutation_performed": false,
+    "ruleset_security_mutation_performed": false,
+    "force_or_bypass_performed": false
+  },
+  "next_boundary": "PROPOSAL_ONLY_MERGE_THEN_SEPARATE_OWNER_DECISION_IF_ACTIVATION_IS_STILL_JUSTIFIED"
+}

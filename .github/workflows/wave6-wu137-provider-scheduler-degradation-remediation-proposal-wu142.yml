@@ -1,0 +1,139 @@
+name: wave6-wu137-provider-scheduler-degradation-remediation-proposal-wu142
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  issues: read
+  actions: read
+
+jobs:
+  validate-proposal:
+    if: github.head_ref == 'agent/PIPE-WU-142-wu137-provider-scheduler-degradation-remediation-proposal'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact WU142 PR head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Run WU142 proposal regression
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_wave6_wu137_provider_scheduler_degradation_remediation_proposal_wu142.py' -v
+
+      - name: Pin proposal and immutable predecessor anchors
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object .pncc-dev/contracts/wave6-wu137-provider-scheduler-degradation-remediation-proposal-wu142.json)" = "00dbcdcf1c2cdc75021d75a0ae3a0dbe818bfcdf"
+          test "$(git hash-object .pncc-dev/tests/test_wave6_wu137_provider_scheduler_degradation_remediation_proposal_wu142.py)" = "d3cb1eccd69ac79bfca6dc368b0e403b963c5daf"
+          test "$(git hash-object .github/workflows/wave6-hbe-periodic-health-drift-wu137.yml)" = "524ff581fb1c68d25a9c4d3b3ed56cd995fa82f2"
+          test "$(git hash-object .pncc-dev/contracts/wave6-hbe-periodic-health-drift-activation-wu137.json)" = "37e08c46e021e04f1be6b799009b6f24111c1ac3"
+          test "$(git hash-object .pncc-dev/scripts/evaluate_wave6_hbe_periodic_health_drift_wu137.py)" = "d478fdc13afcf81b30d59952a44cc2aad8d5d5fe"
+          test "$(git hash-object .pncc-dev/tests/test_wave6_hbe_periodic_health_drift_wu137.py)" = "d1e292178284663e4a5b6636d857c145aa31748e"
+          test "$(git hash-object .pncc-dev/contracts/wave6-hbe-periodic-health-drift-authority-proposal-wu136.json)" = "7605105488aafad7400c26c13a5c8f5515d40a02"
+          test "$(git hash-object .pncc-dev/contracts/wave6-wu137-provider-scheduler-delivery-qualification-wu141.json)" = "6414fac73150e8d4e9f004a7fa03fa19aed9c470"
+
+      - name: Revalidate fresh Provider Truth and recovered delivery evidence
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main pncc-provider-state
+          test "$(git rev-parse origin/main)" = "f8576dab46d08d7610fab7651979046e9e3fe839"
+          git show origin/pncc-provider-state:.pncc-state/writer-lease-registry.json > /tmp/wu142-registry.json
+          curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/kmephis-ai/VPS-Control-PNCC/issues/329 > /tmp/wu142-issue.json
+          curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/kmephis-ai/VPS-Control-PNCC/rulesets/21585301 > /tmp/wu142-ruleset.json
+          curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/kmephis-ai/VPS-Control-PNCC/actions/workflows/346803837/runs?event=schedule&per_page=100" > /tmp/wu142-schedule.json
+          python3 - <<'PY'
+          import json
+          issue=json.load(open('/tmp/wu142-issue.json'))
+          ruleset=json.load(open('/tmp/wu142-ruleset.json'))
+          registry=json.load(open('/tmp/wu142-registry.json'))
+          schedule=json.load(open('/tmp/wu142-schedule.json'))
+
+          marker='<!-- PNCC-WORK-UNIT schema=1 id=PIPE-WU-142 state=READY conflict_domain=wave6-wu137-provider-scheduler-degradation-remediation-proposal base=f8576dab46d08d7610fab7651979046e9e3fe839 runtime_required=false -->'
+          assert issue.get('number') == 329
+          assert issue.get('state') == 'open'
+          assert marker in (issue.get('body') or '')
+
+          assert ruleset.get('id') == 21585301
+          assert ruleset.get('enforcement') == 'active'
+          assert ruleset.get('bypass_actors') == []
+          assert ruleset.get('current_user_can_bypass') == 'never'
+          rule_map={r.get('type'):r for r in ruleset.get('rules',[])}
+          assert set(rule_map) == {'deletion','non_fast_forward','pull_request','required_status_checks'}
+          params=rule_map['required_status_checks']['parameters']
+          assert params.get('strict_required_status_checks_policy') is True
+          assert [x.get('context') for x in params.get('required_status_checks',[])] == ['repo-integrity','powershell-static','truth-contract']
+
+          assert registry.get('generation') == 56
+          rows=[x for x in registry.get('entries',[]) if x.get('lease_id') == '29bfc08d-f619-4e90-8787-b6cad10620f5']
+          assert len(rows) == 1
+          lease=rows[0]
+          assert lease['work_unit_id'] == 'PIPE-WU-142'
+          assert lease['conflict_domain'] == 'wave6-wu137-provider-scheduler-degradation-remediation-proposal'
+          assert lease['base_sha'] == 'f8576dab46d08d7610fab7651979046e9e3fe839'
+          assert lease['branch'] == 'agent/PIPE-WU-142-wu137-provider-scheduler-degradation-remediation-proposal'
+          assert lease['state'] == 'ACTIVE'
+          assert lease['generation'] == 56
+
+          runs={int(x['id']):x for x in schedule.get('workflow_runs',[])}
+          expected={
+              33448268711: '2026-08-31T22:53:15Z',
+              33460267213: '2026-09-01T01:50:20Z',
+          }
+          for run_id, created_at in expected.items():
+              run=runs[run_id]
+              assert run['event'] == 'schedule'
+              assert run['head_sha'] == 'f8576dab46d08d7610fab7651979046e9e3fe839'
+              assert run['status'] == 'completed'
+              assert run['conclusion'] == 'success'
+              assert run['created_at'] == created_at
+          PY
+
+      - name: Enforce exact bounded WU142 diff and ancestry
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$BASE_SHA" = "f8576dab46d08d7610fab7651979046e9e3fe839"
+          test "$(git merge-base "$BASE_SHA" "$HEAD_SHA")" = "$BASE_SHA"
+          git diff --name-only "$BASE_SHA" "$HEAD_SHA" | sort > /tmp/actual
+          printf '%s\n' \
+            '.github/workflows/wave6-wu137-provider-scheduler-degradation-remediation-proposal-wu142.yml' \
+            '.pncc-dev/contracts/wave6-wu137-provider-scheduler-degradation-remediation-proposal-wu142.json' \
+            '.pncc-dev/tests/test_wave6_wu137_provider_scheduler_degradation_remediation_proposal_wu142.py' | sort > /tmp/expected
+          diff -u /tmp/expected /tmp/actual
+          ! grep -E '^(\.github/workflows/wave6-hbe-periodic-health-drift-wu137\.yml|\.pncc-dev/scripts/evaluate_wave6_hbe-periodic-health-drift-wu137\.py|\.pncc-dev/contracts/wave6-hbe-periodic-health-drift-activation-wu137\.json|src/windows-v7/|\.adwf-consumer/|tools/runtime-agent/|tools/release/)' /tmp/actual
+
+      - name: Enforce WU142 validator is read only and non activating
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          path=Path('.github/workflows/wave6-wu137-provider-scheduler-degradation-remediation-proposal-wu142.yml')
+          text=path.read_text(encoding='utf-8')
+          low=text.lower()
+          stripped=[line.strip() for line in text.splitlines()]
+          assert stripped.count('contents: read') == 1
+          assert stripped.count('issues: read') == 1
+          assert stripped.count('actions: read') == 1
+          forbidden=[
+              'workflow_'+'dispatch:', 'repository_'+'dispatch:', 'contents:'+' write', 'issues:'+' write',
+              'actions:'+' write', 'pull-requests:'+' write', 'checks:'+' write', 'self-'+'hosted',
+              'git'+' push', 'gh pr'+' merge', 'gh issue'+' close', '--method'+' post', '--method'+' patch',
+              '--method'+' put', '--method'+' delete',
+          ]
+          for token in forbidden:
+              assert token not in low, token
+          PY
+          test -z "$(git status --porcelain)"
