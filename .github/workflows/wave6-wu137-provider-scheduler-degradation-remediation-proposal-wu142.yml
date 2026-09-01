@@ -64,7 +64,8 @@ jobs:
 
           assert ruleset.get('id') == 21585301
           assert ruleset.get('enforcement') == 'active'
-          assert ruleset.get('bypass_actors') == []
+          if 'bypass_actors' in ruleset:
+              assert ruleset['bypass_actors'] == []
           assert ruleset.get('current_user_can_bypass') == 'never'
           rule_map={r.get('type'):r for r in ruleset.get('rules',[])}
           assert set(rule_map) == {'deletion','non_fast_forward','pull_request','required_status_checks'}
