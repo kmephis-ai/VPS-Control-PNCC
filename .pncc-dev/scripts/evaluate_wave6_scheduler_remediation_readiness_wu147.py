@@ -110,8 +110,33 @@ def evaluate_contract(contract: Dict[str, Any], repo_root: Optional[Path] = None
     if freshness.get("required_source") != "GITHUB_ACTIONS_SCHEDULE_RUN_HISTORY":
         errors.append("provider_truth_source_mismatch")
 
-    decisions = contract.get("decision_matrix") or []
-    by_id = {d.get("id"): d for d in decisions if isinstance(d, dict) and d.get("id")}
+    decisions_raw = contract.get("decision_matrix")
+    decisions: List[Dict[str, Any]] = []
+    decision_ids: List[str] = []
+    if not isinstance(decisions_raw, list):
+        errors.append("decision_matrix_must_be_list")
+    else:
+        for index, decision in enumerate(decisions_raw):
+            if not isinstance(decision, dict):
+                errors.append(f"decision_matrix_entry_must_be_object:{index}")
+                continue
+            decision_id = decision.get("id")
+            if not isinstance(decision_id, str) or not decision_id:
+                errors.append(f"decision_matrix_id_invalid:{index}")
+                continue
+            decisions.append(decision)
+            decision_ids.append(decision_id)
+
+    seen_ids: set[str] = set()
+    duplicate_ids: set[str] = set()
+    for decision_id in decision_ids:
+        if decision_id in seen_ids:
+            duplicate_ids.add(decision_id)
+        seen_ids.add(decision_id)
+    for decision_id in sorted(duplicate_ids):
+        errors.append(f"decision_matrix_duplicate_id:{decision_id}")
+
+    by_id = {d["id"]: d for d in decisions}
     if set(by_id) != REQUIRED_DECISIONS:
         errors.append("decision_matrix_ids_mismatch")
     if any(d.get("selected") is not False for d in by_id.values()):

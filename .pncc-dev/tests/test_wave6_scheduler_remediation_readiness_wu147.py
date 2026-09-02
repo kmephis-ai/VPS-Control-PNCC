@@ -29,6 +29,7 @@ class Wave6SchedulerRemediationReadinessTests(unittest.TestCase):
         self.assertEqual("FAIL_CLOSED", result["verdict"])
         self.assertFalse(result["activation_authorized"])
         self.assertTrue(result["errors"])
+        return result
 
     def test_canonical_packet_is_ready_but_never_authorizes_activation(self):
         result = self.evaluate(copy.deepcopy(self.canonical), anchors=True)
@@ -55,6 +56,20 @@ class Wave6SchedulerRemediationReadinessTests(unittest.TestCase):
         data = copy.deepcopy(self.canonical)
         data["decision_matrix"][2]["selected"] = True
         self.assert_fail_closed(data)
+
+    def test_duplicate_decision_id_fails_closed(self):
+        data = copy.deepcopy(self.canonical)
+        data["decision_matrix"].append(copy.deepcopy(data["decision_matrix"][0]))
+        result = self.assert_fail_closed(data)
+        self.assertIn("decision_matrix_duplicate_id:DEFER_OBSERVE_ONLY", result["errors"])
+
+    def test_shadowed_authority_escalation_duplicate_fails_closed(self):
+        data = copy.deepcopy(self.canonical)
+        injected = copy.deepcopy(data["decision_matrix"][2])
+        injected["repository_dispatch_authorized"] = True
+        data["decision_matrix"].insert(0, injected)
+        result = self.assert_fail_closed(data)
+        self.assertIn("decision_matrix_duplicate_id:BOUNDED_DISPATCH_FALLBACK_CLASS", result["errors"])
 
     def test_provider_root_cause_overclaim_fails_closed(self):
         data = copy.deepcopy(self.canonical)
