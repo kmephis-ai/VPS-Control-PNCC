@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "role": "WAVE6_EXIT_PRODUCT_PRIORITY_POLICY",
+  "decision": "PIPELINE_MATURITY_ENDS_AS_PRIMARY_AFTER_WAVE6_TERMINAL",
+  "owner_directive_date": "2026-09-02",
+  "effective_when": {
+    "wave": 6,
+    "condition": "TERMINAL_PIPELINE_MATURITY_COMPLETE"
+  },
+  "post_wave6": {
+    "primary_priority": "VPSCC_PRODUCT_DEVELOPMENT",
+    "pipeline_maturity_program": "COMPLETE",
+    "pipeline_work_mode": "MAINTENANCE_BY_EXCEPTION",
+    "pipeline_exception_classes": [
+      "RELIABILITY_REGRESSION",
+      "SECURITY_DEFECT",
+      "GOVERNANCE_DEFECT",
+      "REQUIRED_PROVIDER_COMPATIBILITY_REPAIR"
+    ],
+    "new_pipeline_maturity_expansion_by_default": false
+  },
+  "interpretation": [
+    "Wave 6 is the terminal pipeline-maturity wave, not the start of an unbounded pipeline program.",
+    "After terminal Wave 6 maturity, roadmap selection should prefer VPSCC product capability, UX, quality, and product/runtime work under their normal authorities.",
+    "Pipeline control-plane work remains available only when a concrete maintenance, reliability, security, governance, or provider-compatibility exception requires it."
+  ],
+  "non_authority": {
+    "authorizes_product_mutation_inside_pipe_wu_158": false,
+    "authorizes_runtime_mutation_inside_pipe_wu_158": false,
+    "changes_1080_or_1081_policy": false,
+    "changes_v6_3_1_immutability": false,
+    "weakens_ruleset_or_security": false,
+    "authorizes_release_tag_or_promotion": false
+  }
+}

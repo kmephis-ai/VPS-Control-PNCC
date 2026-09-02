@@ -1,8 +1,11 @@
+import base64
+import hashlib
 import importlib.util
 import re
 import types
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[2]
 SPEC = importlib.util.spec_from_file_location(
@@ -18,14 +21,22 @@ class ExecutorError(RuntimeError):
     pass
 
 
+def blob_sha(data: bytes) -> str:
+    return hashlib.sha1(b"blob " + str(len(data)).encode() + b"\0" + data).hexdigest()
+
+
 class T(unittest.TestCase):
-    BLOB = "b" * 40
+    REGISTRY_BYTES = b"x"
+    BLOB = blob_sha(REGISTRY_BYTES)
+    OLD = "a" * 40
     TREE = "c" * 40
     COMMIT = "d" * 40
     STATE_TREE = "e" * 40
+    MESSAGE = "PIPE-WU-154 acquire Writer Lease lease"
 
     def fake_core(self, *, ref=None, commit_tree=None, root_entries=None, state_entries=None):
         calls = []
+        patched = {"value": False}
         ref = ref or self.COMMIT
         commit_tree = commit_tree or self.TREE
         root_entries = root_entries if root_entries is not None else [
@@ -37,6 +48,8 @@ class T(unittest.TestCase):
 
         def gh(method, path, token, body=None):
             calls.append((method, path, body))
+            if method == "GET" and path == "/git/ref/heads/pncc-provider-state":
+                return {"object": {"sha": ref if patched["value"] else self.OLD}}
             if method == "POST" and path == "/git/blobs":
                 return {"sha": self.BLOB}
             if method == "POST" and path == "/git/trees":
@@ -44,15 +57,16 @@ class T(unittest.TestCase):
             if method == "POST" and path == "/git/commits":
                 return {"sha": self.COMMIT}
             if method == "PATCH" and path == "/git/refs/heads/pncc-provider-state":
-                return {"ok": True}
-            if method == "GET" and path == "/git/ref/heads/pncc-provider-state":
-                return {"object": {"sha": ref}}
+                patched["value"] = True
+                return {"object": {"sha": self.COMMIT}}
             if method == "GET" and path == f"/git/commits/{self.COMMIT}":
-                return {"tree": {"sha": commit_tree}}
+                return {"tree": {"sha": commit_tree}, "parents": [{"sha": self.OLD}], "message": self.MESSAGE}
             if method == "GET" and path == f"/git/trees/{self.TREE}":
                 return {"tree": root_entries}
             if method == "GET" and path == f"/git/trees/{self.STATE_TREE}":
                 return {"tree": state_entries}
+            if method == "GET" and path == f"/git/blobs/{self.BLOB}":
+                return {"encoding": "base64", "content": base64.b64encode(self.REGISTRY_BYTES).decode()}
             if method == "GET" and path.startswith("/contents/"):
                 raise AssertionError("Contents API must not be used after PATCH")
             return {"ok": True}
@@ -63,25 +77,20 @@ class T(unittest.TestCase):
             STATE_BRANCH="pncc-provider-state",
             SHA40=re.compile(r"^[0-9a-f]{40}$"),
             ExecutorError=ExecutorError,
+            git_blob_sha=blob_sha,
         )
         return core, calls
 
     def run_postwrite_readback(self, core):
         w.install_immutable_registry_reads(core)
-        core.gh("POST", "/git/blobs", "token", {"content": "x"})
+        core.gh("GET", "/git/ref/heads/pncc-provider-state", "token")
+        core.gh("POST", "/git/blobs", "token", {"content": "x", "encoding": "utf-8"})
         core.gh("POST", "/git/trees", "token", {"tree": []})
-        core.gh("POST", "/git/commits", "token", {"tree": self.TREE})
-        core.gh(
-            "PATCH",
-            "/git/refs/heads/pncc-provider-state",
-            "token",
-            {"sha": self.COMMIT, "force": False},
-        )
-        return core.gh(
-            "GET",
-            "/contents/.pncc-state/writer-lease-registry.json?ref=pncc-provider-state",
-            "token",
-        )
+        core.gh("POST", "/git/commits", "token", {"tree": self.TREE, "parents": [self.OLD], "message": self.MESSAGE})
+        core.gh("PATCH", "/git/refs/heads/pncc-provider-state", "token", {"sha": self.COMMIT, "force": False})
+        with mock.patch.object(w.time, "sleep", return_value=None):
+            core.gh("GET", "/git/ref/heads/pncc-provider-state", "token")
+        return core.gh("GET", "/contents/.pncc-state/writer-lease-registry.json?ref=pncc-provider-state", "token")
 
     def test_postwrite_readback_uses_only_git_data(self):
         core, calls = self.fake_core()
@@ -96,7 +105,7 @@ class T(unittest.TestCase):
 
     def test_ref_mismatch_fails_closed(self):
         core, _ = self.fake_core(ref="f" * 40)
-        with self.assertRaisesRegex(ExecutorError, "POSTWRITE_STATE_REF_MISMATCH"):
+        with self.assertRaisesRegex(ExecutorError, "POSTWRITE_STATE_REF_DIVERGED"):
             self.run_postwrite_readback(core)
 
     def test_commit_tree_mismatch_fails_closed(self):
@@ -105,52 +114,38 @@ class T(unittest.TestCase):
             self.run_postwrite_readback(core)
 
     def test_duplicate_path_fails_closed(self):
-        duplicate = [
-            {"path": ".pncc-state", "type": "tree", "sha": self.STATE_TREE},
-            {"path": ".pncc-state", "type": "tree", "sha": "f" * 40},
-        ]
+        duplicate = [{"path": ".pncc-state", "type": "tree", "sha": self.STATE_TREE}, {"path": ".pncc-state", "type": "tree", "sha": "f" * 40}]
         core, _ = self.fake_core(root_entries=duplicate)
         with self.assertRaisesRegex(ExecutorError, "POSTWRITE_TREE_PATH_NOT_UNIQUE"):
             self.run_postwrite_readback(core)
 
     def test_wrong_registry_blob_fails_closed(self):
-        wrong = [
-            {"path": "writer-lease-registry.json", "type": "blob", "sha": "f" * 40}
-        ]
-        core, _ = self.fake_core(state_entries=wrong)
+        core, _ = self.fake_core(state_entries=[{"path": "writer-lease-registry.json", "type": "blob", "sha": "f" * 40}])
         with self.assertRaisesRegex(ExecutorError, "POSTWRITE_REGISTRY_BLOB_MISMATCH"):
             self.run_postwrite_readback(core)
 
     def test_force_true_is_rejected_before_provider_patch(self):
         core, calls = self.fake_core()
         w.install_immutable_registry_reads(core)
-        core.gh("POST", "/git/blobs", "token", {"content": "x"})
+        core.gh("GET", "/git/ref/heads/pncc-provider-state", "token")
+        core.gh("POST", "/git/blobs", "token", {"content": "x", "encoding": "utf-8"})
         core.gh("POST", "/git/trees", "token", {"tree": []})
-        core.gh("POST", "/git/commits", "token", {"tree": self.TREE})
+        core.gh("POST", "/git/commits", "token", {"tree": self.TREE, "parents": [self.OLD], "message": self.MESSAGE})
         before = len(calls)
         with self.assertRaisesRegex(ExecutorError, "POSTWRITE_FORCE_OR_BODY_INVALID"):
-            core.gh(
-                "PATCH",
-                "/git/refs/heads/pncc-provider-state",
-                "token",
-                {"sha": self.COMMIT, "force": True},
-            )
+            core.gh("PATCH", "/git/refs/heads/pncc-provider-state", "token", {"sha": self.COMMIT, "force": True})
         self.assertEqual(len(calls), before)
 
     def test_patch_commit_mismatch_is_rejected_before_provider_patch(self):
         core, calls = self.fake_core()
         w.install_immutable_registry_reads(core)
-        core.gh("POST", "/git/blobs", "token", {"content": "x"})
+        core.gh("GET", "/git/ref/heads/pncc-provider-state", "token")
+        core.gh("POST", "/git/blobs", "token", {"content": "x", "encoding": "utf-8"})
         core.gh("POST", "/git/trees", "token", {"tree": []})
-        core.gh("POST", "/git/commits", "token", {"tree": self.TREE})
+        core.gh("POST", "/git/commits", "token", {"tree": self.TREE, "parents": [self.OLD], "message": self.MESSAGE})
         before = len(calls)
         with self.assertRaisesRegex(ExecutorError, "POSTWRITE_PATCH_COMMIT_MISMATCH"):
-            core.gh(
-                "PATCH",
-                "/git/refs/heads/pncc-provider-state",
-                "token",
-                {"sha": "f" * 40, "force": False},
-            )
+            core.gh("PATCH", "/git/refs/heads/pncc-provider-state", "token", {"sha": "f" * 40, "force": False})
         self.assertEqual(len(calls), before)
 
     def test_workflow_still_uses_same_wrapper_and_permissions(self):
