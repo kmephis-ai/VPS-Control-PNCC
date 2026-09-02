@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "role": "PRODUCT_STATE_SNAPSHOT_READONLY_CLI_CONSUMER",
+  "work_unit_id": "PIPE-WU-161",
+  "issue_number": 371,
+  "state": "IMPLEMENTED_AWAITING_EXACT_HEAD_CI",
+  "exact_base_sha": "6945df951d2c981e4a410f3e45564da94b1b1622",
+  "conflict_domain": "product-state-snapshot-readonly-cli-consumer",
+  "runtime_required": false,
+  "foundation": {
+    "path": "src/foundations/windows-v7/V7-StateSnapshot.ps1",
+    "contract": "PNCC_STATE_SNAPSHOT",
+    "schema_version": 1,
+    "read_only": true
+  },
+  "cli": {
+    "path": "tools/cli/Get-PnccStateSnapshot.ps1",
+    "powershell_minimum": "5.1",
+    "input_transport": "LOCAL_JSON_FILE",
+    "output_transport": "STDOUT_JSON",
+    "performs_network_probe": false,
+    "performs_network_write": false,
+    "performs_process_control": false,
+    "performs_persistence": false,
+    "accesses_credentials": false,
+    "changes_routing": false,
+    "changes_tunnel_lifecycle": false
+  },
+  "fixed_tunnel_invariants": {
+    "primary_auto": {"host": "127.0.0.1", "port": 1081, "lifecycle": "AUTO", "automation_may_manage_lifecycle": true},
+    "reserve_manual": {"host": "127.0.0.1", "port": 1080, "lifecycle": "MANUAL_ONLY", "automation_may_manage_lifecycle": false}
+  },
+  "hosted_evidence_scope": "ENGINEERING_CONTRACT_ONLY_NOT_PHYSICAL_RUNTIME_QUALIFICATION",
+  "authority": {
+    "routing_semantic_change": false,
+    "runtime_mutation": false,
+    "reserve_1080_lifecycle_mutation": false,
+    "v6_3_1_mutation": false,
+    "vps_or_keenetic_mutation": false,
+    "credential_or_security_change": false,
+    "ruleset_change": false,
+    "adwf_change": false,
+    "web_or_api_server": false,
+    "release_tag_promotion": false,
+    "self_hosted_runner": false,
+    "external_token_webhook_scheduler": false,
+    "force_or_bypass": false
+  }
+}
