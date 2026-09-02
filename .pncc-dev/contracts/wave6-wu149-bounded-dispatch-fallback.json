@@ -1,0 +1,70 @@
+{
+  "authority": {
+    "adwf_mutation": false,
+    "branch_mutation": false,
+    "higher_autonomy": false,
+    "issue_mutation": false,
+    "primary_1081_lifecycle_mutation": false,
+    "private_evidence_publication": false,
+    "product_runtime_mutation": false,
+    "provider_mutation": false,
+    "pull_request_mutation": false,
+    "release_tag_promotion": false,
+    "reserve_1080_lifecycle_mutation": false,
+    "ruleset_security_mutation": false,
+    "runtime_action": false,
+    "self_hosted_runner": false,
+    "v631_mutation": false,
+    "workflow_rerun": false,
+    "writer_lease_mutation": false
+  },
+  "claims": {
+    "repairs_github_schedule_delivery": false,
+    "replaces_wu137_schedule": false,
+    "replaces_wu144_observer": false
+  },
+  "concurrency": {
+    "cancel_in_progress": true,
+    "catch_up_burst_forbidden": true,
+    "group": "wave6-wu149-bounded-dispatch-fallback"
+  },
+  "delegation": {
+    "mode": "REUSE_READ_ONLY_HEALTH_DRIFT_SEMANTICS_NO_NEW_AUTHORITY",
+    "wu137_activation_blob": "37e08c46e021e04f1be6b799009b6f24111c1ac3",
+    "wu137_activation_path": ".pncc-dev/contracts/wave6-hbe-periodic-health-drift-activation-wu137.json",
+    "wu137_evaluator_blob": "d478fdc13afcf81b30d59952a44cc2aad8d5d5fe",
+    "wu137_evaluator_path": ".pncc-dev/scripts/evaluate_wave6_hbe_periodic_health_drift_wu137.py"
+  },
+  "freshness": {
+    "provider_reads_each_dispatch": true,
+    "snapshot_max_seconds": 300,
+    "stored_checkpoint_authority": false
+  },
+  "next_boundary": "EXACT_HEAD_CI_THEN_LEASE_RELEASE_AND_GOVERNED_MERGE",
+  "permissions": {
+    "actions": "read",
+    "checks": "read",
+    "contents": "read",
+    "issues": "read",
+    "pull_requests": "read"
+  },
+  "repository": "kmephis-ai/VPS-Control-PNCC",
+  "role": "WAVE6_WU149_BOUNDED_DISPATCH_FALLBACK",
+  "rollback": "REMOVE_WU149_FALLBACK_FOUR_FILES_ONLY_PRESERVE_WU137_WU144_WU146_WU147",
+  "schema_version": 1,
+  "state": "BOUNDED_DISPATCH_FALLBACK_ACTIVE_READ_ONLY",
+  "trigger": {
+    "external_scheduler_present": false,
+    "external_token_present": false,
+    "repository_dispatch_present": false,
+    "schedule_present": false,
+    "type": "workflow_dispatch"
+  },
+  "work_unit": {
+    "base_sha": "d526d9cdfbf8227c0147b2fbc088bfdf4aa9ca47",
+    "branch": "agent/PIPE-WU-149-bounded-dispatch-fallback",
+    "id": "PIPE-WU-149",
+    "issue": 347,
+    "runtime_required": false
+  }
+}

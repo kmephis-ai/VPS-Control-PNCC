@@ -1,0 +1,147 @@
+name: wave6-wu149-bounded-dispatch-fallback
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/wave6-wu149-bounded-dispatch-fallback.yml'
+      - '.pncc-dev/contracts/wave6-wu149-bounded-dispatch-fallback.json'
+      - '.pncc-dev/scripts/evaluate_wave6_wu149_bounded_dispatch_fallback.py'
+      - '.pncc-dev/tests/test_wave6_wu149_bounded_dispatch_fallback.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+  actions: read
+  checks: read
+
+concurrency:
+  group: wave6-wu149-bounded-dispatch-fallback
+  cancel-in-progress: true
+
+jobs:
+  validate-fallback:
+    if: github.event_name == 'pull_request' && github.head_ref == 'agent/PIPE-WU-149-bounded-dispatch-fallback'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Run WU149 fallback adversarial tests
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_wave6_wu149_bounded_dispatch_fallback.py' -v
+      - name: Pin delegated WU137 read-only anchors
+        run: |
+          test "$(git hash-object .pncc-dev/contracts/wave6-hbe-periodic-health-drift-activation-wu137.json)" = "37e08c46e021e04f1be6b799009b6f24111c1ac3"
+          test "$(git hash-object .pncc-dev/scripts/evaluate_wave6_hbe_periodic_health_drift_wu137.py)" = "d478fdc13afcf81b30d59952a44cc2aad8d5d5fe"
+      - name: Assert bounded eight-file WU149 surface
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}" | sort > /tmp/actual
+          printf '%s\n' \
+            '.github/workflows/wave6-wu149-writer-lease-cas-executor.yml' \
+            '.pncc-dev/contracts/wave6-wu149-writer-lease-cas-executor.json' \
+            '.pncc-dev/scripts/writer_lease_cas_executor_wu149.py' \
+            '.pncc-dev/tests/test_writer_lease_cas_executor_wu149.py' \
+            '.github/workflows/wave6-wu149-bounded-dispatch-fallback.yml' \
+            '.pncc-dev/contracts/wave6-wu149-bounded-dispatch-fallback.json' \
+            '.pncc-dev/scripts/evaluate_wave6_wu149_bounded_dispatch_fallback.py' \
+            '.pncc-dev/tests/test_wave6_wu149_bounded_dispatch_fallback.py' | sort > /tmp/expected
+          diff -u /tmp/expected /tmp/actual
+          ! grep -E '^(src/windows-v7/|legacy/|tools/runtime-agent/|tools/release/|\.adwf-consumer/|\.pncc-state/)' /tmp/actual
+          test -z "$(git status --porcelain)"
+
+  dispatch-health-drift:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact dispatch revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Collect one fresh read-only Provider Truth snapshot
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          CHECKOUT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main pncc-provider-state
+          git show origin/pncc-provider-state:.pncc-state/writer-lease-registry.json > /tmp/wu149-registry.json
+          curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/kmephis-ai/VPS-Control-PNCC/issues/322 > /tmp/wu149-auth-issue.json
+          curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/kmephis-ai/VPS-Control-PNCC/rulesets/21585301 > /tmp/wu149-ruleset.json
+          MAIN_SHA="$(git rev-parse origin/main)"
+          PROVIDER_STATE_SHA="$(git rev-parse origin/pncc-provider-state)"
+          curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/kmephis-ai/VPS-Control-PNCC/commits/$MAIN_SHA/check-runs?per_page=100" > /tmp/wu149-checks.json
+          export WU149_OBSERVED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          export WU149_MAIN_SHA="$MAIN_SHA"
+          export WU149_PROVIDER_STATE_SHA="$PROVIDER_STATE_SHA"
+          export WU149_CHECKOUT_SHA="$CHECKOUT_SHA"
+          export WU149_REPOSITORY="$REPOSITORY"
+          python3 - <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+          registry=json.loads(Path('/tmp/wu149-registry.json').read_text())
+          issue=json.loads(Path('/tmp/wu149-auth-issue.json').read_text())
+          ruleset=json.loads(Path('/tmp/wu149-ruleset.json').read_text())
+          checks=json.loads(Path('/tmp/wu149-checks.json').read_text())
+          frontier=json.loads(Path('.pncc-dev/contracts/wave5-next-governed-work-unit-frontier.json').read_text())
+          proposal_blob=subprocess.check_output(['git','hash-object','.pncc-dev/contracts/wave6-hbe-periodic-health-drift-authority-proposal-wu136.json'],text=True).strip()
+          required=['repo-integrity','powershell-static','truth-contract']
+          latest={}
+          for run in checks.get('check_runs',[]):
+              name=run.get('name')
+              if name in required and name not in latest:
+                  latest[name]=run
+          conclusions={name:(latest.get(name) or {}).get('conclusion') or 'missing' for name in required}
+          body=issue.get('body') or ''
+          tokens=[
+            'Exact proposal blob: `7605105488aafad7400c26c13a5c8f5515d40a02`',
+            'Exact authorized base: `107f0e3ac66f3fa53bddf6ad30f1afbbccc49ada`',
+            'Cadence: `3600` seconds.',
+          ]
+          rule_map={r.get('type'):r for r in ruleset.get('rules',[])}
+          params=rule_map.get('required_status_checks',{}).get('parameters',{})
+          out={
+            'observed_at':os.environ['WU149_OBSERVED_AT'],
+            'repository':os.environ['WU149_REPOSITORY'],
+            'main_sha':os.environ['WU149_MAIN_SHA'],
+            'checkout_sha':os.environ['WU149_CHECKOUT_SHA'],
+            'provider_state_sha':os.environ['WU149_PROVIDER_STATE_SHA'],
+            'registry_generation':registry.get('generation'),
+            'frontier_state':frontier.get('state'),
+            'proposal_blob_sha':proposal_blob,
+            'authorization_issue_state':issue.get('state'),
+            'authorization_tokens_present':all(t in body for t in tokens),
+            'ruleset_id':ruleset.get('id'),
+            'ruleset_enforcement':ruleset.get('enforcement'),
+            'ruleset_updated_at':ruleset.get('updated_at'),
+            'ruleset_current_user_can_bypass':ruleset.get('current_user_can_bypass'),
+            'ruleset_rule_types':sorted(rule_map),
+            'strict_required_status_checks_policy':params.get('strict_required_status_checks_policy'),
+            'required_check_contexts':[x.get('context') for x in params.get('required_status_checks',[])],
+            'required_check_conclusions':conclusions,
+            'owner_boundary_requested':False,
+          }
+          Path('/tmp/wu149-snapshot.json').write_text(json.dumps(out,separators=(',',':')))
+          PY
+
+      - name: Evaluate bounded fallback using canonical WU137 semantics
+        run: |
+          set -euo pipefail
+          python3 .pncc-dev/scripts/evaluate_wave6_wu149_bounded_dispatch_fallback.py --snapshot /tmp/wu149-snapshot.json | tee /tmp/wu149-result.json
+          cat /tmp/wu149-result.json >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Prove dispatch remained read only
+        run: test -z "$(git status --porcelain)"
