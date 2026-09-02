@@ -1,4 +1,5 @@
 import importlib.util
+import re
 import types
 import unittest
 from pathlib import Path
@@ -11,6 +12,10 @@ SPEC = importlib.util.spec_from_file_location(
 w = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader
 SPEC.loader.exec_module(w)
+
+
+class ExecutorError(RuntimeError):
+    pass
 
 
 class T(unittest.TestCase):
@@ -30,6 +35,8 @@ class T(unittest.TestCase):
             gh=gh,
             REGISTRY_PATH=".pncc-state/writer-lease-registry.json",
             STATE_BRANCH="pncc-provider-state",
+            SHA40=re.compile(r"^[0-9a-f]{40}$"),
+            ExecutorError=ExecutorError,
         )
         return core, calls, state
 
