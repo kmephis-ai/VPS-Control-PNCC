@@ -121,12 +121,13 @@ class T(unittest.TestCase):
         with self.assertRaisesRegex(ExecutorError, "POSTWRITE_REGISTRY_BLOB_MISMATCH"):
             self.run_postwrite_readback(core)
 
-    def test_force_true_is_rejected(self):
-        core, _ = self.fake_core()
+    def test_force_true_is_rejected_before_provider_patch(self):
+        core, calls = self.fake_core()
         w.install_immutable_registry_reads(core)
         core.gh("POST", "/git/blobs", "token", {"content": "x"})
         core.gh("POST", "/git/trees", "token", {"tree": []})
         core.gh("POST", "/git/commits", "token", {"tree": self.TREE})
+        before = len(calls)
         with self.assertRaisesRegex(ExecutorError, "POSTWRITE_FORCE_OR_BODY_INVALID"):
             core.gh(
                 "PATCH",
@@ -134,6 +135,23 @@ class T(unittest.TestCase):
                 "token",
                 {"sha": self.COMMIT, "force": True},
             )
+        self.assertEqual(len(calls), before)
+
+    def test_patch_commit_mismatch_is_rejected_before_provider_patch(self):
+        core, calls = self.fake_core()
+        w.install_immutable_registry_reads(core)
+        core.gh("POST", "/git/blobs", "token", {"content": "x"})
+        core.gh("POST", "/git/trees", "token", {"tree": []})
+        core.gh("POST", "/git/commits", "token", {"tree": self.TREE})
+        before = len(calls)
+        with self.assertRaisesRegex(ExecutorError, "POSTWRITE_PATCH_COMMIT_MISMATCH"):
+            core.gh(
+                "PATCH",
+                "/git/refs/heads/pncc-provider-state",
+                "token",
+                {"sha": "f" * 40, "force": False},
+            )
+        self.assertEqual(len(calls), before)
 
     def test_workflow_still_uses_same_wrapper_and_permissions(self):
         text = (ROOT / ".github/workflows/wave6-wu149-writer-lease-cas-executor.yml").read_text()
