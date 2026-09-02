@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "role": "WAVE6_BOUNDED_UNATTENDED_WINDOW_DURABLE_STATE",
+  "work_unit_id": "PIPE-WU-159",
+  "issue_number": 366,
+  "state": "DURABLE_STATE_ACTIVE_NOT_LIVE_QUALIFIED",
+  "repository": "kmephis-ai/VPS-Control-PNCC",
+  "exact_base_sha": "738aa7eaca6c3da65f039b499aa0243b1b254d86",
+  "conflict_domain": "wave6-bounded-unattended-window-durable-state",
+  "runtime_required": false,
+  "authority_continuity": {
+    "historical_activation_contract": ".pncc-dev/contracts/wave6-wu156-bounded-unattended-activation.json",
+    "historical_activation_authorization_id": "483ea2a0-a6cf-4460-8245-e30ee227e458",
+    "historical_failed_successor": "PIPE-WU-157",
+    "cas_repair_and_live_qualification": "PIPE-WU-158",
+    "fresh_owner_continuation_authorization_present": true,
+    "new_pipeline_scope_granted": false
+  },
+  "current_window": {
+    "max_work_units": 3,
+    "max_wall_clock_minutes": 90,
+    "max_parallel_mutating_writers": 1,
+    "work_units_consumed_in_current_window_after_wu159_merge": 2,
+    "work_units_remaining_after_wu159_merge": 1,
+    "fresh_provider_truth_each_work_unit": true,
+    "fresh_writer_lease_each_work_unit": true,
+    "exact_head_ci_before_merge": true,
+    "writer_lease_released_before_merge": true,
+    "pinned_expected_head_merge": true,
+    "stop_on_first_governed_exception": true
+  },
+  "completed_domains": [
+    "wave6-writer-lease-cas-postwrite-readback-reliability-repair",
+    "wave6-bounded-unattended-window-durable-state"
+  ],
+  "remaining_permitted_domains": [
+    "wave6-bounded-unattended-window-live-qualification"
+  ],
+  "next_expected_work_unit": "PIPE-WU-160",
+  "live_qualification": {
+    "performed": false,
+    "claim_live_qualified": false,
+    "required_conflict_domain": "wave6-bounded-unattended-window-live-qualification",
+    "requires_fresh_provider_reconciliation": true,
+    "requires_fresh_writer_lease": true
+  },
+  "mandatory_stop_conditions": [
+    "NO_DETERMINISTIC_NEXT_WORK_UNIT",
+    "MAIN_OR_PROVIDER_STATE_DRIFT",
+    "CI_FAILURE_REQUIRES_UNAUTHORIZED_SCOPE",
+    "WAITING_RUNTIME",
+    "PRODUCT_OR_RUNTIME_MUTATION_REQUIRED",
+    "POLICY_OR_SECURITY_AUTHORITY_REQUIRED",
+    "RULESET_OR_SECURITY_WEAKENING_REQUIRED",
+    "RELEASE_TAG_OR_PROMOTION_BOUNDARY",
+    "RESERVE_1080_LIFECYCLE_BOUNDARY",
+    "PRIMARY_1081_RUNTIME_LIFECYCLE_BOUNDARY",
+    "V631_MUTATION_BOUNDARY",
+    "SELF_HOSTED_RUNNER_REQUIRED",
+    "WRITER_LEASE_CONFLICT_OR_EXPIRY",
+    "WORK_UNIT_OR_WALL_CLOCK_BUDGET_EXHAUSTED",
+    "UNKNOWN_OR_STALE_PROVIDER_TRUTH"
+  ],
+  "wave6_exit": {
+    "policy": ".pncc-dev/contracts/wave6-exit-product-priority-policy.json",
+    "after_terminal_live_qualification_primary_priority": "VPSCC_PRODUCT_DEVELOPMENT",
+    "pipeline_work_mode_after_terminal": "MAINTENANCE_BY_EXCEPTION",
+    "new_pipeline_maturity_expansion_by_default": false
+  },
+  "authority": {
+    "product_runtime_mutation": false,
+    "reserve_1080_lifecycle_mutation": false,
+    "primary_1081_lifecycle_mutation": false,
+    "v631_mutation": false,
+    "ruleset_security_weakening": false,
+    "release_tag_promotion": false,
+    "self_hosted_runner": false,
+    "external_token_webhook_scheduler": false,
+    "force_or_bypass": false,
+    "direct_main_engineering_write": false,
+    "wildcard_conflict_domain": false
+  },
+  "terminal_after_governed_merge": "DURABLE_STATE_PERSISTED_AWAITING_WU160_LIVE_QUALIFICATION"
+}
