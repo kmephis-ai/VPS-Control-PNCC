@@ -1,0 +1,82 @@
+{
+  "acquire": {
+    "claim_eligible_required": true,
+    "generation_policy": "REGISTRY_GENERATION_PLUS_ONE",
+    "historical_entry_mutation_forbidden": true,
+    "holder": "chatgpt-wave5-writer",
+    "lease_duration_seconds": 3600,
+    "runtime_required_must_be_false": true
+  },
+  "authority": {
+    "adwf_mutation": false,
+    "external_credential": false,
+    "force_ref_update": false,
+    "historical_lease_reuse": false,
+    "new_lease_authority": false,
+    "new_provider_state_authority": false,
+    "primary_1081_lifecycle_mutation": false,
+    "private_evidence_publication": false,
+    "product_runtime_mutation": false,
+    "release_tag_promotion": false,
+    "reserve_1080_lifecycle_mutation": false,
+    "ruleset_security_mutation": false,
+    "runtime_action": false,
+    "self_hosted_runner": false,
+    "silent_lease_steal": false,
+    "v631_mutation": false
+  },
+  "authority_source": {
+    "blob_sha": "717e1f9081915f40fad2e0620c64245a650ca235",
+    "path": ".pncc-dev/contracts/reusable-writer-lease-bounded-branch-authorized.json",
+    "scope": "REUSABLE_WRITER_LEASE_LIFECYCLE_AND_BOUNDED_BRANCH_EXECUTION_ONLY"
+  },
+  "bound_anchor_blobs": {
+    "claim_admission_policy": "bf83539899df5c5a4e660734e861653f1d4cc1ee",
+    "claim_evaluator": "f93eae649008c9b1e19cd12e06b43c108881146a",
+    "lifecycle_evaluator": "d50eae850b64fa5f3f3f657a10bdb476ad769ce8",
+    "lifecycle_policy": "942492b4ffe2c2a8c4369b15b617ad9f7f795643",
+    "registry_topology": "2b9dec3f2b28aadb80ac8edbb09bdc9d453115a1",
+    "selector": "8045a97d5344f058064690cb265b30f88973e2b8",
+    "state_validator": "e9a2dc4c3e4dcca903c052066cac6ee448c581e7"
+  },
+  "cas": {
+    "force_ref_update": false,
+    "fresh_provider_read_required": true,
+    "immediate_readback_required": true,
+    "parent_commit_must_equal_observed_state_head": true,
+    "required_tokens": [
+      "EXPECTED_REGISTRY_BLOB_SHA",
+      "OBSERVED_STATE_BRANCH_HEAD_SHA"
+    ],
+    "stale_or_contradictory_state": "BLOCK_FAIL_CLOSED"
+  },
+  "performance_mode": {
+    "chat_side_registry_transport_required": false,
+    "group_fresh_provider_reads_per_transaction": true,
+    "name": "FAST_GOVERNED_MODE",
+    "single_git_data_cas_per_registry_mutation": true,
+    "single_post_mutation_readback": true
+  },
+  "registry_path": ".pncc-state/writer-lease-registry.json",
+  "release": {
+    "exact_owned_active_unexpired_lease_required": true,
+    "historical_entry_mutation_forbidden": true,
+    "registry_generation_policy": "UNCHANGED"
+  },
+  "repository": "kmephis-ai/VPS-Control-PNCC",
+  "request_transport": {
+    "allowed_actions": [
+      "ACQUIRE",
+      "RELEASE"
+    ],
+    "exact_single_request_marker_required": true,
+    "exact_single_work_unit_marker_required": true,
+    "issue_author_must_equal_repository_owner": true,
+    "marker": "PNCC-LEASE-CAS-REQUEST",
+    "type": "CANONICAL_WORK_UNIT_ISSUE_BODY_EDIT"
+  },
+  "role": "WRITER_LEASE_CAS_EXECUTOR_WU149",
+  "schema_version": 1,
+  "state": "AUTHORIZED_DELEGATION_OF_EXISTING_REUSABLE_WRITER_LEASE_AUTHORITY_ONLY",
+  "state_branch": "pncc-provider-state"
+}
