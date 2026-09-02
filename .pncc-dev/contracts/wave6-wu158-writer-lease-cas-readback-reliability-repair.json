@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "role": "WRITER_LEASE_CAS_POSTWRITE_READBACK_RELIABILITY_REPAIR",
+  "work_unit_id": "PIPE-WU-158",
+  "authorized_base_sha": "ac6872c45525c84f6282d8e517da70e8403a145a",
+  "issue": 364,
+  "defect": {
+    "code": "POSTWRITE_READBACK_MISMATCH",
+    "reproduced_on": [
+      "ACQUIRE",
+      "RELEASE"
+    ],
+    "reproduction_work_unit": "PIPE-WU-157",
+    "root_cause_class": "POST_PATCH_REF_READ_AFTER_WRITE_EVENTUAL_CONSISTENCY",
+    "previous_gap": "WU150_PINNED_MUTABLE_CONTENTS_BUT_DID_NOT_BOUND_POSTWRITE_REF_CONVERGENCE"
+  },
+  "repair": {
+    "patch_ack_must_equal_created_commit": true,
+    "postwrite_ref_policy": "BOUNDED_CONVERGENCE",
+    "temporarily_stale_ref_allowed_only": "EXACT_PREWRITE_HEAD",
+    "third_sha_policy": "FAIL_CLOSED_IMMEDIATELY",
+    "convergence_timeout_policy": "FAIL_CLOSED",
+    "immutable_proof": [
+      "EXACT_CREATED_COMMIT",
+      "EXACT_PREWRITE_PARENT",
+      "EXACT_CREATED_TREE",
+      "EXACT_REGISTRY_PATH_BLOB",
+      "EXACT_REGISTRY_BYTES"
+    ],
+    "mutable_contents_postwrite_dependency": false,
+    "force_ref_update": false
+  },
+  "adversarial_validation": {
+    "required": true,
+    "cases": [
+      "STALE_PREWRITE_REF_THEN_CONVERGENCE_ACQUIRE",
+      "STALE_PREWRITE_REF_THEN_CONVERGENCE_RELEASE",
+      "THIRD_REF_SHA_DIVERGENCE_FAIL_CLOSED",
+      "STALE_REF_TIMEOUT_FAIL_CLOSED",
+      "PATCH_ACK_MISMATCH_FAIL_CLOSED",
+      "COMMIT_PARENT_MISMATCH_FAIL_CLOSED",
+      "COMMIT_TREE_MISMATCH_FAIL_CLOSED",
+      "REGISTRY_BLOB_MISMATCH_FAIL_CLOSED",
+      "REGISTRY_BYTES_MISMATCH_FAIL_CLOSED",
+      "FORCE_REF_UPDATE_FORBIDDEN"
+    ]
+  },
+  "live_qualification": {
+    "required_after_merge": true,
+    "fresh_acquire_required": true,
+    "fresh_release_required": true,
+    "executor_conclusion_required": "SUCCESS",
+    "independent_reconciliation_substitute_allowed": false
+  },
+  "authority": {
+    "product_mutation": false,
+    "runtime_mutation": false,
+    "ruleset_or_security_weakening": false,
+    "release_tag_or_promotion": false,
+    "self_hosted_runner": false,
+    "external_token_webhook_or_scheduler": false,
+    "force_or_bypass": false
+  }
+}
