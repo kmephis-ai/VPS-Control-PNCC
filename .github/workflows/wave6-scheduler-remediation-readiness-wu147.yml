@@ -1,0 +1,116 @@
+name: wave6-scheduler-remediation-readiness-wu147
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/wave6-scheduler-remediation-readiness-wu147.yml'
+      - '.pncc-dev/contracts/wave6-scheduler-remediation-owner-decision-readiness-wu147.json'
+      - '.pncc-dev/scripts/evaluate_wave6_scheduler_remediation_readiness_wu147.py'
+      - '.pncc-dev/tests/test_wave6_scheduler_remediation_readiness_wu147.py'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/wave6-scheduler-remediation-readiness-wu147.yml'
+      - '.pncc-dev/contracts/wave6-scheduler-remediation-owner-decision-readiness-wu147.json'
+      - '.pncc-dev/scripts/evaluate_wave6_scheduler_remediation_readiness_wu147.py'
+      - '.pncc-dev/tests/test_wave6_scheduler_remediation_readiness_wu147.py'
+
+permissions:
+  contents: read
+
+jobs:
+  owner-decision-readiness:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact PNCC revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Run WU147 adversarial readiness tests
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_wave6_scheduler_remediation_readiness_wu147.py' -v
+
+      - name: Evaluate canonical WU147 readiness packet
+        run: python3 .pncc-dev/scripts/evaluate_wave6_scheduler_remediation_readiness_wu147.py
+
+      - name: Validate durable repository contracts
+        run: python3 .pncc-dev/scripts/validate_state.py --validate-examples
+
+      - name: Assert WU147 zero authority and no activation
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('.pncc-dev/contracts/wave6-scheduler-remediation-owner-decision-readiness-wu147.json').read_text(encoding='utf-8'))
+          assert p['role']=='WAVE6_SCHEDULER_REMEDIATION_OWNER_DECISION_READINESS'
+          assert p['work_unit_id']=='PIPE-WU-147'
+          assert p['issue_number']==342
+          assert p['authorized_base_sha']=='b8980da9879619f8c28bc844969a3955b4d6e368'
+          assert p['authorized_branch']=='agent/PIPE-WU-147-scheduler-remediation-readiness-leased'
+          assert p['runtime_required'] is False
+          assert p['predecessor_evidence']['classification']=='CROSS_WORKFLOW_SCHEDULE_DELIVERY_DEGRADATION_CORRELATED'
+          assert p['predecessor_evidence']['global_github_outage_proven'] is False
+          assert p['predecessor_evidence']['provider_root_cause_proven'] is False
+          assert p['freshness_boundary']['fresh_provider_truth_observed_in_wu147'] is False
+          assert p['freshness_boundary']['fresh_provider_truth_required_before_every_activation_decision'] is True
+          assert p['decision_state']['selected_candidate'] is None
+          assert p['decision_state']['activation_performed'] is False
+          assert p['decision_state']['provider_state_mutated'] is False
+          assert p['decision_state']['separate_owner_authorization_required'] is True
+          assert p['decision_state']['reusable_authority_allowed'] is False
+          assert p['authority'] and all(v is False for v in p['authority'].values())
+          assert all(item['selected'] is False for item in p['decision_matrix'])
+          PY
+
+      - name: Assert immutable predecessor anchors
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          p=json.loads(Path('.pncc-dev/contracts/wave6-scheduler-remediation-owner-decision-readiness-wu147.json').read_text(encoding='utf-8'))
+          for rel,expected in p['immutable_anchor_blobs'].items():
+              b=Path(rel).read_bytes()
+              actual=hashlib.sha1(f'blob {len(b)}\0'.encode()+b).hexdigest()
+              assert actual==expected,(rel,expected,actual)
+          PY
+
+      - name: Assert WU147 gate remains read only
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          text=Path('.github/workflows/wave6-scheduler-remediation-readiness-wu147.yml').read_text(encoding='utf-8').lower()
+          forbidden=[
+            'contents:'+' write','issues:'+' write','pull-requests:'+' write','actions:'+' write',
+            'git'+' push','git'+' tag','gh'+' pr merge','gh'+' issue close',
+            '--method'+' post','--method'+' patch','--method'+' put','--method'+' delete',
+            'workflow_'+'dispatch:', 'repository_'+'dispatch:', 'self-'+'hosted'
+          ]
+          for token in forbidden:
+              assert token not in text,token
+          PY
+
+      - name: Assert exact WU147 bounded diff
+        if: github.event_name == 'pull_request' && github.head_ref == 'agent/PIPE-WU-147-scheduler-remediation-readiness-leased'
+        run: |
+          set -euo pipefail
+          test "${{ github.event.pull_request.base.sha }}" = "b8980da9879619f8c28bc844969a3955b4d6e368"
+          git fetch --no-tags --depth=1 origin "${{ github.event.pull_request.base.sha }}"
+          test "$(git merge-base b8980da9879619f8c28bc844969a3955b4d6e368 ${{ github.event.pull_request.head.sha }})" = "b8980da9879619f8c28bc844969a3955b4d6e368"
+          git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}" | sort > /tmp/actual
+          printf '%s\n' \
+            '.github/workflows/wave6-scheduler-remediation-readiness-wu147.yml' \
+            '.pncc-dev/contracts/wave6-scheduler-remediation-owner-decision-readiness-wu147.json' \
+            '.pncc-dev/scripts/evaluate_wave6_scheduler_remediation_readiness_wu147.py' \
+            '.pncc-dev/tests/test_wave6_scheduler_remediation_readiness_wu147.py' | sort > /tmp/expected
+          diff -u /tmp/expected /tmp/actual
+          python3 .pncc-dev/scripts/check_wu105_provenance_compatibility.py --base "${{ github.event.pull_request.base.sha }}" --head "${{ github.event.pull_request.head.sha }}"
+
+      - name: Assert repository remains clean
+        run: test -z "$(git status --porcelain)"
