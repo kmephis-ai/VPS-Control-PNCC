@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "work_unit": "PIPE-WU-155",
+  "classification": "WRITER_LEASE_CAS_GITDATA_LIVE_QUALIFICATION",
+  "qualification_target_main": "c121dc1e7324254047094ca3c9c115bf5033c591",
+  "acquire": {
+    "executor_run_id": 33672515543,
+    "executor_conclusion": "success",
+    "provider_state_commit": "b6dec958452d254d52f25b8157ebd1a806dae54b",
+    "expected_parent": "0e8a881665442981f0be40ba27368601667ab6ce",
+    "lease_id": "31c3d8de-313f-45f3-bfc4-c4b621d14041",
+    "provider_signature_verified": true,
+    "registry_blob_after_acquire": "a77431ae330162202719a9439e14aca7f72af3e0"
+  },
+  "release": {
+    "executor_conclusion_must_be": "success",
+    "provider_state_release_must_parent_acquire": true,
+    "terminal_evidence_recorded_in_issue": true
+  },
+  "postwrite_readback": "AUTHORITATIVE_GIT_DATA",
+  "historical_false_negative_class_closure_requires_both_transactions_success": true,
+  "new_authority_granted": false,
+  "runtime_authority_granted": false,
+  "product_mutation_authority_granted": false,
+  "unattended_activation_authority_granted": false,
+  "permission_expansion": false,
+  "trigger_expansion": false,
+  "force_or_bypass_authority_granted": false
+}
