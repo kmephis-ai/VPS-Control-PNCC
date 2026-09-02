@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "role": "WAVE6_BOUNDED_UNATTENDED_DEVELOPMENT_WINDOW_READINESS",
+  "work_unit_id": "PIPE-WU-152",
+  "issue_number": 353,
+  "state": "READINESS_ONLY_NO_ACTIVATION",
+  "repository": "kmephis-ai/VPS-Control-PNCC",
+  "authorized_base_sha": "e922f7125fde48ac2420144d6f2ae1c4e40cde1a",
+  "conflict_domain": "wave6-bounded-unattended-development-window-readiness",
+  "runtime_required": false,
+  "purpose": "Define a fail-closed least-authority readiness envelope for future bounded unattended engineering windows without activating unattended mutation.",
+  "recommended_initial_envelope": {
+    "max_work_units": 3,
+    "max_wall_clock_minutes": 90,
+    "max_parallel_mutating_writers": 1,
+    "fresh_provider_truth_each_work_unit": true,
+    "stop_on_first_governed_exception": true,
+    "carry_authority_across_work_units": false,
+    "reuse_writer_lease_across_conflict_domains": false
+  },
+  "required_admission": [
+    "EXPLICIT_OWNER_ACTIVATION_FOR_SEPARATE_WU",
+    "FRESH_EXACT_MAIN_AND_PROVIDER_TRUTH",
+    "DETERMINISTIC_NEXT_WORK_UNIT_SELECTED",
+    "WORK_UNIT_RUNTIME_REQUIRED_FALSE",
+    "WORK_UNIT_BOUNDED_NON_MAIN_BRANCH",
+    "WRITER_LEASE_ACQUIRED_FOR_EXACT_WORK_UNIT_AND_CONFLICT_DOMAIN",
+    "REUSABLE_AUTHORITY_COVERS_EACH_REQUESTED_MUTATION",
+    "EXACT_HEAD_CI_SUCCESS_BEFORE_MERGE",
+    "WRITER_LEASE_RELEASED_BEFORE_MERGE",
+    "PINNED_EXPECTED_HEAD_MERGE_ELIGIBLE"
+  ],
+  "mandatory_stop_conditions": [
+    "NO_DETERMINISTIC_NEXT_WORK_UNIT",
+    "MAIN_OR_PROVIDER_STATE_DRIFT",
+    "CI_FAILURE_REQUIRES_UNAUTHORIZED_SCOPE",
+    "WAITING_RUNTIME",
+    "PRODUCT_OR_RUNTIME_MUTATION_REQUIRED",
+    "POLICY_OR_SECURITY_AUTHORITY_REQUIRED",
+    "RULESET_OR_SECURITY_WEAKENING_REQUIRED",
+    "RELEASE_TAG_OR_PROMOTION_BOUNDARY",
+    "RESERVE_1080_LIFECYCLE_BOUNDARY",
+    "PRIMARY_1081_RUNTIME_LIFECYCLE_BOUNDARY",
+    "V631_MUTATION_BOUNDARY",
+    "SELF_HOSTED_RUNNER_REQUIRED",
+    "WRITER_LEASE_CONFLICT_OR_EXPIRY",
+    "WORK_UNIT_OR_WALL_CLOCK_BUDGET_EXHAUSTED",
+    "UNKNOWN_OR_STALE_PROVIDER_TRUTH"
+  ],
+  "durable_stop_semantics": {
+    "persist_reason": true,
+    "preserve_completed_work": true,
+    "release_active_writer_lease_if_lawfully_releasable": true,
+    "no_guessing_or_authority_escalation": true,
+    "resume_requires_fresh_provider_reconciliation": true
+  },
+  "authority": {
+    "unattended_mutation_activation": false,
+    "new_merge_authority": false,
+    "new_branch_authority": false,
+    "new_issue_authority": false,
+    "workflow_rerun_authority": false,
+    "provider_mutation_authority": false,
+    "scheduler_mutation_authority": false,
+    "runtime_action_authority": false,
+    "product_runtime_mutation_authority": false,
+    "ruleset_security_mutation_authority": false,
+    "release_tag_promotion_authority": false,
+    "reserve_1080_lifecycle_mutation_authority": false,
+    "primary_1081_lifecycle_mutation_authority": false,
+    "v631_mutation_authority": false,
+    "self_hosted_runner_authority": false,
+    "force_or_bypass_authority": false,
+    "private_evidence_publication_authority": false
+  },
+  "activation_decision": {
+    "performed": false,
+    "separate_owner_decision_required": true,
+    "terminal_if_valid": "READY_FOR_SEPARATE_OWNER_ACTIVATION_DECISION",
+    "default_without_new_owner_authorization": "DO_NOT_ACTIVATE_UNATTENDED_MUTATION"
+  },
+  "next_boundary": "EXACT_HEAD_CI_THEN_RELEASE_AND_GOVERNED_MERGE_THEN_STOP_FOR_SEPARATE_OWNER_DECISION"
+}
