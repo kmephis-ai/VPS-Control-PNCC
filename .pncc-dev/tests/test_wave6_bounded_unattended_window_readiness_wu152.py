@@ -3,7 +3,7 @@ import importlib.util
 import json
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 CONTRACT = ROOT / "contracts" / "wave6-bounded-unattended-development-window-readiness-wu152.json"
 SCRIPT = ROOT / "scripts" / "evaluate_wave6_bounded_unattended_window_readiness_wu152.py"
 
