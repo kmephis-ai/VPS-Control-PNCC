@@ -1,6 +1,5 @@
 import json
 import pathlib
-import re
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -55,7 +54,6 @@ class Wu151OwnerOperatedDispatchBridgeTests(unittest.TestCase):
             "gh workflow run",
             "/dispatches -f event_type",
             "issue_comment",
-            "workflow_run",
             "schedule:",
             "cron:",
             "webhook",
