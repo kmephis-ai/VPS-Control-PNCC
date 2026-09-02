@@ -89,6 +89,15 @@ def install_immutable_registry_reads(core: ModuleType) -> ModuleType:
             )
             return original_gh(method, immutable_path, token, body)
 
+        if method == "PATCH" and path == f"/git/refs/heads/{core.STATE_BRANCH}":
+            if not isinstance(body, dict) or body.get("force") is not False:
+                fail("POSTWRITE_FORCE_OR_BODY_INVALID")
+            if body.get("sha") != state["commit"]:
+                fail("POSTWRITE_PATCH_COMMIT_MISMATCH")
+            result = original_gh(method, path, token, body)
+            state["patched"] = True
+            return result
+
         result = original_gh(method, path, token, body)
 
         if method == "POST" and path == "/git/blobs":
@@ -97,12 +106,6 @@ def install_immutable_registry_reads(core: ModuleType) -> ModuleType:
             state["tree"] = (result or {}).get("sha")
         elif method == "POST" and path == "/git/commits":
             state["commit"] = (result or {}).get("sha")
-        elif method == "PATCH" and path == f"/git/refs/heads/{core.STATE_BRANCH}":
-            if not isinstance(body, dict) or body.get("force") is not False:
-                fail("POSTWRITE_FORCE_OR_BODY_INVALID")
-            if body.get("sha") != state["commit"]:
-                fail("POSTWRITE_PATCH_COMMIT_MISMATCH")
-            state["patched"] = True
 
         return result
 
