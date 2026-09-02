@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [string]$Repository = 'kmephis-ai/VPS-Control-PNCC',
     [int]$PollSeconds = 5,
