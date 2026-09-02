@@ -123,7 +123,7 @@ def install_immutable_registry_reads(core: ModuleType) -> ModuleType:
         if not isinstance(blob_obj, dict) or blob_obj.get("encoding") != "base64":
             fail("POSTWRITE_REGISTRY_BLOB_ENCODING_INVALID")
         try:
-            observed_bytes = base64.b64decode(str(blob_obj.get("content", "")), validate=True)
+            observed_bytes = base64.b64decode(str(blob_obj.get("content", "")), validate=False)
         except Exception as exc:
             raise core.ExecutorError("POSTWRITE_REGISTRY_BLOB_DECODE_FAILED") from exc
         if observed_bytes != expected_bytes or core.git_blob_sha(observed_bytes) != expected_blob:

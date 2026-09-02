@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import importlib.util
+import json
 import re
 import types
 import unittest
@@ -79,7 +80,9 @@ class FakeProvider:
         if method == "GET" and path == f"/git/trees/{self.tree}":
             return {"tree": [{"path": "registry.json", "type": "blob", "sha": self.tree_blob}]}
         if method == "GET" and path == f"/git/blobs/{self.blob}":
-            return {"encoding": "base64", "content": base64.b64encode(self.blob_bytes_readback).decode()}
+            encoded = base64.b64encode(self.blob_bytes_readback).decode()
+            encoded = encoded[:8] + "\n" + encoded[8:]
+            return {"encoding": "base64", "content": encoded}
         raise AssertionError((method, path, body))
 
 
@@ -213,6 +216,31 @@ class T(unittest.TestCase):
         with self.assertRaisesRegex(ExecutorError, "POSTWRITE_FORCE_OR_BODY_INVALID"):
             c.gh("PATCH", "/git/refs/heads/pncc-provider-state", "token", {"sha": p.commit, "force": True})
 
+
+    def test_repair_contract_requires_both_live_operations_and_no_authority_expansion(self):
+        data = json.loads(
+            (ROOT / ".pncc-dev/contracts/wave6-wu158-writer-lease-cas-readback-reliability-repair.json").read_text()
+        )
+        self.assertEqual(data["defect"]["reproduced_on"], ["ACQUIRE", "RELEASE"])
+        self.assertEqual(data["repair"]["postwrite_ref_policy"], "BOUNDED_CONVERGENCE")
+        self.assertEqual(data["repair"]["temporarily_stale_ref_allowed_only"], "EXACT_PREWRITE_HEAD")
+        self.assertFalse(data["repair"]["force_ref_update"])
+        self.assertTrue(data["live_qualification"]["fresh_acquire_required"])
+        self.assertTrue(data["live_qualification"]["fresh_release_required"])
+        self.assertEqual(data["live_qualification"]["executor_conclusion_required"], "SUCCESS")
+        self.assertFalse(any(data["authority"].values()))
+
+    def test_wave6_exit_returns_primary_priority_to_vpscc_product(self):
+        data = json.loads(
+            (ROOT / ".pncc-dev/contracts/wave6-exit-product-priority-policy.json").read_text()
+        )
+        self.assertEqual(data["decision"], "PIPELINE_MATURITY_ENDS_AS_PRIMARY_AFTER_WAVE6_TERMINAL")
+        self.assertEqual(data["effective_when"]["wave"], 6)
+        self.assertEqual(data["post_wave6"]["primary_priority"], "VPSCC_PRODUCT_DEVELOPMENT")
+        self.assertEqual(data["post_wave6"]["pipeline_maturity_program"], "COMPLETE")
+        self.assertEqual(data["post_wave6"]["pipeline_work_mode"], "MAINTENANCE_BY_EXCEPTION")
+        self.assertFalse(data["post_wave6"]["new_pipeline_maturity_expansion_by_default"])
+        self.assertFalse(any(data["non_authority"].values()))
 
 if __name__ == "__main__":
     unittest.main()
