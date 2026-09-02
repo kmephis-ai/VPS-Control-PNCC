@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "work_unit": "PIPE-WU-151",
+  "role": "WAVE6_WU151_OWNER_OPERATED_WORKFLOW_DISPATCH_BRIDGE",
+  "state": "OWNER_OPERATED_BRIDGE_IMPLEMENTED_NOT_YET_PROVIDER_QUALIFIED",
+  "repository": "kmephis-ai/VPS-Control-PNCC",
+  "exact_base": "8a52bf8140f9fb984bbf6f7fea329d8e99508e65",
+  "predecessor": {
+    "work_unit": "PIPE-WU-150",
+    "issue": 349,
+    "state": "WAITING_PROVIDER_DISPATCH_CAPABILITY"
+  },
+  "target": {
+    "workflow_file": ".github/workflows/wave6-wu149-bounded-dispatch-fallback.yml",
+    "dispatch_ref": "main",
+    "required_event": "workflow_dispatch",
+    "required_runner_label": "ubuntu-24.04"
+  },
+  "authority": {
+    "workflow_dispatch_invocation_authority": true,
+    "repository_content_mutation_authority": false,
+    "repository_dispatch_authority": false,
+    "workflow_rerun_authority": false,
+    "workflow_trigger_mutation_authority": false,
+    "schedule_mutation_authority": false,
+    "ruleset_mutation_authority": false,
+    "runtime_authority": false,
+    "product_authority": false,
+    "release_or_tag_authority": false,
+    "self_hosted_runner_authority": false,
+    "force_or_bypass_authority": false
+  },
+  "credential_model": {
+    "source": "EXISTING_OWNER_GITHUB_CLI_AUTHENTICATION",
+    "token_argument_allowed": false,
+    "token_file_allowed": false,
+    "credential_environment_export_allowed": false,
+    "credential_logging_allowed": false,
+    "credential_persistence_by_helper_allowed": false
+  },
+  "dispatch_protocol": {
+    "api_endpoint": "repos/kmephis-ai/VPS-Control-PNCC/actions/workflows/wave6-wu149-bounded-dispatch-fallback.yml/dispatches",
+    "api_version": "2026-03-10",
+    "method": "POST",
+    "fresh_main_read_before_dispatch": true,
+    "fresh_main_read_after_dispatch": true,
+    "require_main_unchanged_across_dispatch": true,
+    "require_dispatch_response_run_id": true,
+    "require_exact_run_head_sha": true,
+    "require_exact_workflow_path": true,
+    "require_event_workflow_dispatch": true,
+    "require_github_hosted_runner_proof": true,
+    "fail_closed_on_ambiguous_or_unprovable_provider_state": true
+  },
+  "claims": {
+    "repairs_github_schedule_delivery": false,
+    "replaces_wu137_or_wu144": false,
+    "creates_automatic_scheduler": false,
+    "adds_new_trigger": false,
+    "owner_operated_dispatch_bridge_available_after_merge": true,
+    "wu150_provider_qualification_still_requires_real_dispatch": true
+  },
+  "forbidden_scope": [
+    "product/runtime mutation",
+    "1080/1081 lifecycle",
+    "V6.3.1 mutation",
+    "self-hosted runner",
+    "ruleset/security weakening",
+    "release/tag/promotion",
+    "repository_dispatch",
+    "schedule/cron mutation",
+    "external scheduler/webhook/token",
+    "force/bypass",
+    "direct-main engineering write"
+  ],
+  "terminal_success": "OWNER_OPERATED_BRIDGE_READY_FOR_REAL_DISPATCH",
+  "next_boundary": "MERGE_THEN_OWNER_OPERATED_REAL_WORKFLOW_DISPATCH_FOR_WU150"
+}
