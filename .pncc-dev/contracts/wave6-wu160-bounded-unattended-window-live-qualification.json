@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "role": "WAVE6_BOUNDED_UNATTENDED_WINDOW_LIVE_QUALIFICATION",
+  "work_unit_id": "PIPE-WU-160",
+  "issue_number": 368,
+  "state": "LIVE_QUALIFICATION_READY_FOR_TERMINAL_MERGE",
+  "repository": "kmephis-ai/VPS-Control-PNCC",
+  "exact_base_sha": "8b7a02fdfac46afe4adff4bfec70f227ac133efa",
+  "conflict_domain": "wave6-bounded-unattended-window-live-qualification",
+  "runtime_required": false,
+  "durable_state_contract": ".pncc-dev/contracts/wave6-wu159-bounded-unattended-window-durable-state.json",
+  "wave6_exit_policy": ".pncc-dev/contracts/wave6-exit-product-priority-policy.json",
+  "fresh_acquire_evidence": {
+    "required": true,
+    "executor_run_id": 33683071395,
+    "executor_conclusion": "SUCCESS",
+    "lease_id": "09d5905c-8894-4e89-a246-f73da9b38ddb",
+    "provider_state_commit": "05f016e3553130f9ac08032029f672188fcbf98e",
+    "provider_state_parent": "4b74d68ba02bceeb33bf517f6496d6f9019c464c",
+    "registry_blob": "db952cf59a011035a35c45c96619288c6036a9e0",
+    "registry_generation": 75,
+    "lease_state_at_branch_admission": "ACTIVE"
+  },
+  "terminal_qualification_requirements": {
+    "fresh_writer_lease_acquire_success": true,
+    "exact_wu_domain_base_branch_binding": true,
+    "bounded_non_main_branch": true,
+    "pull_request_to_exact_main": true,
+    "exact_head_ci_terminal_green": true,
+    "fresh_writer_lease_release_success": true,
+    "writer_lease_released_before_merge": true,
+    "provider_state_release_readback": true,
+    "governed_expected_head_merge": true,
+    "exact_current_main_equals_merge_sha_readback": true,
+    "no_direct_main_engineering_write": true,
+    "no_force_or_bypass": true
+  },
+  "terminal_transition": {
+    "precondition_state": "LIVE_QUALIFICATION_READY_FOR_TERMINAL_MERGE",
+    "factual_condition": "ALL_TERMINAL_QUALIFICATION_REQUIREMENTS_PROVEN_AND_EXPECTED_HEAD_MERGE_EQUALS_CURRENT_MAIN",
+    "terminal_state": "TERMINAL_PIPELINE_MATURITY_COMPLETE",
+    "terminal_result": "BOUNDED_UNATTENDED_LIVE_QUALIFICATION_PASS",
+    "must_not_claim_terminal_before_condition": true
+  },
+  "current_window_after_terminal": {
+    "max_work_units": 3,
+    "max_wall_clock_minutes": 90,
+    "max_parallel_mutating_writers": 1,
+    "work_units_consumed": 3,
+    "work_units_remaining": 0,
+    "authorization_exhausted": true,
+    "fourth_pipeline_work_unit_authorized": false
+  },
+  "pipeline_after_terminal": {
+    "remaining_permitted_domains": [],
+    "next_pipeline_work_unit": "NONE",
+    "pipeline_maturity_program_state": "COMPLETE",
+    "primary_priority": "VPSCC_PRODUCT_DEVELOPMENT",
+    "pipeline_work_mode": "MAINTENANCE_BY_EXCEPTION",
+    "new_pipeline_maturity_expansion_by_default": false,
+    "product_mutation_authorized_by_wu160": false
+  },
+  "authority": {
+    "product_runtime_mutation": false,
+    "reserve_1080_lifecycle_mutation": false,
+    "primary_1081_lifecycle_mutation": false,
+    "v631_mutation": false,
+    "ruleset_security_weakening": false,
+    "release_tag_promotion": false,
+    "self_hosted_runner": false,
+    "external_token_webhook_scheduler": false,
+    "force_or_bypass": false,
+    "direct_main_engineering_write": false,
+    "new_pipeline_maturity_expansion": false
+  }
+}
