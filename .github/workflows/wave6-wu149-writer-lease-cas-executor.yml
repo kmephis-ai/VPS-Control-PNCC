@@ -7,7 +7,9 @@ on:
       - '.github/workflows/wave6-wu149-writer-lease-cas-executor.yml'
       - '.pncc-dev/contracts/wave6-wu149-writer-lease-cas-executor.json'
       - '.pncc-dev/scripts/writer_lease_cas_executor_wu149.py'
+      - '.pncc-dev/scripts/writer_lease_cas_executor_wu150_immutable_readback.py'
       - '.pncc-dev/tests/test_writer_lease_cas_executor_wu149.py'
+      - '.pncc-dev/tests/test_writer_lease_cas_executor_wu150_readback.py'
   issues:
     types: [edited]
 
@@ -16,7 +18,7 @@ permissions:
 
 jobs:
   validate-executor:
-    if: github.event_name == 'pull_request' && github.head_ref == 'agent/PIPE-WU-149-bounded-dispatch-fallback'
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -29,7 +31,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Run CAS executor adversarial tests
-        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_writer_lease_cas_executor_wu149.py' -v
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_writer_lease_cas_executor_wu*.py' -v
       - name: Assert executor is engineering-control-plane only
         shell: bash
         run: |
@@ -60,6 +62,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-        run: python3 .pncc-dev/scripts/writer_lease_cas_executor_wu149.py --issue-number "${{ github.event.issue.number }}" --repository-owner "${{ github.repository_owner }}"
+        run: python3 .pncc-dev/scripts/writer_lease_cas_executor_wu150_immutable_readback.py --issue-number "${{ github.event.issue.number }}" --repository-owner "${{ github.repository_owner }}"
       - name: Prove checkout remained clean
         run: test -z "$(git status --porcelain)"
