@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "role": "WAVE6_SCHEDULER_REMEDIATION_OWNER_DECISION_READINESS",
+  "work_unit_id": "PIPE-WU-147",
+  "issue_number": 342,
+  "state": "ACTIVE",
+  "repository": "kmephis-ai/VPS-Control-PNCC",
+  "authorized_base_sha": "b8980da9879619f8c28bc844969a3955b4d6e368",
+  "authorized_branch": "agent/PIPE-WU-147-scheduler-remediation-readiness",
+  "conflict_domain": "wave6-scheduler-remediation-owner-decision-readiness",
+  "runtime_required": false,
+  "purpose": "Materialize a self-validating zero-authority owner-decision packet from the PIPE-WU-146 repository-local cross-workflow schedule-delivery degradation evidence without activating or mutating scheduler/provider state.",
+  "predecessor_evidence": {
+    "work_unit_id": "PIPE-WU-146",
+    "issue_number": 337,
+    "pull_request_number": 341,
+    "classification": "CROSS_WORKFLOW_SCHEDULE_DELIVERY_DEGRADATION_CORRELATED",
+    "observation_source": "GITHUB_ACTIONS_SCHEDULE_RUN_HISTORY_ONLY",
+    "observed_at": "2026-09-01T17:53:43Z",
+    "wu137_schedule_run_count": 5,
+    "wu144_schedule_run_count": 0,
+    "wu144_consecutive_matured_delivery_misses": 2,
+    "wu137_latest_observed_schedule_run_conclusion": "success",
+    "repository_local_cross_workflow_correlation": true,
+    "global_github_outage_proven": false,
+    "provider_root_cause_proven": false,
+    "repository_configuration_defect_proven": false
+  },
+  "freshness_boundary": {
+    "fresh_provider_truth_observed_in_wu147": false,
+    "reason": "CURRENT_CONNECTED_GITHUB_SURFACE_DOES_NOT_EXPOSE_USABLE_PRIVATE_REPOSITORY_ARBITRARY_SCHEDULE_RUN_HISTORY_READ",
+    "stale_predecessor_evidence_may_authorize_activation": false,
+    "fresh_provider_truth_required_before_every_activation_decision": true,
+    "required_source": "GITHUB_ACTIONS_SCHEDULE_RUN_HISTORY",
+    "activation_must_abort_if_fresh_readback_unavailable": true
+  },
+  "decision_matrix": [
+    {
+      "rank": 1,
+      "id": "DEFER_OBSERVE_ONLY",
+      "authority_delta": "NONE",
+      "activation_state": "AVAILABLE_ZERO_CHANGE_DECISION",
+      "selected": false,
+      "description": "Keep current repository/provider configuration unchanged and gather fresh provider truth before reconsidering remediation.",
+      "rollback_requirement": "NONE_NO_MUTATION"
+    },
+    {
+      "rank": 2,
+      "id": "GITHUB_NATIVE_REDUNDANT_SCHEDULE_OBSERVATION",
+      "authority_delta": "ALREADY_MATERIALIZED_BY_PRIOR_GOVERNED_WORK_UNIT",
+      "activation_state": "EVIDENCE_ONLY_NOT_A_REMEDIATION_SELECTION",
+      "selected": false,
+      "description": "WU144 already supplied a distinct scheduled observer. Its matured delivery misses mean native redundant schedule observation alone cannot be treated as proof of reliable schedule delivery.",
+      "sufficient_as_reliability_remediation": false,
+      "rollback_requirement": "NOT_APPLICABLE_NO_NEW_ACTIVATION_IN_WU147"
+    },
+    {
+      "rank": 3,
+      "id": "BOUNDED_DISPATCH_FALLBACK_CLASS",
+      "authority_delta": "SEPARATE_EXACT_OWNER_AUTHORIZATION_REQUIRED",
+      "activation_state": "PROPOSAL_CLASS_ONLY_NOT_SELECTED_NOT_AUTHORIZED",
+      "selected": false,
+      "description": "A future bounded fallback may use a dispatch-capable mechanism only after fresh provider reconciliation, explicit owner authorization and a separate Work Unit that proves least authority, credential safety, blast radius and rollback.",
+      "allowed_mechanism_is_preselected": false,
+      "external_secret_or_token_authorized": false,
+      "workflow_dispatch_authorized": false,
+      "repository_dispatch_authorized": false,
+      "external_scheduler_authorized": false,
+      "rollback_requirement": "MANDATORY_BEFORE_ACTIVATION"
+    }
+  ],
+  "activation_prerequisites": [
+    "EXPLICIT_OWNER_AUTHORIZATION_NAMING_EXACT_ACTIVATION_CLASS",
+    "NEW_BOUNDED_WORK_UNIT_FROM_FRESH_EXACT_MAIN",
+    "FRESH_GITHUB_ACTIONS_PROVIDER_TRUTH_READBACK",
+    "LEAST_AUTHORITY_AND_CREDENTIAL_THREAT_MODEL_IF_DISPATCH_OR_EXTERNAL_MECHANISM_IS_PROPOSED",
+    "NO_SECRET_VALUE_IN_REPOSITORY_ISSUE_PR_CI_LOG_OR_EVIDENCE",
+    "EXACT_ALLOWED_AND_FORBIDDEN_MUTATION_SCOPE",
+    "MACHINE_VERIFIABLE_PRE_ACTIVATION_BASE_AND_DIFF",
+    "BOUNDED_BLAST_RADIUS",
+    "EXPLICIT_ABORT_CONDITIONS",
+    "EXPLICIT_ROLLBACK_PROCEDURE_AND_POST_ROLLBACK_READBACK",
+    "GITHUB_HOSTED_ONLY_NO_SELF_HOSTED_RUNNER",
+    "NO_PRODUCT_RUNTIME_1080_1081_OR_V631_MUTATION"
+  ],
+  "mandatory_abort_conditions": [
+    "FRESH_PROVIDER_TRUTH_UNAVAILABLE",
+    "AUTHORIZED_BASE_DRIFT",
+    "SCOPE_OR_DIFF_DRIFT",
+    "AUTHORITY_REQUIREMENT_AMBIGUOUS",
+    "CREDENTIAL_STORAGE_OR_LOGGING_SAFETY_UNPROVEN",
+    "ROLLBACK_PATH_UNPROVEN",
+    "RULESET_OR_SECURITY_WEAKENING_REQUIRED",
+    "PRODUCT_OR_RUNTIME_MUTATION_REQUIRED",
+    "GLOBAL_OUTAGE_OR_PROVIDER_ROOT_CAUSE_WOULD_HAVE_TO_BE_ASSUMED"
+  ],
+  "mandatory_rollback_requirements": [
+    "RESTORE_EXACT_PRE_ACTIVATION_REPOSITORY_CONFIGURATION",
+    "DISABLE_OR_REMOVE_ONLY_THE_NEWLY_AUTHORIZED_FALLBACK_PATH",
+    "REVOKE_NEWLY_INTRODUCED_EXTERNAL_CREDENTIAL_IF_ANY",
+    "VERIFY_POST_ROLLBACK_PROVIDER_AND_REPOSITORY_STATE",
+    "PRESERVE_WU137_AND_WU144_PREDECESSOR_EVIDENCE"
+  ],
+  "immutable_anchor_blobs": {
+    ".pncc-dev/contracts/wave6-cross-workflow-scheduler-delivery-correlation-qualification-wu146.json": "cf46a818cd8bb4021494ecda3ca9c691ed720310",
+    ".pncc-dev/contracts/wave6-wu137-provider-scheduler-degradation-remediation-proposal-wu142.json": "00dbcdcf1c2cdc75021d75a0ae3a0dbe818bfcdf",
+    ".github/workflows/wave6-hbe-periodic-health-drift-wu137.yml": "524ff581fb1c68d25a9c4d3b3ed56cd995fa82f2",
+    ".github/workflows/wave6-wu137-redundant-observer-wu144.yml": "cf4bb67b8860bcb81f645eded3c34b863af8b0e0"
+  },
+  "authority": {
+    "scheduler_mutation_authority": false,
+    "fallback_activation_authority": false,
+    "workflow_dispatch_authority": false,
+    "repository_dispatch_authority": false,
+    "external_scheduler_token_webhook_authority": false,
+    "self_hosted_runner_authority": false,
+    "runtime_action_authority": false,
+    "product_runtime_mutation_authority": false,
+    "ruleset_security_mutation_authority": false,
+    "release_tag_promotion_authority": false,
+    "reserve_1080_lifecycle_mutation_authority": false,
+    "primary_1081_lifecycle_mutation_authority": false,
+    "v631_mutation_authority": false,
+    "force_or_bypass_authority": false
+  },
+  "decision_state": {
+    "terminal_if_valid": "READY_FOR_OWNER_DECISION",
+    "selected_candidate": null,
+    "activation_performed": false,
+    "provider_state_mutated": false,
+    "separate_owner_authorization_required": true,
+    "reusable_authority_allowed": false,
+    "recommended_default_without_new_authority": "DEFER_OBSERVE_ONLY"
+  },
+  "next_boundary": "MERGED_READY_FOR_OWNER_DECISION_THEN_STOP_BEFORE_ANY_PROVIDER_OR_SCHEDULER_ACTIVATION"
+}
