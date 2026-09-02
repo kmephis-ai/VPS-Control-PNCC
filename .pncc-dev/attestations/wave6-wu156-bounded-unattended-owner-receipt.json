@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "role": "WAVE6_BOUNDED_UNATTENDED_OWNER_RECEIPT",
+  "authorization_id": "483ea2a0-a6cf-4460-8245-e30ee227e458",
+  "issued_by": "kmephis-ai",
+  "authorized_main_sha": "c94bea2e2a22f802c232d208bf43474a309a143f",
+  "activation_work_unit_id": "PIPE-WU-156",
+  "activation_issue_number": 361,
+  "permitted_conflict_domains": [
+    "wave6-bounded-unattended-activation",
+    "wave6-bounded-unattended-window-durable-state",
+    "wave6-bounded-unattended-window-live-qualification"
+  ],
+  "max_work_units": 3,
+  "max_wall_clock_minutes": 90,
+  "max_parallel_mutating_writers": 1,
+  "fresh_provider_truth_each_work_unit": true,
+  "fresh_writer_lease_each_mutating_work_unit": true,
+  "exact_head_ci_before_merge": true,
+  "writer_lease_released_before_merge": true,
+  "expected_head_merge": true,
+  "stop_on_first_governed_exception": true,
+  "carry_authority_across_work_units": false,
+  "reuse_writer_lease_across_conflict_domains": false,
+  "authority_grant_sha": "ab80e34923fae92124ee1fb1b43e33b63499239d",
+  "issued_at": "2026-09-02T19:36:04Z",
+  "expires_at": "2026-09-02T21:06:04Z",
+  "single_use": true,
+  "replay_forbidden": true,
+  "forbidden": {
+    "product_runtime_mutation": true,
+    "reserve_1080_lifecycle": true,
+    "primary_1081_lifecycle": true,
+    "v631_mutation": true,
+    "ruleset_security_weakening": true,
+    "release_tag_promotion": true,
+    "self_hosted_runner": true,
+    "external_token_webhook_scheduler": true,
+    "force_bypass": true
+  }
+}
