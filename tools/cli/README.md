@@ -26,9 +26,11 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\cli\Invoke-PnccS
 
 Exit-code contract wrapper:
 
-- `0` — input валиден (`Code=VALID`);
-- `2` — caller input невалиден; stdout содержит нормализованный `PNCC_STATE_SNAPSHOT_INPUT_VALIDATION` с исходным validation `Code`;
-- `3` — validator dependency/internal contract failure; stdout остаётся нормализованным, без raw exception/path.
+- `0` — только `Valid=true` и `Code=VALID`;
+- `2` — только известная ошибка caller input: `INPUT_NOT_FOUND`, `INPUT_UNREADABLE`, `INPUT_EMPTY`, `JSON_INVALID` или `SEMANTIC_INVALID`;
+- `3` — validator dependency/internal failure: `VALIDATOR_DEPENDENCY_MISSING`, `SNAPSHOT_CONTRACT_INVALID`, `VALIDATION_FAILED`, а также любой неизвестный или внутренне несогласованный validator result. Неизвестный/несогласованный результат нормализуется в `VALIDATOR_INTERNAL_FAILURE`.
+
+Во всех случаях machine stdout остаётся `PNCC_STATE_SNAPSHOT_INPUT_VALIDATION`; нормализованные ошибки не выводят raw exception или caller path в stderr.
 
 `Invoke-PnccStateSnapshotInputCheck.ps1` предназначен для отдельного `powershell.exe -File` процесса и использует `exit`. Для вызова из существующей PowerShell-сессии/другого скрипта без завершения процесса используйте composable `Test-PnccStateSnapshotInput.ps1`.
 
@@ -54,7 +56,7 @@ Get-Help .\tools\cli\Test-PnccStateSnapshotInput.ps1 -Full
 
 ## Что находится в каталоге
 
-- `Invoke-PnccStateSnapshotInputCheck.ps1` — process-oriented automation wrapper с exit codes `0/2/3`.
+- `Invoke-PnccStateSnapshotInputCheck.ps1` — process-oriented automation wrapper с fail-closed exit codes `0/2/3`.
 - `Test-PnccStateSnapshotInput.ps1` — composable read-only preflight: русский `КОРРЕКТЕН/НЕКОРРЕКТЕН` по умолчанию, нормализованный machine result с `-Json`.
 - `Show-PnccStateSnapshot.ps1` — основной пользовательский entrypoint: fail-closed preflight, русский текст по умолчанию, `-Json` для machine snapshot contract.
 - `Get-PnccStateSnapshot.ps1` — преобразует caller-supplied deterministic state JSON в `PNCC_STATE_SNAPSHOT`.
