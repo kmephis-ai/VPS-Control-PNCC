@@ -1,0 +1,66 @@
+name: wave6-exact-byte-branch-materializer-readiness
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/wave6-exact-byte-branch-materializer-readiness.yml'
+      - '.pncc-dev/contracts/wave6-exact-byte-branch-materializer-readiness.json'
+      - '.pncc-dev/scripts/evaluate_exact_byte_materializer_readiness_wu176.py'
+      - '.pncc-dev/tests/test_exact_byte_materializer_readiness_wu176.py'
+
+permissions:
+  contents: read
+
+jobs:
+  readiness:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Run WU176 adversarial readiness tests
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_exact_byte_materializer_readiness_wu176.py' -v
+      - name: Assert bounded control-plane diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}" | sort > /tmp/actual
+          printf '%s\n' \
+            '.github/workflows/wave6-exact-byte-branch-materializer-readiness.yml' \
+            '.pncc-dev/contracts/wave6-exact-byte-branch-materializer-readiness.json' \
+            '.pncc-dev/scripts/evaluate_exact_byte_materializer_readiness_wu176.py' \
+            '.pncc-dev/tests/test_exact_byte_materializer_readiness_wu176.py' | sort > /tmp/expected
+          diff -u /tmp/expected /tmp/actual
+          ! grep -E '^(src/windows-v7/|legacy/|tools/runtime-agent/|tools/release/|\.pncc-state/|\.adwf-consumer/)' /tmp/actual
+      - name: Prove readiness workflow has no writer authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('.github/workflows/wave6-exact-byte-branch-materializer-readiness.yml').read_text(encoding='utf-8').lower()
+          forbidden=[
+              'contents:'+' write',
+              'issues:'+' write',
+              'pull-requests:'+' write',
+              'actions:'+' write',
+              'git'+' push',
+              '/git/'+'refs',
+              '/git/'+'blobs',
+              '--method'+' post',
+              '--method'+' patch',
+              'force:'+' true',
+              'self-'+'hosted',
+          ]
+          for token in forbidden:
+              assert token not in p, token
+          PY
+      - name: Prove checkout remained clean
+        run: test -z "$(git status --porcelain)"

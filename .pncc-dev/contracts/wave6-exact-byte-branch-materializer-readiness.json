@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "role": "EXACT_BYTE_BRANCH_MATERIALIZER_READINESS",
+  "work_unit_id": "PIPE-WU-176",
+  "authority_state": "READINESS_ONLY",
+  "execution_authorized": false,
+  "required_future_owner_authorization": true,
+  "runner": "github-hosted",
+  "self_hosted_runner_allowed": false,
+  "target": {
+    "repository": "kmephis-ai/VPS-Control-PNCC",
+    "default_branch": "main",
+    "main_write_allowed": false,
+    "bounded_non_main_branch_required": true,
+    "exact_base_required": true,
+    "force_ref_update_allowed": false
+  },
+  "exact_byte_protocol": {
+    "input_bytes_are_authoritative": true,
+    "expected_git_blob_sha_required": true,
+    "git_blob_sha_algorithm": "sha1-git-object",
+    "create_blob_encoding": "base64",
+    "immutable_blob_readback_required": true,
+    "readback_bytes_must_equal_input": true,
+    "created_tree_parent_must_equal_exact_base_tree": true,
+    "created_commit_parent_must_equal_exact_base": true,
+    "postwrite_ref_must_equal_created_commit": true
+  },
+  "scope": {
+    "expected_paths_required": true,
+    "unexpected_paths_allowed": false,
+    "product_runtime_execution_allowed": false,
+    "release_tag_promotion_allowed": false,
+    "ruleset_security_mutation_allowed": false,
+    "reserve_1080_lifecycle_mutation_allowed": false,
+    "primary_1081_lifecycle_mutation_allowed": false,
+    "v631_mutation_allowed": false
+  },
+  "future_writer_minimum_permissions": {
+    "contents": "write",
+    "issues": "read",
+    "pull_requests": "read"
+  },
+  "readiness_workflow_permissions": {
+    "contents": "read"
+  }
+}
