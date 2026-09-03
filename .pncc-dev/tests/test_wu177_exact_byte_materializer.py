@@ -81,7 +81,10 @@ class MaterializerTests(unittest.TestCase):
         source=P.read_text(encoding='utf-8')
         self.assertNotIn('.read_bytes()',source)
         self.assertIn('git_object_bytes(base, p)',source)
-        self.assertIn('git ls-tree', source.replace('"', ' ').replace(',', ' '))
+        with mock.patch.object(m,'run',return_value=b'src/windows-v7/a.ps1\nsrc/windows-v7/VPS-Control-v7-SHA256.txt\n') as r:
+            paths=m.tracked_source_paths('a'*40)
+            self.assertIn('src/windows-v7/a.ps1',paths)
+            r.assert_called_once_with('git','ls-tree','-r','--name-only','a'*40,'--',m.ROOT)
 
     def test_optional_git_object_is_only_for_new_provenance(self):
         with mock.patch.object(m,'git_object_bytes',side_effect=m.Blocked('COMMAND_FAILED:git show x')):
@@ -89,8 +92,7 @@ class MaterializerTests(unittest.TestCase):
             with self.assertRaises(m.Blocked): m.git_object_bytes_optional('a'*40,'src/windows-v7/a.ps1')
 
     def test_read_ref_retries_get_only_until_success(self):
-        values=iter(['a'*40,'a'*40,'b'*40])
-        calls=[]
+        values=iter(['a'*40,'a'*40,'b'*40]); calls=[]
         def fake_api(path,token,method='GET',payload=None):
             calls.append((method,payload)); return {'object':{'sha':next(values)}}
         with mock.patch.object(m,'api',side_effect=fake_api), mock.patch.object(m.time,'sleep') as sl:
