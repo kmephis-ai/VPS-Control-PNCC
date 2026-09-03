@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "role": "CANONICAL_GIT_BLOB_MATERIALIZER_REPAIR",
+  "work_unit": "PIPE-WU-179",
+  "exact_base_sha": "a6c5f139e2164e690ea723f11d6e322c8f623ea2",
+  "consumer_work_unit": "PIPE-WU-175",
+  "consumer_branch": "agent/PIPE-WU-175-v702-activation-wu172-fix",
+  "known_materialized_head": "aba9619a56e77c9934bf8f0414d552ca1ff54b56",
+  "canonical_byte_semantics": {
+    "source": "GIT_OBJECT_DATABASE",
+    "base_read": "git show <exact-sha>:<path>",
+    "tree_enumeration": "git ls-tree -r --name-only <exact-sha>",
+    "working_tree_bytes_allowed_for_identity": false,
+    "eol_normalization_allowed": false,
+    "hash_semantics": "CANONICAL_GIT_BLOB_BYTES"
+  },
+  "repair_protocol": {
+    "actions": ["REPAIR_PLAN", "REPAIR_EXECUTE"],
+    "source_base_exact": true,
+    "expected_materialized_head_exact": true,
+    "delta_only": true,
+    "plan_sha_required": true,
+    "ordered_path_blob_allowlist_required": true,
+    "immutable_created_blob_readback_required": true,
+    "single_nonforce_ref_write": true,
+    "postwrite_readback": {
+      "get_only": true,
+      "bounded_attempts": 6,
+      "repeat_write": false
+    }
+  },
+  "authority": {
+    "product_mutation_in_wu179": false,
+    "wu175_execute_in_wu179": false,
+    "main_write_allowed": false,
+    "runtime_execution": false,
+    "release_tag_promotion": false,
+    "ruleset_security_mutation": false,
+    "self_hosted_runner": false,
+    "force_ref_update": false,
+    "tunnel_lifecycle_mutation": false,
+    "v631_mutation": false
+  }
+}
