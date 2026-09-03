@@ -30,6 +30,8 @@ Machine-readable snapshot JSON:
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\cli\Show-PnccStateSnapshot.ps1 -InputPath .\tools\cli\examples\state-input.example.json -Json
 ```
 
+`Show-PnccStateSnapshot.ps1` сам выполняет fail-closed preflight через canonical `Test-PnccStateSnapshotInput.ps1`. Для невалидного caller input наружу выходит только нормализованная ошибка вида `PNCC_STATE_SNAPSHOT_INPUT_INVALID:<CODE>` — без input path и raw PowerShell/JSON exception details. Валидный text/JSON output остаётся обычным `PNCC_STATE_SNAPSHOT`.
+
 Справка PowerShell:
 
 ```powershell
@@ -39,7 +41,7 @@ Get-Help .\tools\cli\Test-PnccStateSnapshotInput.ps1 -Full
 ## Что находится в каталоге
 
 - `Test-PnccStateSnapshotInput.ps1` — read-only preflight: русский `КОРРЕКТЕН/НЕКОРРЕКТЕН` по умолчанию, нормализованный machine result с `-Json`.
-- `Show-PnccStateSnapshot.ps1` — основной пользовательский entrypoint: русский текст по умолчанию, `-Json` для machine snapshot contract.
+- `Show-PnccStateSnapshot.ps1` — основной пользовательский entrypoint: fail-closed preflight, русский текст по умолчанию, `-Json` для machine snapshot contract.
 - `Get-PnccStateSnapshot.ps1` — преобразует caller-supplied deterministic state JSON в `PNCC_STATE_SNAPSHOT`.
 - `Format-PnccStateSnapshot.ps1` — форматирует уже готовый snapshot из файла или из строки `-SnapshotJson`.
 - `examples/state-input.example.json` — публичный синтетический copy-run пример без приватной Runtime Truth.
