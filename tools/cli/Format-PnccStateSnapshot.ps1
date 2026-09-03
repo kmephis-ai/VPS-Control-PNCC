@@ -55,13 +55,13 @@ $lines.Add('Туннели:')
 foreach ($tunnel in @((Get-PnccSnapshotMember $snapshot 'Tunnels' @()))) {
     if ($null -eq $tunnel) { continue }
     $id = ConvertTo-PnccRuValue (Get-PnccSnapshotMember $tunnel 'Id')
-    $host = ConvertTo-PnccRuValue (Get-PnccSnapshotMember $tunnel 'Host')
+    $tunnelHost = ConvertTo-PnccRuValue (Get-PnccSnapshotMember $tunnel 'Host')
     $port = ConvertTo-PnccRuValue (Get-PnccSnapshotMember $tunnel 'Port')
     $lifecycle = ConvertTo-PnccRuValue (Get-PnccSnapshotMember $tunnel 'Lifecycle')
     $listen = ConvertTo-PnccRuBool (Get-PnccSnapshotMember $tunnel 'Listening')
     $selected = ConvertTo-PnccRuBool (Get-PnccSnapshotMember $tunnel 'SelectedForVpsRules')
     $automation = ConvertTo-PnccRuBool (Get-PnccSnapshotMember $tunnel 'AutomationMayManageLifecycle')
-    $lines.Add(('  {0} {1}:{2} | lifecycle={3} | слушает={4} | выбран={5} | автоуправление lifecycle={6}' -f $id,$host,$port,$lifecycle,$listen,$selected,$automation))
+    $lines.Add(('  {0} {1}:{2} | lifecycle={3} | слушает={4} | выбран={5} | автоуправление lifecycle={6}' -f $id,$tunnelHost,$port,$lifecycle,$listen,$selected,$automation))
 }
 $lines.Add('Модули:')
 $modules = @((Get-PnccSnapshotMember $snapshot 'Modules' @()))
