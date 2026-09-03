@@ -1,4 +1,18 @@
 ﻿#requires -Version 5.1
+<#
+.SYNOPSIS
+Форматирует PNCC_STATE_SNAPSHOT в человекочитаемый русский статус.
+.DESCRIPTION
+Принимает snapshot из файла или напрямую строкой JSON. Fail-closed проверяет SchemaVersion=1, Contract=PNCC_STATE_SNAPSHOT, ReadOnly=true и SecretsIncluded=false. Не выполняет live probes и не изменяет runtime/routing.
+.PARAMETER InputPath
+Путь к готовому PNCC_STATE_SNAPSHOT JSON.
+.PARAMETER SnapshotJson
+Готовый PNCC_STATE_SNAPSHOT JSON в памяти; взаимоисключающий вариант с InputPath.
+.EXAMPLE
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\cli\Format-PnccStateSnapshot.ps1 -InputPath .\snapshot.json
+.NOTES
+1081 = PRIMARY_AUTO/AUTO. 1080 = RESERVE_MANUAL/MANUAL_ONLY; автоматическое управление lifecycle 1080 запрещено. CI VERIFIED != RUNTIME VERIFIED.
+#>
 [CmdletBinding(DefaultParameterSetName='Path')]
 param(
     [Parameter(Mandatory=$true,ParameterSetName='Path')]

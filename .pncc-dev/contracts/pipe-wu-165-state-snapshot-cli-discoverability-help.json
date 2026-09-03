@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "role": "PIPE_WU_165_STATE_SNAPSHOT_CLI_DISCOVERABILITY_HELP",
+  "state": "ENGINEERING_IMPLEMENTATION",
+  "work_unit_id": "PIPE-WU-165",
+  "base_sha": "463251296092748f3969b7fa0058d34bf0cf6436",
+  "conflict_domain": "product-state-snapshot-cli-discoverability-help",
+  "runtime_required": false,
+  "scope": {
+    "comment_based_help": [
+      "tools/cli/Get-PnccStateSnapshot.ps1",
+      "tools/cli/Format-PnccStateSnapshot.ps1",
+      "tools/cli/Show-PnccStateSnapshot.ps1"
+    ],
+    "readme": "tools/cli/README.md",
+    "executable_behavior_change": false
+  },
+  "documented_boundaries": {
+    "caller_supplied_deterministic_input": true,
+    "ci_verified_is_not_runtime_verified": true,
+    "physical_runtime_truth_not_claimed": true,
+    "primary_auto_port": 1081,
+    "primary_auto_lifecycle": "AUTO",
+    "reserve_manual_port": 1080,
+    "reserve_manual_lifecycle": "MANUAL_ONLY",
+    "reserve_lifecycle_automation_allowed": false
+  },
+  "authority": {
+    "live_probe": false,
+    "network_access": false,
+    "runtime_mutation": false,
+    "routing_mutation": false,
+    "process_control": false,
+    "persistence": false,
+    "credentials": false,
+    "tunnel_lifecycle_mutation": false,
+    "physical_runtime_truth": false
+  }
+}

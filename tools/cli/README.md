@@ -1,0 +1,71 @@
+# PNCC State Snapshot CLI
+
+Этот каталог содержит read-only инструменты для формирования и просмотра `PNCC_STATE_SNAPSHOT` на Windows PowerShell 5.1.
+
+## Быстрый запуск
+
+Русский человекочитаемый статус одной командой:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\cli\Show-PnccStateSnapshot.ps1 -InputPath .\state-input.json
+```
+
+Machine-readable JSON:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\cli\Show-PnccStateSnapshot.ps1 -InputPath .\state-input.json -Json
+```
+
+Справка PowerShell:
+
+```powershell
+Get-Help .\tools\cli\Show-PnccStateSnapshot.ps1 -Full
+```
+
+## Что находится в каталоге
+
+- `Show-PnccStateSnapshot.ps1` — основной пользовательский entrypoint: русский текст по умолчанию, `-Json` для machine contract.
+- `Get-PnccStateSnapshot.ps1` — преобразует caller-supplied deterministic state JSON в `PNCC_STATE_SNAPSHOT`.
+- `Format-PnccStateSnapshot.ps1` — форматирует уже готовый snapshot из файла или из строки `-SnapshotJson`.
+
+## Входные данные
+
+`state-input.json` — не live probe и не приватный runtime dump, автоматически полученный GitHub CI. Это детерминированные данные, которые предоставляет вызывающая сторона. Поддерживаемые поля включают `Config`, `Runtime`, `Watchdog`, `ProxifierStatus`, `ModuleNames`, `OverallState`, `PrimarySocksListening`, `ReserveSocksListening`, `RoutingTunnelId`, `LastKnownGoodPresent`, `RuntimeAgeSeconds` и `CapturedAt`.
+
+Минимальный пример:
+
+```json
+{
+  "ModuleNames": ["OpenAI"],
+  "OverallState": "HEALTHY",
+  "PrimarySocksListening": true,
+  "ReserveSocksListening": false,
+  "RoutingTunnelId": "PRIMARY_AUTO",
+  "RuntimeAgeSeconds": 42
+}
+```
+
+Отсутствующие необязательные значения нормализуются существующим State Snapshot foundation; команды не делают сетевых запросов, не запускают процессы и не изменяют routing/runtime.
+
+## Фиксированный tunnel contract
+
+- `127.0.0.1:1081` = `PRIMARY_AUTO`, lifecycle `AUTO`.
+- `127.0.0.1:1080` = `RESERVE_MANUAL`, lifecycle `MANUAL_ONLY`.
+- PNCC automation не имеет права автоматически start/stop/restart/recover или иным образом управлять lifecycle 1080.
+
+## Границы достоверности
+
+`CI VERIFIED != RUNTIME VERIFIED`.
+
+Эти CLI подтверждают структуру и отображение caller-supplied данных. Они не выполняют physical probes и сами по себе не доказывают реальное состояние Windows, VPS, Keenetic, Proxifier или SOCKS-туннелей. Physical Runtime Truth требует отдельного доверенного runtime evidence path.
+
+## Fail-closed formatter
+
+`Format-PnccStateSnapshot.ps1` принимает только snapshot, для которого одновременно выполняется:
+
+- `SchemaVersion = 1`;
+- `Contract = PNCC_STATE_SNAPSHOT`;
+- `ReadOnly = true`;
+- `SecretsIncluded = false`.
+
+Несоответствие этим признакам приводит к ошибке вместо попытки отобразить сомнительные данные.

@@ -1,4 +1,18 @@
 ﻿#requires -Version 5.1
+<#
+.SYNOPSIS
+Создаёт machine-readable read-only PNCC State Snapshot из детерминированного входного JSON.
+.DESCRIPTION
+Не выполняет live probes и не получает Physical Runtime Truth. Входные данные предоставляет вызывающая сторона. Результат — контракт PNCC_STATE_SNAPSHOT с фиксированными туннелями PRIMARY_AUTO 127.0.0.1:1081/AUTO и RESERVE_MANUAL 127.0.0.1:1080/MANUAL_ONLY.
+.PARAMETER InputPath
+Путь к UTF-8 JSON с уже собранными состояниями Config/Runtime/Watchdog/Proxifier и связанными полями.
+.PARAMETER JsonDepth
+Глубина ConvertTo-Json, от 4 до 32.
+.EXAMPLE
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\cli\Get-PnccStateSnapshot.ps1 -InputPath .\state-input.json
+.NOTES
+CI VERIFIED != RUNTIME VERIFIED. Команда read-only и не управляет lifecycle 1080/1081.
+#>
 [CmdletBinding()]
 param(
     [Parameter(Mandatory=$true)]
