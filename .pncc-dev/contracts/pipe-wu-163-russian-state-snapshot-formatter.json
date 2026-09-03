@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "role": "PIPE_WU_163_RUSSIAN_STATE_SNAPSHOT_TEXT_FORMATTER",
+  "state": "IMPLEMENTED_PENDING_EXACT_HEAD_CI",
+  "work_unit_id": "PIPE-WU-163",
+  "runtime_required": false,
+  "base_sha": "b199e9e2e0f9174362df92406cf2d45ee0e88179",
+  "conflict_domain": "product-state-snapshot-russian-text-formatter",
+  "formatter": {
+    "path": "tools/cli/Format-PnccStateSnapshot.ps1",
+    "input_contract": "PNCC_STATE_SNAPSHOT",
+    "language": "ru-RU text labels",
+    "powershell_minimum": "5.1",
+    "read_only": true
+  },
+  "qualification": {
+    "workflow": ".github/workflows/quality-deep.yml",
+    "test_path": ".pncc-dev/pester-deep/Format-PnccStateSnapshot.Semantics.Tests.ps1",
+    "runner_shell": "Windows PowerShell 5.1",
+    "framework": "Pester 5.9.0"
+  },
+  "visible_invariants": [
+    "PRIMARY_AUTO_127.0.0.1_1081_AUTO",
+    "RESERVE_MANUAL_127.0.0.1_1080_MANUAL_ONLY",
+    "RESERVE_AUTOMATION_MAY_MANAGE_LIFECYCLE_FALSE",
+    "MODULE_DESIRED_EFFECTIVE_HEALTH_REASON_LATENCY",
+    "RUNTIME_FRESHNESS",
+    "WATCHDOG",
+    "PROXIFIER",
+    "LAST_KNOWN_GOOD"
+  ],
+  "authority": {
+    "network_probe": false,
+    "routing_mutation": false,
+    "runtime_mutation": false,
+    "process_service_control": false,
+    "persistence": false,
+    "credential_access": false,
+    "tunnel_lifecycle_mutation": false,
+    "runtime_authority_granted": false,
+    "promotion_authority_granted": false
+  },
+  "claim": "Formatter converts already-produced PNCC_STATE_SNAPSHOT JSON to deterministic Russian human-readable text only; hosted CI is engineering evidence, not Physical Runtime Truth."
+}
