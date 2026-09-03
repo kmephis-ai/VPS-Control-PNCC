@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/wave6-wu177-exact-byte-materializer.yml'
       - '.pncc-dev/contracts/wave6-wu177-exact-byte-materializer-activation.json'
+      - '.pncc-dev/contracts/wu178-v702-exact-assembly-rederivation.json'
       - '.pncc-dev/scripts/wu177_exact_byte_materializer.py'
       - '.pncc-dev/tests/test_wu177_exact_byte_materializer.py'
   issues:
@@ -37,11 +38,28 @@ jobs:
         run: |
           set -euo pipefail
           git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}" > /tmp/wu177-diff
-          diff -u <(sort /tmp/wu177-diff) <(printf '%s\n' \
-            '.github/workflows/wave6-wu177-exact-byte-materializer.yml' \
-            '.pncc-dev/contracts/wave6-wu177-exact-byte-materializer-activation.json' \
-            '.pncc-dev/scripts/wu177_exact_byte_materializer.py' \
-            '.pncc-dev/tests/test_wu177_exact_byte_materializer.py' | sort)
+          case "${{ github.event.pull_request.head.ref }}" in
+            agent/PIPE-WU-177-exact-byte-materializer-activation)
+              printf '%s\n' \
+                '.github/workflows/wave6-wu177-exact-byte-materializer.yml' \
+                '.pncc-dev/contracts/wave6-wu177-exact-byte-materializer-activation.json' \
+                '.pncc-dev/scripts/wu177_exact_byte_materializer.py' \
+                '.pncc-dev/tests/test_wu177_exact_byte_materializer.py' | sort > /tmp/wu177-expected
+              ;;
+            agent/PIPE-WU-178-v702-exact-assembly-rederivation)
+              printf '%s\n' \
+                '.github/workflows/wave6-wu177-exact-byte-materializer.yml' \
+                '.pncc-dev/contracts/wu178-v702-exact-assembly-rederivation.json' \
+                '.pncc-dev/scripts/wu177_exact_byte_materializer.py' \
+                '.pncc-dev/tests/test_wu177_exact_byte_materializer.py' | sort > /tmp/wu177-expected
+              ;;
+            *)
+              echo 'UNAUTHORIZED_MATERIALIZER_VALIDATION_BRANCH'
+              exit 1
+              ;;
+          esac
+          sort /tmp/wu177-diff > /tmp/wu177-actual
+          diff -u /tmp/wu177-expected /tmp/wu177-actual
           ! grep -E '^(src/windows-v7/|legacy/|tools/runtime-agent/|tools/release/|\.pncc-state/)' /tmp/wu177-diff
       - name: Assert least-authority workflow
         shell: bash

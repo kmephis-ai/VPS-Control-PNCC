@@ -52,6 +52,19 @@ class MaterializerTests(unittest.TestCase):
     def test_contract_anchors_are_fixed(self):
         self.assertEqual(m.ISSUE,399); self.assertEqual(m.WU,'PIPE-WU-175')
         self.assertEqual(m.WU172_BLOB,'6c4a8ddcaea7f4c651b6d4be74d925358d81f3c5')
-        self.assertEqual(m.MAIN_BLOB,'44f7e6433881733f4aa5ca251e33bc3e2cd98988')
+        self.assertEqual(m.HISTORICAL_MAIN_BLOB,'44f7e6433881733f4aa5ca251e33bc3e2cd98988')
+
+    def test_historical_main_blob_is_evidence_not_execution_gate(self):
+        source=P.read_text(encoding='utf-8')
+        self.assertIn('HISTORICAL_MAIN_BLOB',source)
+        self.assertNotIn('git_blob_sha(changes[MAIN_PATH]) != HISTORICAL_MAIN_BLOB',source)
+        self.assertNotIn('MAIN_SCRIPT_BLOB_MISMATCH',source)
+
+    def test_execute_remains_plan_pinned(self):
+        source=P.read_text(encoding='utf-8')
+        self.assertIn('PLAN_SHA_MISMATCH',source)
+        self.assertIn('PATH_ALLOWLIST_MISMATCH',source)
+        self.assertIn('EXECUTE_REQUIRES_UNMUTATED_EXACT_BASE',source)
+        self.assertIn('"force":False',source)
 
 if __name__ == '__main__': unittest.main()

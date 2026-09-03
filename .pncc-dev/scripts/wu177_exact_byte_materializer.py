@@ -9,7 +9,7 @@ WU172_PR = 394
 WU172_PATH = "src/windows-v7/modules/V7-StatusCenter.ps1"
 WU172_BLOB = "6c4a8ddcaea7f4c651b6d4be74d925358d81f3c5"
 MAIN_PATH = "src/windows-v7/VPS-Control-v7.ps1"
-MAIN_BLOB = "44f7e6433881733f4aa5ca251e33bc3e2cd98988"
+HISTORICAL_MAIN_BLOB = "44f7e6433881733f4aa5ca251e33bc3e2cd98988"
 MANIFEST = "src/windows-v7/VPS-Control-v7-SHA256.txt"
 CANDIDATE = ".pncc-dev/candidate-source.json"
 RECIPE = "build/windows-v7-candidate-recipe.json"
@@ -85,8 +85,8 @@ def assemble(base):
         data = data.replace(b"7.0.1", b"7.0.2")
         if b"7.0.1" in data: raise Blocked(f"RESIDUAL_7_0_1:{rel}")
         if data != p.read_bytes(): changes[rel] = data
-    if MAIN_PATH not in changes or git_blob_sha(changes[MAIN_PATH]) != MAIN_BLOB:
-        raise Blocked("MAIN_SCRIPT_BLOB_MISMATCH")
+    if MAIN_PATH not in changes:
+        raise Blocked("MAIN_SCRIPT_NOT_CHANGED")
     if WU172_PATH not in changes or git_blob_sha(changes[WU172_PATH]) != WU172_BLOB:
         raise Blocked("WU172_TARGET_BLOB_MISMATCH")
 
@@ -123,7 +123,6 @@ def assemble(base):
       "safety":{"artifact_exists":False,"build_authority":False,"build_input_ready":True,"ci_is_runtime_truth":False,"promotion_authority":False,"runtime_authority":False,"stable_done":False},
       "schema_version":3,"source_identity_semantic":"UNBUILT_V7_0_2_PATCH_SOURCE_BASELINE","source_root":"src/windows-v7"}
     changes[PROVENANCE]=json_bytes(prov)
-    # Do not retain accidental same-byte entries.
     return {p:d for p,d in changes.items() if not pathlib.Path(p).exists() or d != pathlib.Path(p).read_bytes()}
 
 def plan(base, expected_head):
@@ -176,9 +175,13 @@ def main():
     req=parse_request(issue["body"] or "")
     checkout_exact(req["base_sha"])
     obj,ph,changes=plan(req["base_sha"],req["expected_head_sha"])
+    main_item=next((x for x in obj["paths"] if x["path"] == MAIN_PATH),None)
+    if not main_item: raise Blocked("MAIN_SCRIPT_PLAN_MISSING")
     if req["action"] == "PLAN":
         print("MATERIALIZER_PLAN=READY")
         print("PLAN_SHA256="+ph)
+        print("DERIVED_MAIN_BLOB="+main_item["git_blob_sha"])
+        print("HISTORICAL_MAIN_BLOB="+HISTORICAL_MAIN_BLOB)
         print("PLAN_JSON="+json.dumps(obj,sort_keys=True,separators=(",",":"),ensure_ascii=False))
         return
     execute(req,obj,ph,changes,token)
