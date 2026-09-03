@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import argparse, base64, hashlib, json, os, pathlib, re, subprocess, sys, urllib.error, urllib.request
+import argparse, base64, hashlib, json, os, re, subprocess, sys, time, urllib.error, urllib.request
 
 REPO = "kmephis-ai/VPS-Control-PNCC"
 ISSUE = 399
@@ -10,12 +10,15 @@ WU172_PATH = "src/windows-v7/modules/V7-StatusCenter.ps1"
 WU172_BLOB = "6c4a8ddcaea7f4c651b6d4be74d925358d81f3c5"
 MAIN_PATH = "src/windows-v7/VPS-Control-v7.ps1"
 HISTORICAL_MAIN_BLOB = "44f7e6433881733f4aa5ca251e33bc3e2cd98988"
+ROOT = "src/windows-v7"
 MANIFEST = "src/windows-v7/VPS-Control-v7-SHA256.txt"
 CANDIDATE = ".pncc-dev/candidate-source.json"
 RECIPE = "build/windows-v7-candidate-recipe.json"
 PROVENANCE = ".pncc-dev/provenance/canonical-source-v7.0.2-patch.json"
 OLD_PROVENANCE = ".pncc-dev/provenance/canonical-source-v7.0.1-patch.json"
 MARKER = "PNCC-EXACT-BYTE-MATERIALIZER-REQUEST"
+POSTWRITE_READBACK_ATTEMPTS = 6
+POSTWRITE_READBACK_DELAY_SECONDS = 1
 
 class Blocked(RuntimeError): pass
 
@@ -30,6 +33,22 @@ def run(*args, input_bytes=None):
     if p.returncode:
         raise Blocked(f"COMMAND_FAILED:{' '.join(args)}:{p.stderr.decode(errors='replace')[-500:]}")
     return p.stdout
+
+def git_object_bytes(base, path):
+    if not re.fullmatch(r"[0-9a-f]{40}", base): raise Blocked("BASE_SHA_INVALID")
+    if path.startswith("/") or ".." in path.split("/"): raise Blocked("GIT_OBJECT_PATH_INVALID")
+    return run("git", "show", f"{base}:{path}")
+
+def tracked_source_paths(base):
+    raw = run("git", "ls-tree", "-r", "--name-only", base, "--", ROOT).decode("utf-8")
+    paths = sorted(x.strip() for x in raw.splitlines() if x.strip())
+    if not paths: raise Blocked("CANONICAL_SOURCE_TREE_EMPTY")
+    if MANIFEST not in paths: raise Blocked("CANONICAL_MANIFEST_NOT_TRACKED")
+    return paths
+
+def load_json_object(base, path):
+    try: return json.loads(git_object_bytes(base, path).decode("utf-8-sig"))
+    except Exception as e: raise Blocked(f"BASE_JSON_INVALID:{path}:{e}")
 
 def api(path, token, method="GET", payload=None):
     url = "https://api.github.com" + path
@@ -76,25 +95,27 @@ def json_bytes(obj):
     return (json.dumps(obj, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode("utf-8")
 
 def assemble(base):
-    root = pathlib.Path("src/windows-v7")
     changes = {}
+    source_paths = tracked_source_paths(base)
+    base_bytes = {p: git_object_bytes(base, p) for p in source_paths}
     wu172 = get_pr_file_bytes()
-    for p in sorted(x for x in root.rglob("*") if x.is_file() and x.as_posix() != MANIFEST):
-        rel = p.as_posix()
-        data = wu172 if rel == WU172_PATH else p.read_bytes()
+
+    for rel in source_paths:
+        if rel == MANIFEST: continue
+        original = base_bytes[rel]
+        data = wu172 if rel == WU172_PATH else original
         data = data.replace(b"7.0.1", b"7.0.2")
         if b"7.0.1" in data: raise Blocked(f"RESIDUAL_7_0_1:{rel}")
-        if data != p.read_bytes(): changes[rel] = data
-    if MAIN_PATH not in changes:
-        raise Blocked("MAIN_SCRIPT_NOT_CHANGED")
+        if data != original: changes[rel] = data
+    if MAIN_PATH not in changes: raise Blocked("MAIN_SCRIPT_NOT_CHANGED")
     if WU172_PATH not in changes or git_blob_sha(changes[WU172_PATH]) != WU172_BLOB:
         raise Blocked("WU172_TARGET_BLOB_MISMATCH")
 
-    rows=[]
-    inventory=[]
-    for p in sorted(x for x in root.rglob("*") if x.is_file() and x.as_posix() != MANIFEST):
-        relroot=p.relative_to(root).as_posix()
-        data=changes.get(p.as_posix(),p.read_bytes())
+    rows=[]; inventory=[]
+    for rel in source_paths:
+        if rel == MANIFEST: continue
+        relroot = rel[len(ROOT)+1:]
+        data = changes.get(rel, base_bytes[rel])
         rows.append(f"{sha256(data)}  {relroot.replace('/', chr(92))}")
         inventory.append({"bytes":len(data),"path":relroot,"sha256":sha256(data)})
     manifest=("# VPS Control Center v7.0.2 deterministic canonical Git-blob source manifest\n"+"\n".join(rows)+"\n").encode()
@@ -102,18 +123,17 @@ def assemble(base):
     inventory.append({"bytes":len(manifest),"path":"VPS-Control-v7-SHA256.txt","sha256":sha256(manifest)})
     inventory.sort(key=lambda x:x["path"])
 
-    candidate=json.loads(pathlib.Path(CANDIDATE).read_text(encoding="utf-8-sig"))
-    candidate["candidate_version"]="7.0.2"
-    candidate["provenance_path"]=PROVENANCE
+    candidate=load_json_object(base,CANDIDATE)
+    candidate["candidate_version"]="7.0.2"; candidate["provenance_path"]=PROVENANCE
     candidate["runtime_authority"]=False; candidate["promotion_authority"]=False
     changes[CANDIDATE]=json_bytes(candidate)
 
-    recipe=json.loads(pathlib.Path(RECIPE).read_text(encoding="utf-8-sig"))
+    recipe=load_json_object(base,RECIPE)
     recipe["candidate_version"]="7.0.2"; recipe["output_filename"]="VPS-Control-v7.0.2.zip"
     recipe["runtime_authority"]=False; recipe["promotion_authority"]=False
     changes[RECIPE]=json_bytes(recipe)
 
-    old=json.loads(pathlib.Path(OLD_PROVENANCE).read_text(encoding="utf-8-sig"))
+    load_json_object(base,OLD_PROVENANCE)
     prov={
       "activation":{"builder_introduced":True,"candidate_artifact_generated":False,"exact_base_main_sha":base,"work_unit":WU},
       "baseline":{"activated_candidate_version":"7.0.2","embedded_version":"7.0.2","previous_runtime_version":"7.0.1","remediated_files":["modules/V7-StatusCenter.ps1"],"remediated_file_git_blob_sha":{"modules/V7-StatusCenter.ps1":WU172_BLOB},"remediation_class":"PRODUCT_DEFECT_STATUS_CENTER_RESERVE_ROUTING_CONTROL_STATE_CONSISTENCY","requires_version_bump_before_build":False},
@@ -121,9 +141,16 @@ def assemble(base):
       "parent":{"previous_release_version":"7.0.1","previous_provenance_path":OLD_PROVENANCE},
       "provenance_id":"PNCC_CANONICAL_SOURCE_V7_0_2_PATCH_V1",
       "safety":{"artifact_exists":False,"build_authority":False,"build_input_ready":True,"ci_is_runtime_truth":False,"promotion_authority":False,"runtime_authority":False,"stable_done":False},
-      "schema_version":3,"source_identity_semantic":"UNBUILT_V7_0_2_PATCH_SOURCE_BASELINE","source_root":"src/windows-v7"}
+      "schema_version":3,"source_identity_semantic":"UNBUILT_V7_0_2_PATCH_SOURCE_BASELINE","source_root":ROOT}
     changes[PROVENANCE]=json_bytes(prov)
-    return {p:d for p,d in changes.items() if not pathlib.Path(p).exists() or d != pathlib.Path(p).read_bytes()}
+
+    filtered={}
+    for p,d in changes.items():
+        try: before=git_object_bytes(base,p)
+        except Blocked:
+            before=None
+        if before != d: filtered[p]=d
+    return filtered
 
 def plan(base, expected_head):
     changes=assemble(base)
@@ -141,6 +168,16 @@ def verify_execute_request(req, obj, ph):
     if requested != compact: raise Blocked("PATH_ALLOWLIST_MISMATCH")
     for x in requested:
         if not str(x["path"]).startswith(("src/windows-v7/",".pncc-dev/","build/")): raise Blocked("PATH_OUTSIDE_WU175")
+
+def read_ref_until(token, expected_sha, attempts=POSTWRITE_READBACK_ATTEMPTS, delay=POSTWRITE_READBACK_DELAY_SECONDS):
+    seen=[]
+    for i in range(attempts):
+        rbref=api(f"/repos/{REPO}/git/ref/heads/{BRANCH}",token)
+        actual=rbref["object"]["sha"]
+        seen.append(actual)
+        if actual == expected_sha: return actual
+        if i + 1 < attempts: time.sleep(delay)
+    raise Blocked("POSTWRITE_REF_MISMATCH:"+",".join(seen))
 
 def execute(req, obj, ph, changes, token):
     verify_execute_request(req,obj,ph)
@@ -161,8 +198,7 @@ def execute(req, obj, ph, changes, token):
     tree=api(f"/repos/{REPO}/git/trees",token,"POST",{"base_tree":base_commit["tree"]["sha"],"tree":tree_entries})
     commit=api(f"/repos/{REPO}/git/commits",token,"POST",{"message":"PIPE-WU-175 materialize exact v7.0.2 assembly","tree":tree["sha"],"parents":[current]})
     api(f"/repos/{REPO}/git/refs/heads/{BRANCH}",token,"PATCH",{"sha":commit["sha"],"force":False})
-    rbref=api(f"/repos/{REPO}/git/ref/heads/{BRANCH}",token)
-    if rbref["object"]["sha"] != commit["sha"]: raise Blocked("POSTWRITE_REF_MISMATCH")
+    read_ref_until(token,commit["sha"])
     print(f"MATERIALIZER_EXECUTE=SUCCESS\nCREATED_COMMIT={commit['sha']}\nPLAN_SHA256={ph}")
 
 def main():
