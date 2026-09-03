@@ -27,8 +27,10 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\cli\Invoke-PnccS
 Exit-code contract wrapper:
 
 - `0` — только `Valid=true` и `Code=VALID`;
-- `2` — только известная ошибка caller input: `INPUT_NOT_FOUND`, `INPUT_UNREADABLE`, `INPUT_EMPTY`, `JSON_INVALID` или `SEMANTIC_INVALID`;
+- `2` — известная ошибка caller input: `INPUT_PATH_REQUIRED`, `JSON_DEPTH_INVALID`, `INPUT_NOT_FOUND`, `INPUT_UNREADABLE`, `INPUT_EMPTY`, `JSON_INVALID` или `SEMANTIC_INVALID`;
 - `3` — validator dependency/internal failure: `VALIDATOR_DEPENDENCY_MISSING`, `SNAPSHOT_CONTRACT_INVALID`, `VALIDATION_FAILED`, а также любой неизвестный или внутренне несогласованный validator result. Неизвестный/несогласованный результат нормализуется в `VALIDATOR_INTERNAL_FAILURE`.
+
+Process parameter boundary также fail-closed: отсутствие/пустой `InputPath` нормализуется в `INPUT_PATH_REQUIRED`/exit 2; отсутствующий `JsonDepth` использует default `12`; нецелый или выходящий за `4..32` `JsonDepth` нормализуется в `JSON_DEPTH_INVALID`/exit 2. Эти случаи обрабатываются внутри wrapper, а не PowerShell parameter binder, поэтому governed `-Json` вызовы не получают interactive prompt/raw binder diagnostics.
 
 Во всех случаях machine stdout остаётся `PNCC_STATE_SNAPSHOT_INPUT_VALIDATION`; нормализованные ошибки не выводят raw exception или caller path в stderr.
 
@@ -56,7 +58,7 @@ Get-Help .\tools\cli\Test-PnccStateSnapshotInput.ps1 -Full
 
 ## Что находится в каталоге
 
-- `Invoke-PnccStateSnapshotInputCheck.ps1` — process-oriented automation wrapper с fail-closed exit codes `0/2/3`.
+- `Invoke-PnccStateSnapshotInputCheck.ps1` — process-oriented automation wrapper с fail-closed exit codes `0/2/3` и собственной нормализацией process parameters.
 - `Test-PnccStateSnapshotInput.ps1` — composable read-only preflight: русский `КОРРЕКТЕН/НЕКОРРЕКТЕН` по умолчанию, нормализованный machine result с `-Json`.
 - `Show-PnccStateSnapshot.ps1` — основной пользовательский entrypoint: fail-closed preflight, русский текст по умолчанию, `-Json` для machine snapshot contract.
 - `Get-PnccStateSnapshot.ps1` — преобразует caller-supplied deterministic state JSON в `PNCC_STATE_SNAPSHOT`.
