@@ -18,6 +18,20 @@ Machine-readable результат preflight:
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\cli\Test-PnccStateSnapshotInput.ps1 -InputPath .\tools\cli\examples\state-input.example.json -Json
 ```
 
+Для автоматизации, где нужен надёжный process exit code, используйте отдельный wrapper:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\cli\Invoke-PnccStateSnapshotInputCheck.ps1 -InputPath .\tools\cli\examples\state-input.example.json -Json; $LASTEXITCODE
+```
+
+Exit-code contract wrapper:
+
+- `0` — input валиден (`Code=VALID`);
+- `2` — caller input невалиден; stdout содержит нормализованный `PNCC_STATE_SNAPSHOT_INPUT_VALIDATION` с исходным validation `Code`;
+- `3` — validator dependency/internal contract failure; stdout остаётся нормализованным, без raw exception/path.
+
+`Invoke-PnccStateSnapshotInputCheck.ps1` предназначен для отдельного `powershell.exe -File` процесса и использует `exit`. Для вызова из существующей PowerShell-сессии/другого скрипта без завершения процесса используйте composable `Test-PnccStateSnapshotInput.ps1`.
+
 Русский человекочитаемый статус одной командой:
 
 ```powershell
@@ -40,7 +54,8 @@ Get-Help .\tools\cli\Test-PnccStateSnapshotInput.ps1 -Full
 
 ## Что находится в каталоге
 
-- `Test-PnccStateSnapshotInput.ps1` — read-only preflight: русский `КОРРЕКТЕН/НЕКОРРЕКТЕН` по умолчанию, нормализованный machine result с `-Json`.
+- `Invoke-PnccStateSnapshotInputCheck.ps1` — process-oriented automation wrapper с exit codes `0/2/3`.
+- `Test-PnccStateSnapshotInput.ps1` — composable read-only preflight: русский `КОРРЕКТЕН/НЕКОРРЕКТЕН` по умолчанию, нормализованный machine result с `-Json`.
 - `Show-PnccStateSnapshot.ps1` — основной пользовательский entrypoint: fail-closed preflight, русский текст по умолчанию, `-Json` для machine snapshot contract.
 - `Get-PnccStateSnapshot.ps1` — преобразует caller-supplied deterministic state JSON в `PNCC_STATE_SNAPSHOT`.
 - `Format-PnccStateSnapshot.ps1` — форматирует уже готовый snapshot из файла или из строки `-SnapshotJson`.
@@ -48,13 +63,13 @@ Get-Help .\tools\cli\Test-PnccStateSnapshotInput.ps1 -Full
 
 ## Preflight validation contract
 
-`Test-PnccStateSnapshotInput.ps1 -Json` возвращает только нормализованный результат:
+`Test-PnccStateSnapshotInput.ps1 -Json` и automation wrapper возвращают нормализованный результат:
 
 - `SchemaVersion = 1`;
 - `Contract = PNCC_STATE_SNAPSHOT_INPUT_VALIDATION`;
 - `ReadOnly = true`;
 - `Valid = true/false`;
-- `Code` — нормализованный код (`VALID`, `INPUT_NOT_FOUND`, `INPUT_UNREADABLE`, `INPUT_EMPTY`, `JSON_INVALID`, `SEMANTIC_INVALID`, `SNAPSHOT_CONTRACT_INVALID` или `VALIDATOR_DEPENDENCY_MISSING`).
+- `Code` — нормализованный код.
 
 Machine result намеренно не содержит input path, raw exception text, secrets или private Runtime Truth. Семантическая проверка использует тот же `Get-PnccStateSnapshot.ps1`, что и `Show-PnccStateSnapshot.ps1`, поэтому отдельная копия правил построения snapshot не создаётся.
 
@@ -75,7 +90,7 @@ Machine result намеренно не содержит input path, raw exceptio
 }
 ```
 
-Отсутствующие необязательные значения нормализуются существующим State Snapshot foundation; команды не делают сетевых запросов, не запускают процессы и не изменяют routing/runtime.
+Отсутствующие необязательные значения нормализуются существующим State Snapshot foundation; команды не делают сетевых запросов, не запускают сетевые/служебные процессы и не изменяют routing/runtime.
 
 ## Фиксированный tunnel contract
 
