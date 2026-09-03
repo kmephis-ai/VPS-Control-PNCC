@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "work_unit": "PIPE-WU-177",
+  "role": "EXACT_BYTE_MATERIALIZER_ACTIVATION",
+  "owner_authorized": true,
+  "execution_target": {
+    "work_unit": "PIPE-WU-175",
+    "issue_number": 399,
+    "branch": "agent/PIPE-WU-175-v702-activation-wu172-fix",
+    "forbid_default_branch": true
+  },
+  "runner": "github-hosted",
+  "minimum_permissions": {
+    "contents": "write",
+    "issues": "read"
+  },
+  "request_protocol": {
+    "marker": "PNCC-EXACT-BYTE-MATERIALIZER-REQUEST",
+    "actions": ["PLAN", "EXECUTE"],
+    "execute_requires_exact_plan_sha256": true,
+    "execute_requires_exact_paths_and_git_blob_shas": true
+  },
+  "transaction": {
+    "exact_base_required": true,
+    "exact_expected_head_required": true,
+    "expected_path_allowlist_required": true,
+    "expected_git_blob_sha_required": true,
+    "immutable_blob_readback_required": true,
+    "byte_equality_readback_required": true,
+    "exact_parent_required": true,
+    "force_ref_update": false,
+    "postwrite_ref_readback_required": true
+  },
+  "wu175_recipe": {
+    "source_root": "src/windows-v7",
+    "from_version": "7.0.1",
+    "to_version": "7.0.2",
+    "wu172_pr": 394,
+    "wu172_path": "src/windows-v7/modules/V7-StatusCenter.ps1",
+    "wu172_expected_git_blob_sha": "6c4a8ddcaea7f4c651b6d4be74d925358d81f3c5",
+    "main_script_path": "src/windows-v7/VPS-Control-v7.ps1",
+    "main_script_expected_git_blob_sha": "44f7e6433881733f4aa5ca251e33bc3e2cd98988",
+    "manifest_path": "src/windows-v7/VPS-Control-v7-SHA256.txt",
+    "candidate_source_path": ".pncc-dev/candidate-source.json",
+    "build_recipe_path": "build/windows-v7-candidate-recipe.json",
+    "provenance_path": ".pncc-dev/provenance/canonical-source-v7.0.2-patch.json"
+  },
+  "forbidden": [
+    "main_ref_write",
+    "force_ref_update",
+    "arbitrary_branch",
+    "arbitrary_path",
+    "self_hosted_runner",
+    "ruleset_mutation",
+    "security_mutation",
+    "runtime_execution",
+    "release_or_tag",
+    "1080_or_1081_lifecycle_mutation",
+    "v6_3_1_mutation"
+  ]
+}
