@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "role": "PNCC_POST_V7_0_1_PATCH_VERSION_DECISION_READINESS",
+  "work_unit_id": "PIPE-WU-174",
+  "issue_number": 397,
+  "authorized_base_sha": "0681dbb5adac996ea0072460a30e4c00c87d5721",
+  "stable_version": "7.0.1",
+  "lineage_class": "PATCH",
+  "recommended_next_version": "7.0.2",
+  "recommendation_basis": [
+    "WU173 requires a distinct post-v7.0.1 product identity before canonical product-source mutation",
+    "WU172 correction is backward-compatible correctness scope and does not prove minor/major incompatibility",
+    "repository search on the authorized base found no existing 7.0.2 identity"
+  ],
+  "decision_state": "READY_FOR_SEPARATE_OWNER_VERSION_ACTIVATION_DECISION",
+  "activation": {
+    "performed": false,
+    "separate_explicit_owner_authorization_required": true,
+    "specific_version_identity_activation_authority": false,
+    "product_source_mutation_authority": false,
+    "candidate_source_mutation_authority": false,
+    "provenance_regeneration_authority": false,
+    "manifest_regeneration_authority": false,
+    "build_recipe_mutation_authority": false,
+    "artifact_build_authority": false,
+    "runtime_authority": false,
+    "release_authority": false,
+    "tag_authority": false,
+    "promotion_authority": false,
+    "ruleset_or_security_authority": false,
+    "routing_or_tunnel_lifecycle_authority": false,
+    "v631_mutation_authority": false
+  },
+  "future_activation_requirements": [
+    "fresh exact main and provider reconciliation",
+    "fresh Writer Lease for exact activation work unit and conflict domain",
+    "explicit Owner authorization naming 7.0.2 activation",
+    "separate bounded branch",
+    "exact source/provenance/manifest consistency regeneration within authorized scope",
+    "exact-head CI before governed merge",
+    "no release/tag/promotion/runtime claim until separately authorized and proven"
+  ],
+  "invariants": {
+    "stable_7_0_1_identity_immutable": true,
+    "reserve_manual_1080_lifecycle_immutable": true,
+    "primary_auto_1081_contract_preserved": true,
+    "v6_3_1_immutable": true,
+    "ci_verified_is_not_runtime_verified": true
+  }
+}
