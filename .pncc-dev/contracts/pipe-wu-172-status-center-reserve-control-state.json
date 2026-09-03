@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "role": "PIPE_WU_172_STATUS_CENTER_RESERVE_ROUTING_CONTROL_STATE_CONSISTENCY",
+  "work_unit_id": "PIPE-WU-172",
+  "base_sha": "05e98ac24422f7c5fdff9077854e2d0594c315d8",
+  "runtime_required": false,
+  "state": "IMPLEMENTED_PENDING_EXACT_HEAD_CI",
+  "defect": "CONTROL_STATE_COMPUTED_BEFORE_FINAL_RESERVE_DEPENDENCY_ADJUSTMENT",
+  "expected_semantics": {
+    "primary_auto_healthy_reserve_off": "CONTROL_GOOD",
+    "reserve_manual_selected_unavailable": "DEPENDENCIES_BAD_AND_CONTROL_BAD",
+    "reserve_manual_selected_available": "CONTROL_GOOD"
+  },
+  "routing_mutation_present": false,
+  "tunnel_lifecycle_mutation_present": false,
+  "reserve_manual_1080_lifecycle_automation": false,
+  "primary_auto_1081_lifecycle_changed": false,
+  "v631_changed": false,
+  "ci_verified_is_runtime_verified": false
+}
