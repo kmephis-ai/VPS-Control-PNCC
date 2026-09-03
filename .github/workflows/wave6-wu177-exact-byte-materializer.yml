@@ -31,7 +31,7 @@ jobs:
       - name: Compile materializer
         run: python3 -m py_compile .pncc-dev/scripts/wu177_exact_byte_materializer.py
       - name: Run adversarial tests
-        run: python3 -m unittest .pncc-dev/tests/test_wu177_exact_byte_materializer.py -v
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_wu177_exact_byte_materializer.py' -v
       - name: Assert bounded control-plane diff
         shell: bash
         run: |
