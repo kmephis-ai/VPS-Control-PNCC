@@ -1,0 +1,79 @@
+name: wave6-wu177-exact-byte-materializer
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/wave6-wu177-exact-byte-materializer.yml'
+      - '.pncc-dev/contracts/wave6-wu177-exact-byte-materializer-activation.json'
+      - '.pncc-dev/scripts/wu177_exact_byte_materializer.py'
+      - '.pncc-dev/tests/test_wu177_exact_byte_materializer.py'
+  issues:
+    types: [edited]
+
+permissions:
+  contents: read
+
+jobs:
+  validate-activation:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Compile materializer
+        run: python3 -m py_compile .pncc-dev/scripts/wu177_exact_byte_materializer.py
+      - name: Run adversarial tests
+        run: python3 -m unittest .pncc-dev/tests/test_wu177_exact_byte_materializer.py -v
+      - name: Assert bounded control-plane diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}" > /tmp/wu177-diff
+          diff -u <(sort /tmp/wu177-diff) <(printf '%s\n' \
+            '.github/workflows/wave6-wu177-exact-byte-materializer.yml' \
+            '.pncc-dev/contracts/wave6-wu177-exact-byte-materializer-activation.json' \
+            '.pncc-dev/scripts/wu177_exact_byte_materializer.py' \
+            '.pncc-dev/tests/test_wu177_exact_byte_materializer.py' | sort)
+          ! grep -E '^(src/windows-v7/|legacy/|tools/runtime-agent/|tools/release/|\.pncc-state/)' /tmp/wu177-diff
+      - name: Assert least-authority workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'runs-on: ubuntu-24.04' .github/workflows/wave6-wu177-exact-byte-materializer.yml
+          grep -F 'contents: write' .github/workflows/wave6-wu177-exact-byte-materializer.yml
+          ! grep -E 'self-hosted|security-events: write|actions: write|pull-requests: write' .github/workflows/wave6-wu177-exact-byte-materializer.yml
+          grep -F '"force":False' .pncc-dev/scripts/wu177_exact_byte_materializer.py
+          grep -F 'BRANCH = "agent/PIPE-WU-175-v702-activation-wu172-fix"' .pncc-dev/scripts/wu177_exact_byte_materializer.py
+          test -z "$(git status --porcelain)"
+
+  materialize-wu175:
+    if: github.event_name == 'issues' && github.event.issue.number == 399 && contains(github.event.issue.body, 'PNCC-EXACT-BYTE-MATERIALIZER-REQUEST')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      issues: read
+    concurrency:
+      group: pncc-wu175-exact-byte-materializer
+      cancel-in-progress: false
+    steps:
+      - name: Checkout exact default-branch revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Execute bounded PLAN or EXECUTE request
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 .pncc-dev/scripts/wu177_exact_byte_materializer.py --issue-number "${{ github.event.issue.number }}" --repository "${{ github.repository }}"
+      - name: Prove checkout remained clean
+        run: test -z "$(git status --porcelain)"
