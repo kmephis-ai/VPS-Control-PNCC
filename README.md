@@ -46,13 +46,19 @@ GitHub-hosted CI verifies engineering properties. It does **not** manufacture ph
 
 ## State Snapshot CLI
 
-Для безопасного read-only просмотра детерминированного `PNCC_STATE_SNAPSHOT` есть Windows PowerShell 5.1 CLI и checked-in synthetic example. Из корня репозитория:
+Для безопасного read-only просмотра детерминированного `PNCC_STATE_SNAPSHOT` есть Windows PowerShell 5.1 CLI и checked-in synthetic example. Перед выводом можно отдельно проверить вход:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\cli\Test-PnccStateSnapshotInput.ps1 -InputPath .\tools\cli\examples\state-input.example.json
+```
+
+Затем вывести русский статус:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\cli\Show-PnccStateSnapshot.ps1 -InputPath .\tools\cli\examples\state-input.example.json
 ```
 
-Machine-readable вариант: добавьте `-Json`. Пример является синтетическим и не доказывает текущее состояние Windows/VPS/Keenetic/туннелей: `CI VERIFIED != RUNTIME VERIFIED`.
+Для machine-readable результата validator или snapshot добавьте `-Json` к соответствующей команде. Пример является синтетическим и не доказывает текущее состояние Windows/VPS/Keenetic/туннелей: `CI VERIFIED != RUNTIME VERIFIED`.
 
 Подробности: [`tools/cli/README.md`](tools/cli/README.md).
 

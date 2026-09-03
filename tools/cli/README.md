@@ -1,10 +1,22 @@
 # PNCC State Snapshot CLI
 
-Этот каталог содержит read-only инструменты для формирования и просмотра `PNCC_STATE_SNAPSHOT` на Windows PowerShell 5.1.
+Этот каталог содержит read-only инструменты для формирования, проверки и просмотра `PNCC_STATE_SNAPSHOT` на Windows PowerShell 5.1.
 
 ## Быстрый запуск
 
 В репозитории есть безопасный синтетический пример `tools/cli/examples/state-input.example.json`. Он предназначен только для проверки CLI и **не является Runtime Truth**.
+
+Сначала можно выполнить read-only preflight входного JSON:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\cli\Test-PnccStateSnapshotInput.ps1 -InputPath .\tools\cli\examples\state-input.example.json
+```
+
+Machine-readable результат preflight:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\cli\Test-PnccStateSnapshotInput.ps1 -InputPath .\tools\cli\examples\state-input.example.json -Json
+```
 
 Русский человекочитаемый статус одной командой:
 
@@ -12,7 +24,7 @@
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\cli\Show-PnccStateSnapshot.ps1 -InputPath .\tools\cli\examples\state-input.example.json
 ```
 
-Machine-readable JSON:
+Machine-readable snapshot JSON:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\cli\Show-PnccStateSnapshot.ps1 -InputPath .\tools\cli\examples\state-input.example.json -Json
@@ -21,15 +33,28 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\cli\Show-PnccSta
 Справка PowerShell:
 
 ```powershell
-Get-Help .\tools\cli\Show-PnccStateSnapshot.ps1 -Full
+Get-Help .\tools\cli\Test-PnccStateSnapshotInput.ps1 -Full
 ```
 
 ## Что находится в каталоге
 
-- `Show-PnccStateSnapshot.ps1` — основной пользовательский entrypoint: русский текст по умолчанию, `-Json` для machine contract.
+- `Test-PnccStateSnapshotInput.ps1` — read-only preflight: русский `КОРРЕКТЕН/НЕКОРРЕКТЕН` по умолчанию, нормализованный machine result с `-Json`.
+- `Show-PnccStateSnapshot.ps1` — основной пользовательский entrypoint: русский текст по умолчанию, `-Json` для machine snapshot contract.
 - `Get-PnccStateSnapshot.ps1` — преобразует caller-supplied deterministic state JSON в `PNCC_STATE_SNAPSHOT`.
 - `Format-PnccStateSnapshot.ps1` — форматирует уже готовый snapshot из файла или из строки `-SnapshotJson`.
 - `examples/state-input.example.json` — публичный синтетический copy-run пример без приватной Runtime Truth.
+
+## Preflight validation contract
+
+`Test-PnccStateSnapshotInput.ps1 -Json` возвращает только нормализованный результат:
+
+- `SchemaVersion = 1`;
+- `Contract = PNCC_STATE_SNAPSHOT_INPUT_VALIDATION`;
+- `ReadOnly = true`;
+- `Valid = true/false`;
+- `Code` — нормализованный код (`VALID`, `INPUT_NOT_FOUND`, `INPUT_UNREADABLE`, `INPUT_EMPTY`, `JSON_INVALID`, `SEMANTIC_INVALID`, `SNAPSHOT_CONTRACT_INVALID` или `VALIDATOR_DEPENDENCY_MISSING`).
+
+Machine result намеренно не содержит input path, raw exception text, secrets или private Runtime Truth. Семантическая проверка использует тот же `Get-PnccStateSnapshot.ps1`, что и `Show-PnccStateSnapshot.ps1`, поэтому отдельная копия правил построения snapshot не создаётся.
 
 ## Входные данные
 
