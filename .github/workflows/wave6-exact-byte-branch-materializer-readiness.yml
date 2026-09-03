@@ -46,7 +46,19 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           p=Path('.github/workflows/wave6-exact-byte-branch-materializer-readiness.yml').read_text(encoding='utf-8').lower()
-          forbidden=['contents:'+' write','issues:'+' write','pull-requests:'+' write','actions:'+' write','git'+' push','/git/refs','/git/blobs','--method'+' post','--method'+' patch','force: true','self-hosted']
+          forbidden=[
+              'contents:'+' write',
+              'issues:'+' write',
+              'pull-requests:'+' write',
+              'actions:'+' write',
+              'git'+' push',
+              '/git/'+'refs',
+              '/git/'+'blobs',
+              '--method'+' post',
+              '--method'+' patch',
+              'force:'+' true',
+              'self-'+'hosted',
+          ]
           for token in forbidden:
               assert token not in p, token
           PY
