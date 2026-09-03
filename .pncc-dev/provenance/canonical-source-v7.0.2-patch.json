@@ -43,7 +43,7 @@
     {
       "bytes": 2963,
       "path": "VPS-Control-v7-SHA256.txt",
-      "sha256": "abe1167304377941f3c56c39d4367837c4ac0bba8f2cfedd3d8a4553f86caff4"
+      "sha256": "f1c94dd5ca4c2784798f5d38c5d14edf9f31db0ddb6200fd456b01c9f870eb85"
     },
     {
       "bytes": 3211,
@@ -51,59 +51,59 @@
       "sha256": "850892ab0660b04003a84f3998a0f43bf9675ada68da4e3d8d3fa1e50af09420"
     },
     {
-      "bytes": 3546,
+      "bytes": 3482,
       "path": "VPS-Control-v7-browser-strict.ps1",
-      "sha256": "f6975b84d23458d96e4b717d29bf54d9e285a8ddc7e65d1b23feddb7396be4a0"
+      "sha256": "4e0ff527838cdb29da8195200a95471aa290cf8bd830024ee11cefeccb875828"
     },
     {
-      "bytes": 72,
+      "bytes": 69,
       "path": "VPS-Control-v7-demo.cmd",
-      "sha256": "ab598f3b482bc38548290bf9c00ea091e5bdc4cfd9b11c6856342129c0c69098"
+      "sha256": "f477250bd07abd95f78b82354d336b4614f220e1809589d7bf5995f1be8b5a91"
     },
     {
-      "bytes": 59515,
+      "bytes": 58113,
       "path": "VPS-Control-v7-engine-upgrade.ps1",
-      "sha256": "98f8693d5e7273bb8b4350c4d2c9afff2dfa1bb5544abc29f61f25e1f270fdd3"
+      "sha256": "7f8bc5caafcf7581a53e40500d4d2161ced60d43c3766f899fc5d4e1ec679345"
     },
     {
-      "bytes": 14400,
+      "bytes": 14226,
       "path": "VPS-Control-v7-evidence-worker.ps1",
-      "sha256": "509bdff9c3b526b8a3f1fbe5256b5548c1ee63247bf619765ac41b6caa66b787"
+      "sha256": "accc535655dbb9d1c9f56c0c9c6ffe6d3ba6e1fdfdbc6aef4d43d251568ab576"
     },
     {
-      "bytes": 15716,
+      "bytes": 15412,
       "path": "VPS-Control-v7-keenetic.ps1",
-      "sha256": "ca51cdd1f5c7cb48cfe1f3561592f9fa4205ae2921cb36f924a5ffccd1d96ed3"
+      "sha256": "9621754a5decb0f2991e479f3fcb52b7049847f36c75c89394c6ba33a3105933"
     },
     {
-      "bytes": 7950,
+      "bytes": 7862,
       "path": "VPS-Control-v7-launch.ps1",
-      "sha256": "9f7f876e16b622e8df50ede293fd35199469b55631cb3f4d40bb3224bee80c23"
+      "sha256": "5fa101bb4ac27f21b4738b2bc0b6f68f7ceec24a0537a8a8372ed34a20e79eaf"
     },
     {
-      "bytes": 24962,
+      "bytes": 24351,
       "path": "VPS-Control-v7-tunnel-manager.ps1",
-      "sha256": "41f22a34fd0026098ba69a4970d134472e0f76401abdd3f6905579b5b484f6af"
+      "sha256": "5c7e021b7e9a3225b688c14b906a29204f79ad8fe0259ee4aef533294c9f5f88"
     },
     {
-      "bytes": 7653,
+      "bytes": 7493,
       "path": "VPS-Control-v7-vm-gateway.ps1",
-      "sha256": "b2c3b2cc013836e591d4133b0b6a1f24c1d2dace4c293c203ba6d42ce26f4a43"
+      "sha256": "406a81ae29896593bde0b050ab1c7b9c55ccc355b8342079236e4b26f3490961"
     },
     {
-      "bytes": 24959,
+      "bytes": 24619,
       "path": "VPS-Control-v7-vps-manager.ps1",
-      "sha256": "bf9da87121e8a6134ae04b546b3a8f70be7ee5ce5ae7358063e8fa6d80d06a01"
+      "sha256": "f04edc6eb79752ec11ed5cdb90367e256ff456e2608cc4057718d610a75fe5ea"
     },
     {
-      "bytes": 781,
+      "bytes": 753,
       "path": "VPS-Control-v7.cmd",
-      "sha256": "fdf4af520520dbf10a65b3e499b493b008b5e4d7d87baf5aecd2161b4745ff7d"
+      "sha256": "8e59ac43cddcdf3f1811733b0bd953fda950af69aabd07981e7225bf72d76b02"
     },
     {
-      "bytes": 271123,
+      "bytes": 267331,
       "path": "VPS-Control-v7.ps1",
-      "sha256": "0fa8454ee74151b91c36b7f85e7904e9c6d90a996b205d70a528434200cc06d4"
+      "sha256": "58bd60958e6c6644a9ba0374a4fad5f5e3bafef1486e2c77100f4beb923e4d6a"
     },
     {
       "bytes": 2326,
@@ -111,54 +111,54 @@
       "sha256": "7935086caef4948b52fe11b03491f205a0e59bad367ee18e6f49bd8a7d895db3"
     },
     {
-      "bytes": 46294,
+      "bytes": 45842,
       "path": "modules/V7-Consistency.ps1",
-      "sha256": "6504eaf0a3aa30d0e7f690a1ebcdd82402c4ff509737287e5bf9a40899c25f12"
+      "sha256": "81c0d8afacd7644d8a8afb3c0819a5175b15f9d897b3de131a922073a2fa8c34"
     },
     {
-      "bytes": 6496,
+      "bytes": 6317,
       "path": "modules/V7-Core.ps1",
-      "sha256": "67a4410576b958d5a965a5578c0950c27b7e7e1ffaf52d5531a07add0469f4b6"
+      "sha256": "1b9c6790dc6d9d96ee1257bc7b7525b3eb38ed9e056421c9b685b5f193ae9263"
     },
     {
-      "bytes": 14414,
+      "bytes": 14208,
       "path": "modules/V7-DeepTelemetry.ps1",
-      "sha256": "d9472b1b9e6c04e437d575b5be19587e09790910be78b79c253648b7a70692d5"
+      "sha256": "07ab3b539d7a52412ca7b6ad307a18a7a8a2126a039ded007bd8fff6b711bca7"
     },
     {
-      "bytes": 5306,
+      "bytes": 5263,
       "path": "modules/V7-Demo.ps1",
-      "sha256": "c883b61396aabd57ac202cccdb33d071e690a135b2cb4e0b932e19dd3b3161e7"
+      "sha256": "0a2a8ffb616ba6109358a9068ccde9d681d3d15a3d0845196fa7c253a14ca65c"
     },
     {
-      "bytes": 2434,
+      "bytes": 2387,
       "path": "modules/V7-Events.ps1",
-      "sha256": "b5943265b8760a5d08c73b05c3215d7f28ef77fdbb2104b35e5efd607b5f8b72"
+      "sha256": "9cb78477e772904e72ab8e91b2eb943472c60974368f2156e90bc2d6872dc119"
     },
     {
-      "bytes": 8985,
+      "bytes": 8832,
       "path": "modules/V7-KeeneticModel.ps1",
-      "sha256": "1aa46d7030b7e85763668a6f83e281bd99b1c672a9d3badaece5998bd6645dc7"
+      "sha256": "360bcfb5d8e9879f7cbf1a2d522dc39479ab244d1926847ba555fcfa8c1a7cb3"
     },
     {
-      "bytes": 5998,
+      "bytes": 5916,
       "path": "modules/V7-Maintenance.ps1",
-      "sha256": "7c9cd538e4008526c8734d00e34f1d590db0a2cd3348bfbb1b89e6a958e05301"
+      "sha256": "7a39c8f1ba1be46ea44e98796200bcd2433cec54b600bdc5f1d0a4a65066cfbb"
     },
     {
-      "bytes": 21769,
+      "bytes": 21373,
       "path": "modules/V7-Observability.ps1",
-      "sha256": "cba91b63e47b2ba576f1ad650bf3451bec7f0746814571e205ae56b66b34fd64"
+      "sha256": "87e6144655836bf5ee20ab95b3ad5b97d7dce94194f0b4ce77c7029b66db07c0"
     },
     {
-      "bytes": 9675,
+      "bytes": 9520,
       "path": "modules/V7-Readiness.ps1",
-      "sha256": "a88231437629d8fc5296cf02fd2f66bbf7f4fae0cc60a43ba78c21fb93eeecaa"
+      "sha256": "5400cfe67969afe799881a686a81f8bf8ef0b4dc86d956efc46aebb94acc1ebc"
     },
     {
-      "bytes": 21361,
+      "bytes": 21002,
       "path": "modules/V7-Runtime.ps1",
-      "sha256": "929acca22c26896a62b264475e9af1b363863023aa124a6b83a073b44c8bda4c"
+      "sha256": "1e954956dd7402afe38cd91c52f469aca756faabf4ebd36a83a37c71c801be2f"
     },
     {
       "bytes": 12808,
@@ -166,19 +166,19 @@
       "sha256": "5a225e7b439291306178b643d3e6ead1f4df71ba4204f7a9d8912c5ef23efb0d"
     },
     {
-      "bytes": 8231,
+      "bytes": 8110,
       "path": "modules/V7-Storage.ps1",
-      "sha256": "2e4cb23b390373d3873babc696012dc0b8d61d3251376682e29ae87ea0e2d8cb"
+      "sha256": "09543254899b567ee0eb98f01f22c00f74556d5211135eb2ddb3a548d84cf8f8"
     },
     {
-      "bytes": 3297,
+      "bytes": 3227,
       "path": "modules/V7-Tunnels.ps1",
-      "sha256": "0b36e7f6c8bffc9fc1ec22814c35b4f5ce40ffebddbd2c7603520a3106f33795"
+      "sha256": "bbf48d3b5dfcbec5b75c6d7e18437c7f028ca24ef47da9825a57c6f22a7ffdcd"
     },
     {
-      "bytes": 1788,
+      "bytes": 1742,
       "path": "modules/V7-UiCommon.ps1",
-      "sha256": "ea5d75a881f4e4c6ff03915c1c009f8a2504fa9e381cb9df79d32236f50c359d"
+      "sha256": "e99ba4e90fdb556d71617acc24c9073a553b1398c988a3781004212ee9f1bcc9"
     }
   ],
   "parent": {
