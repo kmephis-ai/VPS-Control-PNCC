@@ -1,4 +1,22 @@
 ﻿#requires -Version 5.1
+<#
+.SYNOPSIS
+Показывает PNCC State Snapshot: русский статус по умолчанию или machine JSON с -Json.
+.DESCRIPTION
+Единая read-only команда поверх Get-PnccStateSnapshot.ps1 и Format-PnccStateSnapshot.ps1. Принимает caller-supplied deterministic state JSON, не выполняет live probes и не создаёт Physical Runtime Truth. Промежуточный snapshot передаётся в памяти.
+.PARAMETER InputPath
+Путь к UTF-8 JSON с детерминированными входными состояниями PNCC.
+.PARAMETER Json
+Возвращает machine-readable PNCC_STATE_SNAPSHOT JSON вместо русского текста.
+.PARAMETER JsonDepth
+Глубина JSON от 4 до 32.
+.EXAMPLE
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\cli\Show-PnccStateSnapshot.ps1 -InputPath .\state-input.json
+.EXAMPLE
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\cli\Show-PnccStateSnapshot.ps1 -InputPath .\state-input.json -Json
+.NOTES
+1081 = PRIMARY_AUTO/AUTO. 1080 = RESERVE_MANUAL/MANUAL_ONLY; automation may not manage 1080 lifecycle. CI VERIFIED != RUNTIME VERIFIED.
+#>
 [CmdletBinding()]
 param(
     [Parameter(Mandatory=$true)]
