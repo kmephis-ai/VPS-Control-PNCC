@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "role": "PIPE_WU_164_UNIFIED_READONLY_STATE_SNAPSHOT_CLI",
+  "state": "ENGINEERING_IMPLEMENTATION",
+  "work_unit_id": "PIPE-WU-164",
+  "base_sha": "3e84e899bf97f7d00106459b562ff88def2558c0",
+  "conflict_domain": "product-state-snapshot-unified-readonly-cli",
+  "runtime_required": false,
+  "entrypoint": "tools/cli/Show-PnccStateSnapshot.ps1",
+  "default_output": "RUSSIAN_HUMAN_READABLE_STATUS",
+  "json_output_switch": "-Json",
+  "composition": "IN_MEMORY_EXISTING_GET_AND_FORMAT_SEMANTICS",
+  "temporary_snapshot_file_required": false,
+  "powershell_51_required": true,
+  "primary_auto": {
+    "id": "PRIMARY_AUTO",
+    "host": "127.0.0.1",
+    "port": 1081,
+    "lifecycle": "AUTO"
+  },
+  "reserve_manual": {
+    "id": "RESERVE_MANUAL",
+    "host": "127.0.0.1",
+    "port": 1080,
+    "lifecycle": "MANUAL_ONLY",
+    "automation_may_manage_lifecycle": false
+  },
+  "authority": {
+    "live_probe": false,
+    "network_access": false,
+    "runtime_mutation": false,
+    "routing_mutation": false,
+    "process_control": false,
+    "persistence": false,
+    "credentials": false,
+    "tunnel_lifecycle_mutation": false,
+    "physical_runtime_truth": false
+  }
+}

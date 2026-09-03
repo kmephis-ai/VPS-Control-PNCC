@@ -1,9 +1,13 @@
 ﻿#requires -Version 5.1
-[CmdletBinding()]
+[CmdletBinding(DefaultParameterSetName='Path')]
 param(
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory=$true,ParameterSetName='Path')]
     [ValidateNotNullOrEmpty()]
-    [string]$InputPath
+    [string]$InputPath,
+
+    [Parameter(Mandatory=$true,ParameterSetName='Json')]
+    [ValidateNotNullOrEmpty()]
+    [string]$SnapshotJson
 )
 
 Set-StrictMode -Version 2.0
@@ -32,8 +36,13 @@ function ConvertTo-PnccRuValue {
     return $text
 }
 
-$resolvedInput = Resolve-Path -LiteralPath $InputPath -ErrorAction Stop
-$payloadText = Get-Content -LiteralPath $resolvedInput.ProviderPath -Raw -Encoding UTF8
+if ($PSCmdlet.ParameterSetName -eq 'Json') {
+    $payloadText = $SnapshotJson
+}
+else {
+    $resolvedInput = Resolve-Path -LiteralPath $InputPath -ErrorAction Stop
+    $payloadText = Get-Content -LiteralPath $resolvedInput.ProviderPath -Raw -Encoding UTF8
+}
 if ([string]::IsNullOrWhiteSpace($payloadText)) { throw 'PNCC_STATE_SNAPSHOT_INPUT_EMPTY' }
 $snapshot = $payloadText | ConvertFrom-Json
 
