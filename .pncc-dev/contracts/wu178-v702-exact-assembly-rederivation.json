@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "role": "V702_EXACT_ASSEMBLY_REDERIVATION",
+  "work_unit": "PIPE-WU-178",
+  "exact_base_sha": "ab54298695132dc546281c00367b83eff59b40ca",
+  "consumer_work_unit": "PIPE-WU-175",
+  "consumer_branch": "agent/PIPE-WU-175-v702-activation-wu172-fix",
+  "target_version": "7.0.2",
+  "previous_version": "7.0.1",
+  "wu172": {
+    "path": "src/windows-v7/modules/V7-StatusCenter.ps1",
+    "git_blob_sha": "6c4a8ddcaea7f4c651b6d4be74d925358d81f3c5",
+    "pull_request": 394
+  },
+  "historical_main_blob": {
+    "git_blob_sha": "44f7e6433881733f4aa5ca251e33bc3e2cd98988",
+    "status": "SUPERSEDED_NONREPRODUCIBLE_EVIDENCE",
+    "execution_gate": false
+  },
+  "derivation": {
+    "source_semantic": "EXACT_BASE_GIT_BLOB_BYTES",
+    "version_transform": "BYTE_EXACT_7.0.1_TO_7.0.2_IN_CANONICAL_WINDOWS_V7_SOURCE",
+    "wu172_transform": "REPLACE_ONE_PATH_WITH_PROVEN_EXACT_GIT_BLOB",
+    "manifest": "REGENERATE_SHA256_OVER_DERIVED_CANONICAL_SOURCE",
+    "candidate_metadata": "UPDATE_TO_7.0.2_WITH_NO_RUNTIME_OR_PROMOTION_AUTHORITY",
+    "plan_identity": "CANONICAL_JSON_SHA256",
+    "target_identity": "PLAN_COMPUTED_PATH_TO_GIT_BLOB_SHA_ALLOWLIST"
+  },
+  "execution_boundary": {
+    "plan_may_compute_new_target": true,
+    "plan_repository_write": false,
+    "execute_requires_exact_plan_sha": true,
+    "execute_requires_ordered_path_blob_allowlist": true,
+    "execute_requires_exact_unmutated_base_head": true,
+    "immutable_blob_readback_required": true,
+    "force_ref_update": false,
+    "main_write_allowed": false
+  },
+  "authority": {
+    "product_mutation_in_wu178": false,
+    "runtime_execution": false,
+    "release_tag_promotion": false,
+    "ruleset_security_mutation": false,
+    "self_hosted_runner": false,
+    "tunnel_lifecycle_mutation": false,
+    "v631_mutation": false
+  }
+}
