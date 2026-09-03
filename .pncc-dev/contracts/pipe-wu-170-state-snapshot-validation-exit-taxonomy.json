@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "role": "PIPE_WU_170_STATE_SNAPSHOT_VALIDATION_EXIT_TAXONOMY",
+  "work_unit_id": "PIPE-WU-170",
+  "base_sha": "3d43ee978bd6bfc8c0fc7a970807506c2bc8a85f",
+  "runtime_required": false,
+  "state": "IMPLEMENTED_PENDING_EXACT_HEAD_CI",
+  "process_exit_codes": {
+    "valid": 0,
+    "caller_input_invalid": 2,
+    "validator_internal_failure": 3
+  },
+  "caller_input_codes": [
+    "INPUT_NOT_FOUND",
+    "INPUT_UNREADABLE",
+    "INPUT_EMPTY",
+    "JSON_INVALID",
+    "SEMANTIC_INVALID"
+  ],
+  "internal_codes": [
+    "VALIDATOR_DEPENDENCY_MISSING",
+    "SNAPSHOT_CONTRACT_INVALID",
+    "VALIDATION_FAILED"
+  ],
+  "unknown_or_inconsistent": "VALIDATOR_INTERNAL_FAILURE_EXIT_3",
+  "existing_cli_semantics_changed": false,
+  "live_probe_present": false,
+  "runtime_mutation_present": false,
+  "reserve_manual_lifecycle_automation": false,
+  "ci_verified_is_runtime_verified": false
+}

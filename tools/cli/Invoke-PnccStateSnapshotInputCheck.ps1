@@ -44,6 +44,8 @@ function New-PnccValidationResult {
 $validatorPath = Join-Path $PSScriptRoot 'Test-PnccStateSnapshotInput.ps1'
 $result = $null
 $exitCode = 3
+$callerInputCodes = @('INPUT_NOT_FOUND','INPUT_UNREADABLE','INPUT_EMPTY','JSON_INVALID','SEMANTIC_INVALID')
+$internalCodes = @('VALIDATOR_DEPENDENCY_MISSING','SNAPSHOT_CONTRACT_INVALID','VALIDATION_FAILED')
 
 if (-not (Test-Path -LiteralPath $validatorPath -PathType Leaf)) {
     $result = New-PnccValidationResult -Valid $false -Code 'VALIDATOR_DEPENDENCY_MISSING'
@@ -64,7 +66,25 @@ else {
         if (-not $contractValid) { throw 'INVALID_VALIDATOR_RESULT' }
 
         $result = New-PnccValidationResult -Valid ([bool]$candidate.Valid) -Code ([string]$candidate.Code)
-        if ($result.Valid) { $exitCode = 0 } else { $exitCode = 2 }
+        if ($result.Valid) {
+            if ($result.Code -eq 'VALID') {
+                $exitCode = 0
+            }
+            else {
+                $result = New-PnccValidationResult -Valid $false -Code 'VALIDATOR_INTERNAL_FAILURE'
+                $exitCode = 3
+            }
+        }
+        elseif ($callerInputCodes -contains $result.Code) {
+            $exitCode = 2
+        }
+        elseif ($internalCodes -contains $result.Code) {
+            $exitCode = 3
+        }
+        else {
+            $result = New-PnccValidationResult -Valid $false -Code 'VALIDATOR_INTERNAL_FAILURE'
+            $exitCode = 3
+        }
     }
     catch {
         $result = New-PnccValidationResult -Valid $false -Code 'VALIDATOR_INTERNAL_FAILURE'
