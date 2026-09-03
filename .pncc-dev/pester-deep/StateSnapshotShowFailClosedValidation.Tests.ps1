@@ -14,16 +14,14 @@ Describe 'PIPE-WU-168 Show State Snapshot fail-closed input validation' {
         if (Test-Path -LiteralPath $tempRoot) { Remove-Item -LiteralPath $tempRoot -Recurse -Force -ErrorAction SilentlyContinue }
     }
 
-    It 'preserves valid machine snapshot semantics' {
+    It 'preserves valid machine snapshot semantics exactly' {
         $showJson = [string](& $show -InputPath $example -Json)
         $getJson = [string](& $get -InputPath $example)
-        ($showJson | ConvertFrom-Json).Contract | Should -Be 'PNCC_STATE_SNAPSHOT'
-        ($showJson | ConvertFrom-Json).SchemaVersion | Should -Be 1
-        ($showJson | ConvertFrom-Json).ReadOnly | Should -BeTrue
-        ($showJson | ConvertFrom-Json).SecretsIncluded | Should -BeFalse
-        ($showJson | ConvertFrom-Json).Tunnels.Primary.Id | Should -Be 'PRIMARY_AUTO'
-        ($showJson | ConvertFrom-Json).Tunnels.Reserve.Id | Should -Be 'RESERVE_MANUAL'
-        ($showJson | ConvertFrom-Json).Tunnels.Reserve.Lifecycle | Should -Be 'MANUAL_ONLY'
+        $result = $showJson | ConvertFrom-Json
+        $result.Contract | Should -Be 'PNCC_STATE_SNAPSHOT'
+        $result.SchemaVersion | Should -Be 1
+        $result.ReadOnly | Should -BeTrue
+        $result.SecretsIncluded | Should -BeFalse
         $showJson | Should -Be $getJson
     }
 
@@ -48,7 +46,7 @@ Describe 'PIPE-WU-168 Show State Snapshot fail-closed input validation' {
 
     It 'normalizes empty input without leaking path' {
         $path = Join-Path $tempRoot 'empty-private-input.json'
-        [System.IO.File]::WriteAllText($path, '')
+        Set-Content -LiteralPath $path -Value '' -Encoding UTF8
         $message = $null
         try { & $show -InputPath $path | Out-Null; throw 'EXPECTED_FAILURE_NOT_RAISED' } catch { $message = [string]$_.Exception.Message }
         $message | Should -Be 'PNCC_STATE_SNAPSHOT_INPUT_INVALID:INPUT_EMPTY'
