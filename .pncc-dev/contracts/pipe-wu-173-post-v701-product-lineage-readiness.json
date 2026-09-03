@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "role": "PNCC_POST_V701_PRODUCT_LINEAGE_READINESS",
+  "work_unit_id": "PIPE-WU-173",
+  "authorized_base_sha": "05e98ac24422f7c5fdff9077854e2d0594c315d8",
+  "state": "READY_FOR_SEPARATE_PRODUCT_LINEAGE_ACTIVATION_DECISION",
+  "stable_identity": {
+    "version": "7.0.1",
+    "source_root": "src/windows-v7",
+    "candidate_source_path": ".pncc-dev/candidate-source.json",
+    "provenance_path": ".pncc-dev/provenance/canonical-source-v7.0.1-patch.json",
+    "immutable_in_place": true,
+    "provenance_repin_under_same_released_identity_allowed": false
+  },
+  "next_lineage": {
+    "distinct_product_version_required_before_product_source_mutation": true,
+    "default_semantic_class": "PATCH_LINEAGE_CANDIDATE",
+    "default_semantic_reason": "WU172 is a backward-compatible read-only Status Center correctness fix with no routing, tunnel lifecycle, credential, security, runtime-schema or public API expansion.",
+    "specific_version_assigned": false,
+    "candidate_source_activation_performed": false,
+    "candidate_provenance_regeneration_performed": false,
+    "manifest_regeneration_performed": false,
+    "build_performed": false,
+    "runtime_validation_performed": false,
+    "release_or_promotion_performed": false
+  },
+  "required_future_activation_sequence": [
+    "FRESH_PROVIDER_RECONCILIATION",
+    "SEPARATE_EXPLICIT_GOVERNED_WORK_UNIT",
+    "DISTINCT_POST_V701_VERSION_IDENTITY_SELECTION",
+    "FRESH_WRITER_LEASE_FOR_EXACT_WU_AND_CONFLICT_DOMAIN",
+    "VERSION_CONSISTENCY_UPDATE_ACROSS_CANONICAL_PRODUCT_SOURCE",
+    "APPLY_AUTHORIZED_PRODUCT_FIXES",
+    "REGENERATE_EXACT_SOURCE_MANIFEST_AND_PROVENANCE",
+    "CANDIDATE_BUILD_INPUT_READY",
+    "EXACT_HEAD_CI_SUCCESS",
+    "RELEASE_WRITER_LEASE",
+    "GOVERNED_EXPECTED_HEAD_MERGE",
+    "SEPARATE_RUNTIME_VALIDATION_AND_PROMOTION_BOUNDARY"
+  ],
+  "stop_conditions": [
+    "ATTEMPT_TO_REPIN_RELEASED_V701_IDENTITY_IN_PLACE",
+    "NO_EXPLICIT_VERSION_LINEAGE_AUTHORITY",
+    "PRODUCT_SCOPE_PROVES_NON_PATCH_COMPATIBILITY",
+    "RUNTIME_REQUIRED",
+    "SECURITY_OR_RULESET_AUTHORITY_REQUIRED",
+    "RELEASE_TAG_OR_PROMOTION_REQUIRED",
+    "V6_3_1_MUTATION_REQUIRED",
+    "PRIMARY_AUTO_1081_LIFECYCLE_CHANGE_REQUIRED",
+    "RESERVE_MANUAL_1080_AUTOMATION_REQUIRED",
+    "UNKNOWN_OR_STALE_PROVIDER_TRUTH"
+  ],
+  "authority": {
+    "version_activation": false,
+    "product_source_mutation": false,
+    "candidate_source_mutation": false,
+    "provenance_mutation": false,
+    "manifest_mutation": false,
+    "build": false,
+    "runtime": false,
+    "release": false,
+    "tag": false,
+    "promotion": false,
+    "ruleset_or_security": false,
+    "force_or_bypass": false
+  },
+  "wu172_evidence": {
+    "issue": 393,
+    "pr": 394,
+    "proposed_head": "ad931dd7a1bca96490c6d7ac19303d8d54d6f3bd",
+    "quality_fast": "SUCCESS",
+    "quality_deep_ps51": "SUCCESS",
+    "pipeline_state": "BLOCKED_PROVENANCE_MISMATCH",
+    "merged": false,
+    "stable_v701_changed": false
+  },
+  "invariants": {
+    "primary_auto_1081": "AUTO",
+    "reserve_manual_1080": "MANUAL_ONLY",
+    "v6_3_1_immutable": true,
+    "ci_verified_is_runtime_verified": false
+  }
+}
