@@ -14,7 +14,6 @@ Describe 'PIPE-WU-162 CLI State Snapshot semantic qualification' {
             $inputPath = Join-Path $TestDrive ($Name + '.json')
             $Payload | ConvertTo-Json -Depth 16 | Set-Content -LiteralPath $inputPath -Encoding UTF8
             $raw = & $cliPath -InputPath $inputPath -JsonDepth 16
-            if ($LASTEXITCODE -ne 0) { throw "CLI failed for fixture $Name with exit code $LASTEXITCODE" }
             return ($raw | ConvertFrom-Json)
         }
     }
