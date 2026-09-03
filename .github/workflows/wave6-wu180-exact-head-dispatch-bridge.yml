@@ -1,0 +1,82 @@
+name: wave6-wu180-exact-head-dispatch-bridge
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/wave6-wu180-exact-head-dispatch-bridge.yml'
+      - '.pncc-dev/contracts/wu180-exact-head-dispatch-bridge.json'
+      - '.pncc-dev/scripts/wu180_exact_head_dispatch_bridge.py'
+      - '.pncc-dev/tests/test_wu180_exact_head_dispatch_bridge.py'
+  issues:
+    types: [edited]
+
+permissions:
+  contents: read
+
+jobs:
+  validate-bridge:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Compile bridge
+        run: python3 -m py_compile .pncc-dev/scripts/wu180_exact_head_dispatch_bridge.py
+      - name: Run adversarial tests
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_wu180_exact_head_dispatch_bridge.py' -v
+      - name: Assert exact bounded WU180 diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ github.event.pull_request.head.ref }}" = 'agent/PIPE-WU-180-exact-head-dispatch-bridge'
+          git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}" | sort > /tmp/actual
+          printf '%s\n' \
+            '.github/workflows/wave6-wu180-exact-head-dispatch-bridge.yml' \
+            '.pncc-dev/contracts/wu180-exact-head-dispatch-bridge.json' \
+            '.pncc-dev/scripts/wu180_exact_head_dispatch_bridge.py' \
+            '.pncc-dev/tests/test_wu180_exact_head_dispatch_bridge.py' | sort > /tmp/expected
+          diff -u /tmp/expected /tmp/actual
+          ! grep -E '^(src/windows-v7/|legacy/|tools/runtime-agent/|tools/release/|\.pncc-state/)' /tmp/actual
+      - name: Assert least authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'runs-on: ubuntu-24.04' .github/workflows/wave6-wu180-exact-head-dispatch-bridge.yml
+          grep -F 'actions: write' .github/workflows/wave6-wu180-exact-head-dispatch-bridge.yml
+          ! grep -F 'contents: write' .github/workflows/wave6-wu180-exact-head-dispatch-bridge.yml
+          ! grep -E 'self-hosted|security-events: write|pull-requests: write|issues: write' .github/workflows/wave6-wu180-exact-head-dispatch-bridge.yml
+          ! grep -E '/git/refs/heads/|/contents/' .pncc-dev/scripts/wu180_exact_head_dispatch_bridge.py
+          test -z "$(git status --porcelain)"
+
+  dispatch-exact-head-ci:
+    if: github.event_name == 'issues' && github.event.issue.number == 410 && contains(github.event.issue.body, 'PNCC-EXACT-HEAD-CI-DISPATCH-REQUEST')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      actions: write
+      contents: read
+      issues: read
+    concurrency:
+      group: pncc-wu180-exact-head-ci-dispatch
+      cancel-in-progress: false
+    steps:
+      - name: Checkout exact default-branch revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Dispatch exact allowlisted qualification workflows
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 .pncc-dev/scripts/wu180_exact_head_dispatch_bridge.py --issue-number "${{ github.event.issue.number }}" --repository "${{ github.repository }}"
+      - name: Prove checkout remained clean
+        run: test -z "$(git status --porcelain)"

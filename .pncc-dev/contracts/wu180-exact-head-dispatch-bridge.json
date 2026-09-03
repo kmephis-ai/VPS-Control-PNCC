@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "role": "EXACT_HEAD_WORKFLOW_DISPATCH_QUALIFICATION_BRIDGE",
+  "work_unit": "PIPE-WU-180",
+  "issue_number": 410,
+  "repository": "kmephis-ai/VPS-Control-PNCC",
+  "target": {
+    "branch": "agent/PIPE-WU-175-v702-activation-wu172-fix",
+    "main_forbidden": true,
+    "exact_sha_required": true,
+    "provider_ref_readback_required_before_each_dispatch": true
+  },
+  "workflow_allowlist": [
+    "canonical-source-admission.yml",
+    "candidate-builder.yml",
+    "quality-fast.yml",
+    "quality-deep.yml",
+    "public-safety.yml",
+    "wave5-exact-head-ci-inspection-classification.yml"
+  ],
+  "runtime_authority": {
+    "actions_write": true,
+    "contents_write": false,
+    "issues_write": false,
+    "pull_requests_write": false,
+    "security_events_write": false,
+    "repository_ref_write": false,
+    "repository_content_write": false,
+    "force": false,
+    "self_hosted_runner": false,
+    "runtime_execution": false,
+    "release": false,
+    "tag": false,
+    "promotion": false,
+    "stable_done": false,
+    "tunnel_lifecycle_mutation": false,
+    "v631_mutation": false
+  },
+  "dispatch": {
+    "event": "workflow_dispatch",
+    "ref": "exact bounded target branch",
+    "exact_allowlist_required": true,
+    "dispatch_each_once": true,
+    "no_repository_mutation": true
+  }
+}
