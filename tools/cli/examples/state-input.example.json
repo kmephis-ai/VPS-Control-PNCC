@@ -1,0 +1,10 @@
+{
+  "ModuleNames": ["OpenAI", "GitHub"],
+  "OverallState": "HEALTHY",
+  "PrimarySocksListening": true,
+  "ReserveSocksListening": false,
+  "RoutingTunnelId": "PRIMARY_AUTO",
+  "LastKnownGoodPresent": true,
+  "RuntimeAgeSeconds": 42,
+  "CapturedAt": "2026-01-01T12:00:00Z"
+}

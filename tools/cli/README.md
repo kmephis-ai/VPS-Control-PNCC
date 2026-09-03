@@ -4,16 +4,18 @@
 
 ## Быстрый запуск
 
+В репозитории есть безопасный синтетический пример `tools/cli/examples/state-input.example.json`. Он предназначен только для проверки CLI и **не является Runtime Truth**.
+
 Русский человекочитаемый статус одной командой:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\cli\Show-PnccStateSnapshot.ps1 -InputPath .\state-input.json
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\cli\Show-PnccStateSnapshot.ps1 -InputPath .\tools\cli\examples\state-input.example.json
 ```
 
 Machine-readable JSON:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\cli\Show-PnccStateSnapshot.ps1 -InputPath .\state-input.json -Json
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\cli\Show-PnccStateSnapshot.ps1 -InputPath .\tools\cli\examples\state-input.example.json -Json
 ```
 
 Справка PowerShell:
@@ -27,6 +29,7 @@ Get-Help .\tools\cli\Show-PnccStateSnapshot.ps1 -Full
 - `Show-PnccStateSnapshot.ps1` — основной пользовательский entrypoint: русский текст по умолчанию, `-Json` для machine contract.
 - `Get-PnccStateSnapshot.ps1` — преобразует caller-supplied deterministic state JSON в `PNCC_STATE_SNAPSHOT`.
 - `Format-PnccStateSnapshot.ps1` — форматирует уже готовый snapshot из файла или из строки `-SnapshotJson`.
+- `examples/state-input.example.json` — публичный синтетический copy-run пример без приватной Runtime Truth.
 
 ## Входные данные
 
@@ -57,7 +60,7 @@ Get-Help .\tools\cli\Show-PnccStateSnapshot.ps1 -Full
 
 `CI VERIFIED != RUNTIME VERIFIED`.
 
-Эти CLI подтверждают структуру и отображение caller-supplied данных. Они не выполняют physical probes и сами по себе не доказывают реальное состояние Windows, VPS, Keenetic, Proxifier или SOCKS-туннелей. Physical Runtime Truth требует отдельного доверенного runtime evidence path.
+Checked-in example является только synthetic demonstration input. Эти CLI подтверждают структуру и отображение caller-supplied данных. Они не выполняют physical probes и сами по себе не доказывают реальное состояние Windows, VPS, Keenetic, Proxifier или SOCKS-туннелей. Physical Runtime Truth требует отдельного доверенного runtime evidence path.
 
 ## Fail-closed formatter
 
