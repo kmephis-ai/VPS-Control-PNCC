@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "role": "PIPE_WU_162_CLI_STATE_SNAPSHOT_PS51_SEMANTIC_QUALIFICATION",
+  "state": "QUALIFICATION_IMPLEMENTED",
+  "work_unit_id": "PIPE-WU-162",
+  "runtime_required": false,
+  "base_sha": "f2536549cbba91e35c28879f8c6f9f0e2dd00579",
+  "conflict_domain": "product-state-snapshot-cli-ps51-semantic-qualification",
+  "qualification_surface": {
+    "workflow": ".github/workflows/quality-deep.yml",
+    "shell": "Windows PowerShell 5.1",
+    "test_framework": "Pester 5.9.0",
+    "test_path": ".pncc-dev/pester-deep/Get-PnccStateSnapshot.Semantics.Tests.ps1",
+    "cli_path": "tools/cli/Get-PnccStateSnapshot.ps1"
+  },
+  "fixtures": ["empty", "single_module", "multiple_modules"],
+  "assertions": [
+    "PNCC_STATE_SNAPSHOT_SCHEMA",
+    "READ_ONLY_TRUE",
+    "SECRETS_INCLUDED_FALSE",
+    "NULL_RUNTIME_FRESHNESS_PRESERVED",
+    "MODULE_MAPPING",
+    "MODULE_ORDERING",
+    "PRIMARY_AUTO_1081_AUTO",
+    "RESERVE_MANUAL_1080_MANUAL_ONLY",
+    "RESERVE_AUTOMATION_MAY_MANAGE_LIFECYCLE_FALSE"
+  ],
+  "authority": {
+    "routing_mutation": false,
+    "runtime_mutation": false,
+    "credential_access": false,
+    "tunnel_lifecycle_mutation": false,
+    "runtime_authority_granted": false,
+    "promotion_authority_granted": false
+  },
+  "claim": "Hosted Windows PS5.1 execution qualifies deterministic CLI semantics only and does not constitute physical Runtime Truth."
+}
