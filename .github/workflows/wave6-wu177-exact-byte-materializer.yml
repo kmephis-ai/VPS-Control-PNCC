@@ -7,6 +7,7 @@ on:
       - '.github/workflows/wave6-wu177-exact-byte-materializer.yml'
       - '.pncc-dev/contracts/wave6-wu177-exact-byte-materializer-activation.json'
       - '.pncc-dev/contracts/wu178-v702-exact-assembly-rederivation.json'
+      - '.pncc-dev/contracts/wu179-canonical-git-blob-materializer-repair.json'
       - '.pncc-dev/scripts/wu177_exact_byte_materializer.py'
       - '.pncc-dev/tests/test_wu177_exact_byte_materializer.py'
   issues:
@@ -50,6 +51,13 @@ jobs:
               printf '%s\n' \
                 '.github/workflows/wave6-wu177-exact-byte-materializer.yml' \
                 '.pncc-dev/contracts/wu178-v702-exact-assembly-rederivation.json' \
+                '.pncc-dev/scripts/wu177_exact_byte_materializer.py' \
+                '.pncc-dev/tests/test_wu177_exact_byte_materializer.py' | sort > /tmp/wu177-expected
+              ;;
+            agent/PIPE-WU-179-canonical-git-blob-materializer-repair)
+              printf '%s\n' \
+                '.github/workflows/wave6-wu177-exact-byte-materializer.yml' \
+                '.pncc-dev/contracts/wu179-canonical-git-blob-materializer-repair.json' \
                 '.pncc-dev/scripts/wu177_exact_byte_materializer.py' \
                 '.pncc-dev/tests/test_wu177_exact_byte_materializer.py' | sort > /tmp/wu177-expected
               ;;
