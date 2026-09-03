@@ -106,9 +106,6 @@ function Get-V7StatusCenterModel {
     if(($OverallState+'').ToUpperInvariant() -in @('FAILED','ENGINE_MISSING','NO_RUNTIME')){$localState='BAD'}
     elseif(($OverallState+'').ToUpperInvariant() -in @('DEGRADED','ATTENTION','STALE_RUNTIME')){$localState='WARN'}
 
-    $controlStates=@($localState,$routeState,$dependencyState,$storageState,$freshnessState,$consistencyState)
-    $controlState=if($controlStates -contains 'BAD'){'BAD'}elseif($controlStates -contains 'WARN'){'WARN'}else{'GOOD'}
-
     $primaryTunnelState='NEUTRAL';$primaryTunnelDetail='PRIMARY_AUTO 1081: данные недоступны.'
     $reserveTunnelState='NEUTRAL';$reserveTunnelDetail='RESERVE_MANUAL 1080: OFF допустим.'
     try{
@@ -127,6 +124,10 @@ function Get-V7StatusCenterModel {
         $dependencyState='BAD'
         $dependencyDetail='VPS-правила вручную направлены через RESERVE_MANUAL/1080, но резервный tunnel не LISTEN.'
     }
+
+    # Compute the top-level control state only after all dependency adjustments are final.
+    $controlStates=@($localState,$routeState,$dependencyState,$storageState,$freshnessState,$consistencyState)
+    $controlState=if($controlStates -contains 'BAD'){'BAD'}elseif($controlStates -contains 'WARN'){'WARN'}else{'GOOD'}
 
     $nodes=@(
         [pscustomobject]@{Id='LOCAL';Name='Локальный контур';State=$localState;Detail="Общее состояние: $OverallState"},

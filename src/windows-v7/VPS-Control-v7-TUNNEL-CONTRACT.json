@@ -1,6 +1,6 @@
 {
   "SchemaVersion": 1,
-  "ContractVersion": "7.0.1",
+  "ContractVersion": "7.0.2",
   "DefaultRoutingTunnelId": "PRIMARY_AUTO",
   "AutomaticRouteFailoverToReserve": false,
   "AllCurrentAndFutureCapabilitiesApplyToBothTunnels": true,
