@@ -26,7 +26,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Run WU176 adversarial readiness tests
-        run: python3 -m unittest .pncc-dev/tests/test_exact_byte_materializer_readiness_wu176.py -v
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_exact_byte_materializer_readiness_wu176.py' -v
       - name: Assert bounded control-plane diff
         shell: bash
         run: |
