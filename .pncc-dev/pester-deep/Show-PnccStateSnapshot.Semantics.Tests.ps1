@@ -39,11 +39,13 @@ Describe 'PIPE-WU-164 unified read-only State Snapshot CLI semantics' {
         $before = @((Get-ChildItem -LiteralPath $TestDrive -File).Name | Sort-Object)
         $lines = @(& $showPath -InputPath $inputPath)
         $after = @((Get-ChildItem -LiteralPath $TestDrive -File).Name | Sort-Object)
+        $text = $lines -join "`n"
 
-        ($lines -join "`n") | Should -Match 'PNCC — состояние'
-        ($lines -join "`n") | Should -Match 'PRIMARY_AUTO 127\.0\.0\.1:1081 \| lifecycle=AUTO'
-        ($lines -join "`n") | Should -Match 'RESERVE_MANUAL 127\.0\.0\.1:1080 \| lifecycle=MANUAL_ONLY'
-        ($lines -join "`n") | Should -Match 'OpenAI .* эффективно=VPS .* AUTO_FAILOVER'
+        $text | Should -Match 'PNCC — состояние'
+        $text | Should -Match 'PRIMARY_AUTO 127\.0\.0\.1:1081 \| lifecycle=AUTO'
+        $text | Should -Match 'RESERVE_MANUAL 127\.0\.0\.1:1080 \| lifecycle=MANUAL_ONLY'
+        $text | Should -Match 'OpenAI \| желаемое=AUTO \| эффективно=VPS'
+        $text | Should -Match 'причина=AUTO_FAILOVER'
         $after | Should -Be $before
     }
 
