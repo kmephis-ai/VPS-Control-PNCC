@@ -1,0 +1,95 @@
+name: wave6-wu191-installer-definition-durable-identity-binding-transaction
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.pncc-dev/contracts/wave6-wu191-installer-definition-durable-identity-binding-transaction-policy.json'
+      - '.pncc-dev/contracts/wave6-wu191-installer-definition-durable-identity-binding-transaction.schema.json'
+      - '.pncc-dev/scripts/wu191_installer_definition_durable_identity_binding_transaction.py'
+      - '.pncc-dev/tests/test_wu191_installer_definition_durable_identity_binding_transaction.py'
+      - '.github/workflows/wave6-wu191-installer-definition-durable-identity-binding-transaction.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    if: github.head_ref == 'agent/PIPE-WU-191-installer-definition-durable-identity-binding-transaction-readiness'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Assert exact checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          test -z "$(git status --porcelain)"
+
+      - name: Compile evaluator
+        run: python3 -m py_compile .pncc-dev/scripts/wu191_installer_definition_durable_identity_binding_transaction.py
+
+      - name: Run adversarial tests
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_wu191_installer_definition_durable_identity_binding_transaction.py' -v
+
+      - name: Validate policy and receipt schema boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('.pncc-dev/contracts/wave6-wu191-installer-definition-durable-identity-binding-transaction-policy.json').read_text())
+          s=json.loads(Path('.pncc-dev/contracts/wave6-wu191-installer-definition-durable-identity-binding-transaction.schema.json').read_text())
+          assert p['work_unit_id']=='PIPE-WU-191'
+          assert p['source_receipt_dependency']['work_unit_id']=='PIPE-WU-190'
+          assert p['source_receipt_dependency']['required_decision']=='READY_ONLY'
+          assert p['receipt']['allowed_decisions']==['TRANSACTION_READY_ONLY','BLOCKED']
+          for k in ('verified','durable_identity_bound','proposal_materialized','binding_receipt_persisted','compiler_execution_authorized','build_authorized'):
+              assert p['receipt'][k] is False
+              assert s['properties'][k]['const'] is False
+          assert p['durable_state']['installer_definition_path'] is None
+          assert p['durable_state']['installer_definition_blob_sha'] is None
+          assert p['durable_state']['binding_receipt_persisted'] is False
+          assert s['additionalProperties'] is False
+          PY
+
+      - name: Assert bounded five-file diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "${{ github.event.pull_request.base.sha }}"
+          mapfile -t files < <(git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}")
+          printf '%s\n' "${files[@]}"
+          expected=$(cat <<'EOF'
+          .github/workflows/wave6-wu191-installer-definition-durable-identity-binding-transaction.yml
+          .pncc-dev/contracts/wave6-wu191-installer-definition-durable-identity-binding-transaction-policy.json
+          .pncc-dev/contracts/wave6-wu191-installer-definition-durable-identity-binding-transaction.schema.json
+          .pncc-dev/scripts/wu191_installer_definition_durable_identity_binding_transaction.py
+          .pncc-dev/tests/test_wu191_installer_definition_durable_identity_binding_transaction.py
+          EOF
+          )
+          actual=$(printf '%s\n' "${files[@]}" | sort)
+          test "$actual" = "$(printf '%s\n' "$expected" | sed 's/^          //' | sort)"
+          ! printf '%s\n' "${files[@]}" | grep -E '^(src/|runtime/)|\.iss$|\.exe$'
+
+      - name: Assert least authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          f=.github/workflows/wave6-wu191-installer-definition-durable-identity-binding-transaction.yml
+          grep -q '^  contents: read$' "$f"
+          ! grep -Eq 'contents: write|issues: write|pull-requests: write|self-hosted' "$f"
+          ! grep -Eq 'subprocess|os\.system|Popen|iscc|innosetup|artifact.*upload' .pncc-dev/scripts/wu191_installer_definition_durable_identity_binding_transaction.py
+
+      - name: Clean checkout after validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
