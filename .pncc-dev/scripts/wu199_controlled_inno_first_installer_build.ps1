@@ -1,7 +1,6 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$ExpectedMain = '4854d6c5982a72181b82fdc3114b1c40b312c306'
 $ExpectedCompilerSize = 14304168
 $ExpectedCompilerSha256 = '0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f'
 $CompilerUrl = 'https://github.com/jrsoftware/issrc/releases/download/is-7_1_0/innosetup-7.1.0-x64.exe'
@@ -16,14 +15,17 @@ $issueBody = [Environment]::GetEnvironmentVariable('PNCC_ISSUE_BODY')
 $mainSha = [Environment]::GetEnvironmentVariable('PNCC_MAIN_SHA')
 $runnerTemp = [Environment]::GetEnvironmentVariable('RUNNER_TEMP')
 if ([string]::IsNullOrWhiteSpace($issueBody)) { Fail 'ISSUE_BODY_MISSING' }
+if ([string]::IsNullOrWhiteSpace($mainSha) -or $mainSha -notmatch '^[0-9a-f]{40}$') { Fail 'MAIN_SHA_INVALID' }
 if ([string]::IsNullOrWhiteSpace($runnerTemp)) { Fail 'RUNNER_TEMP_MISSING' }
-if ($mainSha -ne $ExpectedMain) { Fail 'EXPECTED_MAIN_MISMATCH' }
-$marker = '<!-- PNCC-WU199-BUILD-EXECUTE schema=1 expected_main=' + $ExpectedMain + ' -->'
-if (($issueBody.Split($marker).Count - 1) -ne 1) { Fail 'EXECUTION_MARKER_INVALID' }
+$escapedMain = [Regex]::Escape($mainSha)
+$markerPattern = '<!--\s*PNCC-WU199-BUILD-EXECUTE\s+schema=1\s+expected_main=' + $escapedMain + '\s*-->'
+$matches = [Regex]::Matches($issueBody, $markerPattern)
+if ($matches.Count -ne 1) { Fail 'EXECUTION_MARKER_INVALID' }
+if ([Regex]::Matches($issueBody, 'PNCC-WU199-BUILD-EXECUTE').Count -ne 1) { Fail 'EXECUTION_MARKER_AMBIGUOUS' }
 
 $actualHead = (git rev-parse HEAD).Trim()
-if ($LASTEXITCODE -ne 0 -or $actualHead -ne $ExpectedMain) { Fail 'CHECKOUT_IDENTITY_MISMATCH' }
-$issBlob = (git rev-parse ($ExpectedMain + ':' + $IssPath)).Trim()
+if ($LASTEXITCODE -ne 0 -or $actualHead -ne $mainSha) { Fail 'CHECKOUT_IDENTITY_MISMATCH' }
+$issBlob = (git rev-parse ($mainSha + ':' + $IssPath)).Trim()
 if ($LASTEXITCODE -ne 0 -or $issBlob -ne $ExpectedIssBlob) { Fail 'INSTALLER_DEFINITION_BLOB_MISMATCH' }
 
 $compilerSetup = Join-Path $runnerTemp $CompilerAsset
@@ -87,7 +89,7 @@ $receipt = [ordered]@{
     schema_version = 1
     role = 'FIRST_INSTALLER_CANDIDATE_BUILD_PROVENANCE_RECEIPT'
     work_unit_id = 'PIPE-WU-199'
-    main_sha = $ExpectedMain
+    main_sha = $mainSha
     runner_class = 'GITHUB_HOSTED'
     workspace_class = 'RUNNER_TEMP_EPHEMERAL_ONLY'
     compiler_repository = 'jrsoftware/issrc'
