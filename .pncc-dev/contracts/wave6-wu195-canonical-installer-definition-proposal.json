@@ -1,0 +1,21 @@
+{
+  "build_authorized": false,
+  "compiler_execution_authorized": false,
+  "materialization_authority": false,
+  "newline_semantic": "LF_EXACT",
+  "promotion_authority": false,
+  "proposal_byte_count": 1120,
+  "proposal_encoding": "UTF-8",
+  "proposal_sha256": "125e333203237ed2bb4730f7ad13607baf560421650cb58a554ce589591f8c33",
+  "proposal_text": "; PNCC canonical installer-definition proposal\n; Windows 10 target intent\n; PowerShell 5.1 compatibility required\n; 127.0.0.1:1080 = RESERVE_MANUAL / MANUAL_ONLY\n; 127.0.0.1:1081 = PRIMARY_AUTO\n; V6.3.1 immutable SHA-256 385e5178f10e79b0b234376e6a6671b64ce523a3971b2b4341ec94ce1efee11e\n; PuTTY transport uses -pwfile only\n; host-key verification is fail-closed and must remain enabled\n; This definition copies canonical source files only. It does not launch PNCC during installation.\n\n[Setup]\nAppId={{7E95F644-7E60-4EBB-947C-4874087A561E}\nAppName=VPS Control Center / PNCC\nAppVersion=7.0.2\nDefaultDirName={localappdata}\\Programs\\VPS-Control-PNCC\nDefaultGroupName=VPS Control Center / PNCC\nPrivilegesRequired=lowest\nDisableProgramGroupPage=yes\nOutputBaseFilename=VPS-Control-PNCC-v7.0.2-setup\nCompression=lzma2\nSolidCompression=yes\nWizardStyle=modern\nUninstallDisplayName=VPS Control Center / PNCC 7.0.2\n\n[Files]\nSource: \"..\\..\\src\\windows-v7\\*\"; DestDir: \"{app}\"; Flags: ignoreversion recursesubdirs createallsubdirs\n\n[Icons]\nName: \"{group}\\VPS Control Center\"; Filename: \"{app}\\VPS-Control-v7.cmd\"; WorkingDir: \"{app}\"\n",
+  "repository": "kmephis-ai/VPS-Control-PNCC",
+  "runtime_authority": false,
+  "schema_version": 1,
+  "source_candidate_version": "7.0.2",
+  "source_main_script_git_blob": "44f7e6433881733f4aa5ca251e33bc3e2cd98988",
+  "source_main_script_path": "src/windows-v7/VPS-Control-v7.ps1",
+  "source_main_sha": "40e583eff9f28d54435f4db033c4d117512abc3b",
+  "target_path": "installer/windows/VPS-Control-PNCC.iss",
+  "work_unit_id": "PIPE-WU-195",
+  "wu188_static_admission_required": true
+}

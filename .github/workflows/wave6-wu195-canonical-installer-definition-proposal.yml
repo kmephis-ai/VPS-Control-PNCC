@@ -1,0 +1,54 @@
+name: wave6-wu195-canonical-installer-definition-proposal
+
+on:
+  pull_request:
+    paths:
+      - '.pncc-dev/contracts/wave6-wu195-canonical-installer-definition-proposal.json'
+      - '.pncc-dev/scripts/wu195_canonical_installer_definition_proposal.py'
+      - '.pncc-dev/tests/test_wu195_canonical_installer_definition_proposal.py'
+      - '.github/workflows/wave6-wu195-canonical-installer-definition-proposal.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    if: github.event.pull_request.head.ref == 'agent/PIPE-WU-195-canonical-installer-definition-proposal-derivation'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Exact head
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+      - name: Python compile
+        run: python3 -m py_compile .pncc-dev/scripts/wu195_canonical_installer_definition_proposal.py
+      - name: Adversarial tests
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_wu195_canonical_installer_definition_proposal.py' -v
+      - name: Validate exact proposal identity and source anchors
+        run: python3 .pncc-dev/scripts/wu195_canonical_installer_definition_proposal.py --contract .pncc-dev/contracts/wave6-wu195-canonical-installer-definition-proposal.json --verify-git
+      - name: Enforce bounded diff
+        shell: bash
+        run: |
+          base='40e583eff9f28d54435f4db033c4d117512abc3b'
+          git diff --name-only "$base"...HEAD | sort > /tmp/actual
+          printf '%s\n' \
+            '.github/workflows/wave6-wu195-canonical-installer-definition-proposal.yml' \
+            '.pncc-dev/contracts/wave6-wu195-canonical-installer-definition-proposal.json' \
+            '.pncc-dev/scripts/wu195_canonical_installer_definition_proposal.py' \
+            '.pncc-dev/tests/test_wu195_canonical_installer_definition_proposal.py' | sort > /tmp/expected
+          diff -u /tmp/expected /tmp/actual
+          test -z "$(git diff --name-only "$base"...HEAD -- 'src/**' 'installer/**' 'tools/runtime-agent/**')"
+      - name: Assert authority remains read-only
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          p=json.load(open('.pncc-dev/contracts/wave6-wu195-canonical-installer-definition-proposal.json', encoding='utf-8'))
+          for k in ('materialization_authority','compiler_execution_authorized','build_authorized','runtime_authority','promotion_authority'):
+              assert p[k] is False, k
+          assert p['target_path']=='installer/windows/VPS-Control-PNCC.iss'
+          PY
