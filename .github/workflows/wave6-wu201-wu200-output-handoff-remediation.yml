@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - '.pncc-dev/scripts/wu200_reproducible_installer_artifact.ps1'
+      - '.github/workflows/wave6-wu200-reproducible-installer-artifact.yml'
       - '.pncc-dev/contracts/wave6-wu201-wu200-output-handoff-remediation.json'
       - '.pncc-dev/tests/test_wu201_wu200_output_handoff_remediation.py'
       - '.github/workflows/wave6-wu201-wu200-output-handoff-remediation.yml'
@@ -42,14 +43,18 @@ jobs:
           git fetch --no-tags origin '${{ github.event.pull_request.base.sha }}'
           $actual = @(git diff --name-only '${{ github.event.pull_request.base.sha }}...HEAD' | Sort-Object)
           $expected = @(
+            '.github/workflows/wave6-wu200-reproducible-installer-artifact.yml',
             '.github/workflows/wave6-wu201-wu200-output-handoff-remediation.yml',
             '.pncc-dev/contracts/wave6-wu201-wu200-output-handoff-remediation.json',
             '.pncc-dev/scripts/wu200_reproducible_installer_artifact.ps1',
             '.pncc-dev/tests/test_wu201_wu200_output_handoff_remediation.py'
           ) | Sort-Object
           if (($actual -join "`n") -ne ($expected -join "`n")) { throw "BOUNDED_DIFF_MISMATCH`nactual=$($actual -join ',')" }
+          if ($actual | Where-Object { $_ -match '^(src/|legacy/|tools/runtime-agent/|tools/release/|\.pncc-state/)' }) { throw 'FORBIDDEN_PATH_MUTATION' }
           $script = Get-Content -Raw '.pncc-dev/scripts/wu200_reproducible_installer_artifact.ps1'
           $handoff = @($script -split "`r?`n" | Where-Object { $_ -match 'Add-Content' -and $_ -match '\$githubOutput' })
           if ($handoff.Count -ne 1 -or $handoff[0] -notmatch '-Encoding\s+ascii') { throw 'ASCII_HANDOFF_NOT_PROVEN' }
           if ($handoff[0] -match '-Encoding\s+utf8') { throw 'UTF8_BOM_RISK_REMAINS' }
+          $wu200 = Get-Content -Raw '.github/workflows/wave6-wu200-reproducible-installer-artifact.yml'
+          if ($wu200 -notmatch 'github\.event\.pull_request\.head\.ref' -or $wu200 -notmatch 'WU200_ORIGINAL_BOUNDED_DIFF_MISMATCH') { throw 'WU200_MAINTENANCE_COMPATIBILITY_NOT_PROVEN' }
           if (git status --porcelain) { throw 'DIRTY_CHECKOUT' }
