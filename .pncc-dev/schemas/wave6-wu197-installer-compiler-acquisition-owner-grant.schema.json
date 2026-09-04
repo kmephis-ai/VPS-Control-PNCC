@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pncc.local/schemas/wave6-wu197-installer-compiler-acquisition-owner-grant.schema.json",
+  "title": "PIPE-WU-197 future installer compiler acquisition Owner grant candidate",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "work_unit", "owner_authorization_state", "acquisition_authorized", "one_time_only", "runner_class", "destination_class", "target"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "work_unit": {"const": "PIPE-WU-197"},
+    "owner_authorization_state": {"const": "NOT_GRANTED"},
+    "acquisition_authorized": {"const": false},
+    "one_time_only": {"const": true},
+    "runner_class": {"const": "GITHUB_HOSTED"},
+    "destination_class": {"const": "EPHEMERAL_WORKSPACE_ONLY"},
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "tag", "release_id", "asset_id", "asset_name", "size_bytes", "sha256"],
+      "properties": {
+        "repository": {"const": "jrsoftware/issrc"},
+        "tag": {"const": "is-7_1_0"},
+        "release_id": {"const": 369110765},
+        "asset_id": {"const": 511336600},
+        "asset_name": {"const": "innosetup-7.1.0-x64.exe"},
+        "size_bytes": {"const": 14304168},
+        "sha256": {"const": "0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f"}
+      }
+    }
+  }
+}
