@@ -40,7 +40,7 @@ jobs:
           if (@($errors).Count -ne 0) { $errors | Out-String | Write-Error; exit 1 }
       - name: Run WU204 adversarial tests
         shell: pwsh
-        run: python -m pytest -q .pncc-dev/tests/test_wu204_inno_notimestamp_ab_reproducibility.py
+        run: python .pncc-dev/tests/test_wu204_inno_notimestamp_ab_reproducibility.py -v
       - name: Verify bounded four-path diff and least authority
         shell: pwsh
         run: |
