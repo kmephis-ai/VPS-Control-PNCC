@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "work_unit_id": "PIPE-WU-198",
+  "role": "ONE_TIME_PINNED_INNO_SETUP_ACQUISITION",
+  "source_main_sha": "4ca64ef287e5363d3050116030df059d0ed7dc9e",
+  "owner_grant": {
+    "granted": true,
+    "scope": "ONE_TIME_NETWORK_ACQUISITION_ONLY"
+  },
+  "target": {
+    "repository": "jrsoftware/issrc",
+    "tag": "is-7_1_0",
+    "release_id": 369110765,
+    "asset_id": 511336600,
+    "asset_name": "innosetup-7.1.0-x64.exe",
+    "source_url": "https://github.com/jrsoftware/issrc/releases/download/is-7_1_0/innosetup-7.1.0-x64.exe",
+    "size_bytes": 14304168,
+    "sha256": "0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f"
+  },
+  "execution_boundary": {
+    "runner_class": "GITHUB_HOSTED",
+    "runner_label": "ubuntu-24.04",
+    "one_time_only": true,
+    "destination_class": "RUNNER_TEMP_EPHEMERAL_ONLY",
+    "cache_allowed": false,
+    "artifact_upload_allowed": false,
+    "persistent_storage_allowed": false,
+    "install_allowed": false,
+    "execute_allowed": false,
+    "build_allowed": false,
+    "release_allowed": false
+  },
+  "receipt": {
+    "durable_payload_class": "TEXT_ONLY_ACTIONS_LOG_AND_ISSUE_RECONCILIATION",
+    "asset_bytes_durable": false,
+    "require_exact_size": true,
+    "require_exact_sha256": true,
+    "require_asset_deleted_before_receipt": true
+  },
+  "authority": {
+    "network_acquisition": true,
+    "compiler_installation": false,
+    "compiler_execution": false,
+    "binary_build": false,
+    "artifact_upload": false,
+    "cache_write": false,
+    "product_runtime_mutation": false,
+    "release": false,
+    "tag": false,
+    "promotion": false,
+    "stable_transition": false,
+    "ruleset_or_security_weakening": false,
+    "self_hosted_runner": false,
+    "reserve_1080_lifecycle_mutation": false,
+    "primary_1081_lifecycle_mutation": false,
+    "v631_mutation": false
+  }
+}
