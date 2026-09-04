@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 CONTRACT = ROOT / 'contracts' / 'wave6-wu204-inno-notimestamp-ab-reproducibility.json'
 SCRIPT = ROOT / 'scripts' / 'wu204_inno_notimestamp_ab_reproducibility.ps1'
 WORKFLOW = ROOT.parent / '.github' / 'workflows' / 'wave6-wu204-inno-notimestamp-ab-reproducibility.yml'
@@ -57,8 +57,8 @@ def test_no_artifact_publication_or_forbidden_surfaces():
     assert 'actions/upload-artifact' not in combined
     assert 'actions/cache' not in combined
     assert 'self-hosted' not in w
-    assert 'candidate_uploaded = $false' not in s  # WU204 uses plural receipt field; catches WU199 copy/paste
-    assert 'candidates_uploaded = $false' in s
+    assert 'candidate_uploaded = $false' not in s
+    assert 'candidates_uploaded=$false' in s.replace(' ', '')
     assert 'git push' not in combined
     assert 'gh release' not in combined
 
