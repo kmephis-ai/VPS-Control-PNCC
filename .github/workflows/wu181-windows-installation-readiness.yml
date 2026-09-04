@@ -31,7 +31,7 @@ jobs:
           base='${{ github.event.pull_request.base.sha }}'
           git fetch --no-tags --depth=1 origin "$base"
           mapfile -t changed < <(git diff --name-only "$base" HEAD)
-          allowed='^(\.pncc-dev/contracts/windows-installation-first-run-readiness\.json|\.pncc-dev/scripts/evaluate_windows_installation_first_run_readiness\.py|\.pncc-dev/tests/test_windows-installation-first-run-readiness\.py|\.github/workflows/wu181-windows-installation-readiness\.yml)$'
+          allowed='^(\.pncc-dev/contracts/windows-installation-first-run-readiness\.json|\.pncc-dev/scripts/evaluate_windows_installation_first_run_readiness\.py|\.pncc-dev/tests/test_windows_installation_first_run_readiness\.py|\.github/workflows/wu181-windows-installation-readiness\.yml)$'
           for path in "${changed[@]}"; do
             [[ "$path" =~ $allowed ]] || { echo "Forbidden WU181 path: $path"; exit 1; }
           done
