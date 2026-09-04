@@ -1,0 +1,64 @@
+name: wave6-wu196-installer-definition-build-request-admission-binding
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/wave6-wu186-installer-build-request-admission-readiness.yml'
+      - '.pncc-dev/contracts/wave6-wu186-installer-build-request-admission-policy.json'
+      - '.pncc-dev/tests/test_wu186_installer_build_request_admission.py'
+      - '.github/workflows/wave6-wu196-installer-definition-build-request-admission-binding.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  exact-identity-admission:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify exact PR head
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+      - name: Verify materialized installer identity remains exact
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:installer/windows/VPS-Control-PNCC.iss)" = "d30a158aef3535a9066608495b45abcf41112926"
+          test "$(sha256sum installer/windows/VPS-Control-PNCC.iss | awk '{print $1}')" = "125e333203237ed2bb4730f7ad13607baf560421650cb58a554ce589591f8c33"
+      - name: Run WU186 admission adversarial regression suite
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_wu186_installer_build_request_admission.py' -v
+      - name: Prove exact durable request is admitted without execution authority
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import importlib.util, pathlib
+          p=pathlib.Path('.pncc-dev/scripts/evaluate_wave6_wu186_installer_build_request_admission.py')
+          s=importlib.util.spec_from_file_location('wu186',p); m=importlib.util.module_from_spec(s); s.loader.exec_module(m)
+          req={'schema_version':1,'source_main_sha':'93a8716b395efa88070921a8622db29f5420c288','installer_definition':{'path':'installer/windows/VPS-Control-PNCC.iss','git_blob_sha':'d30a158aef3535a9066608495b45abcf41112926'},'compiler_receipt_admission':{'schema_version':1,'work_unit':'PIPE-WU-185','decision':'ADMITTED','reason_codes':['WU184_RECEIPT_VERIFIED'],'authority':'RECEIPT_CONSUMER_ADMISSION_ONLY'}}
+          out=m.evaluate(req)
+          assert out['decision']=='ADMITTED', out
+          assert out['authority']=='BUILD_REQUEST_ADMISSION_READINESS_ONLY', out
+          print(out)
+          PY
+      - name: Verify bounded diff and least authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "${{ github.event.pull_request.base.sha }}"
+          git diff --name-only "${{ github.event.pull_request.base.sha }}"...HEAD | sort > /tmp/actual
+          cat > /tmp/expected <<'EOF'
+          .github/workflows/wave6-wu186-installer-build-request-admission-readiness.yml
+          .github/workflows/wave6-wu196-installer-definition-build-request-admission-binding.yml
+          .pncc-dev/contracts/wave6-wu186-installer-build-request-admission-policy.json
+          .pncc-dev/tests/test_wu186_installer_build_request_admission.py
+          EOF
+          sort -o /tmp/expected /tmp/expected
+          diff -u /tmp/expected /tmp/actual
+          ! git diff --name-only "${{ github.event.pull_request.base.sha }}"...HEAD | grep -E '(^src/|^tools/runtime-agent/|\.iss$|\.exe$)'
+          ! grep -R -n -E 'runs-on:[[:space:]]*self-hosted|contents:[[:space:]]*write|pull-requests:[[:space:]]*write|security-events:[[:space:]]*write' .github/workflows/wave6-wu186-installer-build-request-admission-readiness.yml .github/workflows/wave6-wu196-installer-definition-build-request-admission-binding.yml
+          ! grep -R -n -E 'Invoke-WebRequest|curl[[:space:]]|wget[[:space:]]|iscc(\.exe)?|innosetup-.*\.exe' .pncc-dev/contracts/wave6-wu186-installer-build-request-admission-policy.json .pncc-dev/tests/test_wu186_installer_build_request_admission.py
+          test -z "$(git status --porcelain)"

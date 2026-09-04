@@ -6,13 +6,18 @@
   "depends_on": {
     "wu185_work_unit_id": "PIPE-WU-185",
     "wu185_merged_main_sha": "52e635d81f3d76485ffdff9bce774fc7a9a1f7ff",
-    "wu185_evaluator_path": ".pncc-dev/scripts/evaluate_wave6_wu185_installer_compiler_receipt_admission.py"
+    "wu185_evaluator_path": ".pncc-dev/scripts/evaluate_wave6_wu185_installer_compiler_receipt_admission.py",
+    "wu194_work_unit_id": "PIPE-WU-194",
+    "wu194_merged_main_sha": "93a8716b395efa88070921a8622db29f5420c288"
   },
   "source_identity": {
     "repository": "kmephis-ai/VPS-Control-PNCC",
-    "main_sha": "52e635d81f3d76485ffdff9bce774fc7a9a1f7ff"
+    "main_sha": "93a8716b395efa88070921a8622db29f5420c288"
   },
-  "installer_definition": null,
+  "installer_definition": {
+    "path": "installer/windows/VPS-Control-PNCC.iss",
+    "git_blob_sha": "d30a158aef3535a9066608495b45abcf41112926"
+  },
   "decision": {
     "default": "BLOCKED",
     "allowed": ["ADMITTED", "BLOCKED"],
@@ -48,5 +53,5 @@
     "v631_mutation": false,
     "secret_collection": false
   },
-  "classification": "BUILD_REQUEST_ADMISSION_READINESS_ONLY_NOT_INSTALLER_DEFINITION_OR_BUILD_AUTHORITY"
+  "classification": "BUILD_REQUEST_ADMISSION_IDENTITY_BOUND_NOT_BUILD_AUTHORITY"
 }
