@@ -1,0 +1,94 @@
+name: wave6-wu193-installer-definition-exact-write-authorization-contract
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.pncc-dev/contracts/wave6-wu193-installer-definition-exact-write-authorization-contract-policy.json'
+      - '.pncc-dev/contracts/wave6-wu193-installer-definition-exact-write-authorization-contract.schema.json'
+      - '.pncc-dev/scripts/wu193_installer_definition_exact_write_authorization_contract.py'
+      - '.pncc-dev/tests/test_wu193_installer_definition_exact_write_authorization_contract.py'
+      - '.github/workflows/wave6-wu193-installer-definition-exact-write-authorization-contract.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  exact-write-authorization-contract-readiness:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify exact checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          test -z "$(git status --porcelain)"
+
+      - name: Compile evaluator
+        run: python3 -m py_compile .pncc-dev/scripts/wu193_installer_definition_exact_write_authorization_contract.py
+
+      - name: Run adversarial and CLI regression tests
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_wu193_installer_definition_exact_write_authorization_contract.py' -v
+
+      - name: Validate policy and schema boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('.pncc-dev/contracts/wave6-wu193-installer-definition-exact-write-authorization-contract-policy.json').read_text())
+          s=json.loads(Path('.pncc-dev/contracts/wave6-wu193-installer-definition-exact-write-authorization-contract.schema.json').read_text())
+          assert p['schema_version'] == 1
+          assert p['work_unit_id'] == 'PIPE-WU-193'
+          assert p['source_work_unit_id'] == 'PIPE-WU-192'
+          assert p['positive_decision'] == 'WRITE_AUTHORIZATION_CONTRACT_READY_ONLY'
+          assert p['authority_boundary']['owner_authorization_state_required'] == 'NOT_GRANTED'
+          for k in ('write_authorized','durable_identity_bound','proposal_materialized','binding_receipt_persisted','verified','compiler_execution_authorized','build_authorized'):
+              assert p['authority_boundary'][k] is False
+              assert s['properties'][k]['const'] is False
+          assert s['properties']['owner_authorization_state']['const'] == 'NOT_GRANTED'
+          assert s['additionalProperties'] is False
+          PY
+
+      - name: Enforce bounded five-path diff
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, subprocess
+          expected={
+            '.pncc-dev/contracts/wave6-wu193-installer-definition-exact-write-authorization-contract-policy.json',
+            '.pncc-dev/contracts/wave6-wu193-installer-definition-exact-write-authorization-contract.schema.json',
+            '.pncc-dev/scripts/wu193_installer_definition_exact_write_authorization_contract.py',
+            '.pncc-dev/tests/test_wu193_installer_definition_exact_write_authorization_contract.py',
+            '.github/workflows/wave6-wu193-installer-definition-exact-write-authorization-contract.yml',
+          }
+          base=os.environ['BASE_SHA']
+          changed=set(subprocess.check_output(['git','diff','--name-only',base+'...HEAD'], text=True).splitlines())
+          assert changed == expected, f'bounded diff mismatch: {sorted(changed)}'
+          assert not any(x.startswith('src/') for x in changed)
+          PY
+
+      - name: Assert least-authority workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          text=Path('.github/workflows/wave6-wu193-installer-definition-exact-write-authorization-contract.yml').read_text()
+          assert 'permissions:\n  contents: read' in text
+          assert 'runs-on: ubuntu-24.04' in text
+          assert ('self' + '-hosted') not in text
+          assert ('contents' + ': write') not in text
+          assert ('pull-requests' + ': write') not in text
+          PY
