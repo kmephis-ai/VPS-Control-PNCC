@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "work_unit_id": "PIPE-WU-185",
+  "role": "INSTALLER_COMPILER_RECEIPT_CONSUMER_ADMISSION",
+  "runtime_required": false,
+  "depends_on": {
+    "work_unit_id": "PIPE-WU-184",
+    "issue": 418,
+    "pull_request": 419,
+    "qualified_head_sha": "a1ae36494a70c8b7f56de791a4f920c1c375b5a3",
+    "merged_main_sha": "3dc5aaea3e41853b8475254679a3371134472fec",
+    "policy_path": ".pncc-dev/contracts/wave6-wu184-installer-acquisition-receipt-policy.json",
+    "validator_path": ".pncc-dev/scripts/validate_wave6_wu184_installer_acquisition_receipt.py",
+    "validator_git_blob_sha": "36e665149b27d2c058fc5bfd31a714ae8fe98dfa"
+  },
+  "decision": {
+    "default": "BLOCKED",
+    "allowed": ["ADMITTED", "BLOCKED"],
+    "admitted_only_when_wu184_validator_returns_true": true,
+    "unexpected_input_is_blocked": true,
+    "unexpected_authority_fields_are_blocked_by_wu184_exact_key_validation": true
+  },
+  "toolchain_identity": {
+    "family": "Inno Setup",
+    "version": "7.1.0",
+    "edition": "x64",
+    "upstream_repository": "jrsoftware/issrc",
+    "immutable_release_tag": "is-7_1_0",
+    "release_id": 369110765,
+    "asset_id": 511336600,
+    "asset_filename": "innosetup-7.1.0-x64.exe",
+    "asset_byte_count": 14304168,
+    "asset_sha256": "0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f",
+    "authenticode_publisher": "Pyrsys B.V."
+  },
+  "execution_boundary": {
+    "create_or_persist_verified_receipt": false,
+    "download_compiler": false,
+    "install_compiler": false,
+    "execute_compiler": false,
+    "implement_installer": false,
+    "build_installer_binary": false,
+    "upload_artifact": false,
+    "mutate_product_runtime": false
+  },
+  "authority": {
+    "acquisition": false,
+    "installer_implementation": false,
+    "binary_build": false,
+    "runtime_execution": false,
+    "product_runtime_mutation": false,
+    "release": false,
+    "tag": false,
+    "promotion": false,
+    "stable_transition": false,
+    "ruleset_or_security_weakening": false,
+    "self_hosted_runner": false,
+    "reserve_1080_lifecycle_mutation": false,
+    "primary_1081_lifecycle_mutation": false,
+    "v631_mutation": false,
+    "secret_collection": false
+  },
+  "classification": "RECEIPT_CONSUMER_ADMISSION_ONLY_NOT_ACQUISITION_OR_BUILD_AUTHORITY"
+}
