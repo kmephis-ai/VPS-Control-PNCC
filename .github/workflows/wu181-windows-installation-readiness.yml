@@ -31,13 +31,14 @@ jobs:
           base='${{ github.event.pull_request.base.sha }}'
           git fetch --no-tags --depth=1 origin "$base"
           mapfile -t changed < <(git diff --name-only "$base" HEAD)
-          allowed='^(\.pncc-dev/contracts/windows-installation-first-run-readiness\.json|\.pncc-dev/scripts/evaluate_windows_installation_first_run_readiness\.py|\.pncc-dev/tests/test_windows_installation_first_run_readiness\.py|\.github/workflows/wu181-windows-installation-readiness\.yml)$'
+          allowed='^(\.pncc-dev/contracts/windows-installation-first-run-readiness\.json|\.pncc-dev/scripts/evaluate_windows_installation_first_run_readiness\.py|\.pncc-dev/tests/test_windows-installation-first-run-readiness\.py|\.github/workflows/wu181-windows-installation-readiness\.yml)$'
           for path in "${changed[@]}"; do
             [[ "$path" =~ $allowed ]] || { echo "Forbidden WU181 path: $path"; exit 1; }
           done
           test "${#changed[@]}" -eq 4
           ! git diff --name-only "$base" HEAD | grep -q '^src/windows-v7/'
           ! git diff --name-only "$base" HEAD | grep -q '^tools/runtime-agent/'
+          ! git diff --name-only "$base" HEAD | grep -Eqi '\.(exe|msi)$'
       - name: Enforce least-authority workflow
         shell: bash
         run: |
@@ -45,4 +46,3 @@ jobs:
           file=.github/workflows/wu181-windows-installation-readiness.yml
           ! grep -Eq 'self-hosted|contents:[[:space:]]*write|actions:[[:space:]]*write|pull-requests:[[:space:]]*write' "$file"
           ! grep -Eq 'workflow_dispatch|schedule:' "$file"
-          ! find . -type f \( -iname '*.exe' -o -iname '*.msi' \) -newer "$file" -print -quit | grep -q .
