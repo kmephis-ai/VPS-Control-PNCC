@@ -41,7 +41,7 @@ jobs:
             '.pncc-dev/scripts/wu195_canonical_installer_definition_proposal.py' \
             '.pncc-dev/tests/test_wu195_canonical_installer_definition_proposal.py' | sort > /tmp/expected
           diff -u /tmp/expected /tmp/actual
-          ! git diff "$base"...HEAD -- 'src/**' 'installer/**' 'tools/runtime-agent/**'
+          test -z "$(git diff --name-only "$base"...HEAD -- 'src/**' 'installer/**' 'tools/runtime-agent/**')"
       - name: Assert authority remains read-only
         shell: bash
         run: |
