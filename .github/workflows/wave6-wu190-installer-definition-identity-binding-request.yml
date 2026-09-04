@@ -1,0 +1,81 @@
+name: wave6-wu190-installer-definition-identity-binding-request
+
+on:
+  pull_request:
+    paths:
+      - '.pncc-dev/contracts/wave6-wu190-installer-definition-identity-binding-request-policy.json'
+      - '.pncc-dev/contracts/wave6-wu190-installer-definition-identity-binding-request.schema.json'
+      - '.pncc-dev/scripts/wu190_installer_definition_identity_binding_request.py'
+      - '.pncc-dev/tests/test_wu190_installer_definition_identity_binding_request.py'
+      - '.github/workflows/wave6-wu190-installer-definition-identity-binding-request.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  identity-binding-request-readiness:
+    if: github.event.pull_request.head.ref == 'agent/PIPE-WU-190-installer-definition-identity-binding-request-readiness'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Compile pure evaluator
+        run: python3 -m py_compile .pncc-dev/scripts/wu190_installer_definition_identity_binding_request.py
+      - name: Run adversarial tests
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_wu190_installer_definition_identity_binding_request.py' -v
+      - name: Validate policy schema and authority boundary
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          policy=json.loads(Path('.pncc-dev/contracts/wave6-wu190-installer-definition-identity-binding-request-policy.json').read_text(encoding='utf-8'))
+          schema=json.loads(Path('.pncc-dev/contracts/wave6-wu190-installer-definition-identity-binding-request.schema.json').read_text(encoding='utf-8'))
+          dep=policy['source_envelope_dependency']
+          assert dep['work_unit_id'] == 'PIPE-WU-189'
+          assert dep['single_source_of_truth'] is True
+          assert dep['required_classification'] == 'ADMITTED'
+          assert dep['required_exact_utf8_bytes'] is True
+          assert dep['required_newline_normalization'] is False
+          assert policy['request_identity']['proposal_sha256_must_match_envelope'] is True
+          assert policy['request_identity']['proposal_byte_count_must_match_envelope'] is True
+          assert policy['request_identity']['unknown_request_fields_allowed'] is False
+          assert policy['receipt']['allowed_decisions'] == ['READY_ONLY', 'BLOCKED']
+          assert policy['receipt']['verified'] is False
+          assert policy['receipt']['durable_identity_bound'] is False
+          assert policy['durable_state']['installer_definition_path'] is None
+          assert policy['durable_state']['installer_definition_blob_sha'] is None
+          assert policy['durable_state']['installer_definition_sha256'] is None
+          assert policy['durable_state']['binding_receipt_persisted'] is False
+          assert all(value is False for value in policy['authority'].values())
+          assert schema['additionalProperties'] is False
+          for key in ('verified','durable_identity_bound','proposal_materialized','compiler_execution_authorized','build_authorized'):
+              assert schema['properties'][key]['const'] is False
+          PY
+      - name: Assert bounded five-file diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "${{ github.event.pull_request.base.sha }}"
+          git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}" | sort > /tmp/actual
+          cat > /tmp/expected <<'EOF'
+          .github/workflows/wave6-wu190-installer-definition-identity-binding-request.yml
+          .pncc-dev/contracts/wave6-wu190-installer-definition-identity-binding-request-policy.json
+          .pncc-dev/contracts/wave6-wu190-installer-definition-identity-binding-request.schema.json
+          .pncc-dev/scripts/wu190_installer_definition_identity_binding_request.py
+          .pncc-dev/tests/test_wu190_installer_definition_identity_binding_request.py
+          EOF
+          sort -o /tmp/expected /tmp/expected
+          diff -u /tmp/expected /tmp/actual
+      - name: Assert least-authority boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}" | grep -E '(^|/)src/|runtime-agent|\.iss$|\.exe$'
+          ! grep -nE 'runs-on:[[:space:]]*self-hosted|contents:[[:space:]]*write|pull-requests:[[:space:]]*write|issues:[[:space:]]*write' .github/workflows/wave6-wu190-installer-definition-identity-binding-request.yml
+          test "$(find .pncc-dev -type f \( -name '*.iss' -o -name '*.exe' \) -print | wc -l)" -eq 0
+          test "$(find .pncc-dev -type f -iname '*wu190*receipt*.json' -print | wc -l)" -eq 0
+      - name: Assert repository clean
+        run: test -z "$(git status --porcelain)"
