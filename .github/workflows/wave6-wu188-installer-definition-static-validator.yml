@@ -45,15 +45,29 @@ jobs:
           set -euo pipefail
           ! git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}" | grep -E '(^|/)src/|runtime-agent|\.iss$|\.exe$'
           ! grep -R -nE 'runs-on:[[:space:]]*self-hosted|contents:[[:space:]]*write|pull-requests:[[:space:]]*write|issues:[[:space:]]*write' .github/workflows/wave6-wu188-installer-definition-static-validator.yml
-          ! find . -type f -name '*.iss' -path './.pncc-dev/*' -o -name '*.exe' -path './.pncc-dev/*' | grep .
+          ! find . \( -type f -name '*.iss' -o -type f -name '*.exe' \) -path './.pncc-dev/*' | grep .
           python3 - <<'PY'
           import json
           p=json.load(open('.pncc-dev/contracts/wave6-wu188-installer-definition-static-content-policy.json', encoding='utf-8'))
-          assert p['authority']['materialize_installer_definition'] is False
-          assert p['authority']['compile_installer'] is False
-          assert p['authority']['run_installer'] is False
-          assert p['authority']['publish_artifact'] is False
-          assert p['authority']['mutate_runtime'] is False
+          a=p['authority']
+          assert a['bind_installer_definition_identity'] is False
+          assert a['persist_installer_definition'] is False
+          assert a['authorize_proposal_content'] is False
+          assert a['compiler_acquisition'] is False
+          assert a['compiler_execution'] is False
+          assert a['binary_build'] is False
+          assert a['artifact_upload'] is False
+          assert a['product_runtime_mutation'] is False
+          assert a['release'] is False
+          assert a['tag'] is False
+          assert a['promotion'] is False
+          assert a['stable_transition'] is False
+          assert a['ruleset_or_security_weakening'] is False
+          assert a['self_hosted_runner'] is False
+          assert a['reserve_1080_lifecycle_mutation'] is False
+          assert a['primary_1081_lifecycle_mutation'] is False
+          assert a['v631_mutation'] is False
+          assert a['secret_collection'] is False
           PY
       - name: Assert repository clean
         run: test -z "$(git status --porcelain)"
