@@ -55,7 +55,9 @@ jobs:
           if (($actual -join "`n") -ne ($expected -join "`n")) { throw "BOUNDED_DIFF_MISMATCH`nactual=$($actual -join ',')" }
           if ($actual | Where-Object { $_ -match '^(src/|legacy/|tools/runtime-agent/|tools/release/|\.pncc-state/)' }) { throw 'FORBIDDEN_PATH_MUTATION' }
           $wf = Get-Content -Raw '.github/workflows/wave6-wu199-controlled-inno-first-installer-build.yml'
-          if ($wf -match 'self-hosted|actions/upload-artifact|actions/cache|contents:\s*write|security-events:\s*write') { throw 'WORKFLOW_AUTHORITY_EXPANSION' }
+          $forbiddenLiterals = @('self' + '-hosted', 'actions/' + 'upload-artifact', 'actions/' + 'cache')
+          foreach ($needle in $forbiddenLiterals) { if ($wf.Contains($needle)) { throw ('WORKFLOW_AUTHORITY_EXPANSION_' + $needle) } }
+          if ($wf -match '(?m)^\s*contents:\s*write\s*$' -or $wf -match '(?m)^\s*security-events:\s*write\s*$') { throw 'WORKFLOW_WRITE_PERMISSION_EXPANSION' }
           if (git status --porcelain) { throw 'DIRTY_CHECKOUT' }
 
   build-and-receipt:
