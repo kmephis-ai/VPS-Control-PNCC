@@ -1,25 +1,58 @@
 import json
+import subprocess
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 CONTRACT_PATH = ROOT / '.pncc-dev' / 'contracts' / 'pipe-wu-173-post-v701-product-lineage-readiness.json'
-CANDIDATE_PATH = ROOT / '.pncc-dev' / 'candidate-source.json'
-PROVENANCE_PATH = ROOT / '.pncc-dev' / 'provenance' / 'canonical-source-v7.0.1-patch.json'
+
+
+def ensure_historical_commit(ref: str) -> None:
+    present = subprocess.run(
+        ['git', 'cat-file', '-e', f'{ref}^{{commit}}'],
+        cwd=ROOT,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    )
+    if present.returncode == 0:
+        return
+    subprocess.check_call(
+        ['git', 'fetch', '--no-tags', '--depth=1', 'origin', ref],
+        cwd=ROOT,
+    )
+    subprocess.check_call(
+        ['git', 'cat-file', '-e', f'{ref}^{{commit}}'],
+        cwd=ROOT,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
+
+def git_json_at(ref: str, path: str):
+    ensure_historical_commit(ref)
+    raw = subprocess.check_output(
+        ['git', 'show', f'{ref}:{path}'], cwd=ROOT, text=True
+    )
+    return json.loads(raw)
 
 
 class PostV701ProductLineageReadinessWU173Tests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.contract = json.loads(CONTRACT_PATH.read_text(encoding='utf-8'))
-        cls.candidate = json.loads(CANDIDATE_PATH.read_text(encoding='utf-8'))
-        cls.provenance = json.loads(PROVENANCE_PATH.read_text(encoding='utf-8'))
+        cls.authorized_base = cls.contract['authorized_base_sha']
+        ensure_historical_commit(cls.authorized_base)
+        stable = cls.contract['stable_identity']
+        cls.candidate = git_json_at(cls.authorized_base, stable['candidate_source_path'])
+        cls.provenance = git_json_at(cls.authorized_base, stable['provenance_path'])
 
     def test_contract_is_readiness_only_and_default_deny(self):
         c = self.contract
         self.assertEqual(1, c['schema_version'])
         self.assertEqual('PNCC_POST_V701_PRODUCT_LINEAGE_READINESS', c['role'])
         self.assertEqual('PIPE-WU-173', c['work_unit_id'])
+        self.assertEqual('05e98ac24422f7c5fdff9077854e2d0594c315d8', c['authorized_base_sha'])
         self.assertEqual('READY_FOR_SEPARATE_PRODUCT_LINEAGE_ACTIVATION_DECISION', c['state'])
         self.assertTrue(all(value is False for value in c['authority'].values()))
 
