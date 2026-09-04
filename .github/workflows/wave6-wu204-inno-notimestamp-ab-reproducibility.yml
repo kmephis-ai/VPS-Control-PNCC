@@ -6,7 +6,7 @@ on:
     paths:
       - '.pncc-dev/contracts/wave6-wu204-inno-notimestamp-ab-reproducibility.json'
       - '.pncc-dev/scripts/wu204_inno_notimestamp_ab_reproducibility.ps1'
-      - '.pncc-dev/tests/test_wu204_inno_notimestamp_ab_reproducibility.py'
+      - '.pncc-dev/tests/test_wu204_inno-notimestamp-ab-reproducibility.py'
       - '.github/workflows/wave6-wu204-inno-notimestamp-ab-reproducibility.yml'
   issues:
     types: [edited]
@@ -57,7 +57,8 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           w = Path('.github/workflows/wave6-wu204-inno-notimestamp-ab-reproducibility.yml').read_text()
-          assert "if: ${{ github.event_name == 'issues'" in w
+          assert "github.event_name == 'issues'" in w
+          assert 'PNCC-WU204-AB-EXECUTE' in w
           assert 'actions/upload-artifact' not in w
           assert 'actions/cache' not in w
           PY
