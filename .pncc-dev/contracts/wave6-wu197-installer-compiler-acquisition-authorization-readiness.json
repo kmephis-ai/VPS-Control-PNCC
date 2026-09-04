@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "work_unit_id": "PIPE-WU-197",
+  "role": "INSTALLER_COMPILER_ONE_TIME_ACQUISITION_AUTHORIZATION_READINESS",
+  "runtime_required": false,
+  "source_main_sha": "561bdeaf469aeb07d853e92c4c42c7e8c17f1fad",
+  "upstream_target": {
+    "repository": "jrsoftware/issrc",
+    "tag": "is-7_1_0",
+    "release_id": 369110765,
+    "asset_id": 511336600,
+    "asset_name": "innosetup-7.1.0-x64.exe",
+    "size_bytes": 14304168,
+    "sha256": "0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f"
+  },
+  "future_execution_boundary": {
+    "runner_class": "GITHUB_HOSTED",
+    "one_time_only": true,
+    "destination_class": "EPHEMERAL_WORKSPACE_ONLY",
+    "cache_allowed": false,
+    "artifact_upload_allowed": false,
+    "persistent_storage_allowed": false,
+    "install_allowed": false,
+    "execute_allowed": false,
+    "build_allowed": false,
+    "release_allowed": false
+  },
+  "authorization_state": {
+    "owner_authorization_state": "NOT_GRANTED",
+    "acquisition_authorized": false,
+    "self_grant_allowed": false,
+    "force_allowed": false,
+    "bypass_allowed": false
+  },
+  "expected_receipt": {
+    "schema_version": 1,
+    "work_unit": "PIPE-WU-184",
+    "identity_fields": [
+      "repository",
+      "tag",
+      "release_id",
+      "asset_id",
+      "asset_name",
+      "size_bytes",
+      "sha256"
+    ],
+    "require_sha256_match": true,
+    "require_size_match": true
+  },
+  "decision": {
+    "default": "BLOCKED",
+    "valid_shape_result": "READY_FOR_OWNER_GRANT",
+    "authorized_result": null,
+    "unexpected_input_is_blocked": true
+  },
+  "authority": {
+    "network_acquisition": false,
+    "compiler_installation": false,
+    "compiler_execution": false,
+    "binary_build": false,
+    "artifact_upload": false,
+    "product_runtime_mutation": false,
+    "release": false,
+    "tag": false,
+    "promotion": false,
+    "stable_transition": false,
+    "ruleset_or_security_weakening": false,
+    "self_hosted_runner": false,
+    "reserve_1080_lifecycle_mutation": false,
+    "primary_1081_lifecycle_mutation": false,
+    "v631_mutation": false,
+    "secret_collection": false
+  },
+  "classification": "OWNER_GRANT_SHAPE_READY_NOT_ACQUISITION_AUTHORITY"
+}
