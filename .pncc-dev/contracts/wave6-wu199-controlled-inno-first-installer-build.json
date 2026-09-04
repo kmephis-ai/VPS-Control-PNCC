@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "work_unit_id": "PIPE-WU-199",
+  "role": "CONTROLLED_PINNED_INNO_FIRST_INSTALLER_BUILD",
+  "source_main_sha": "4854d6c5982a72181b82fdc3114b1c40b312c306",
+  "owner_grant": {
+    "granted": true,
+    "scope": "ONE_CONTROLLED_EPHEMERAL_COMPILER_EXECUTION_AND_BUILD"
+  },
+  "compiler": {
+    "repository": "jrsoftware/issrc",
+    "tag": "is-7_1_0",
+    "release_id": 369110765,
+    "asset_id": 511336600,
+    "asset_name": "innosetup-7.1.0-x64.exe",
+    "source_url": "https://github.com/jrsoftware/issrc/releases/download/is-7_1_0/innosetup-7.1.0-x64.exe",
+    "size_bytes": 14304168,
+    "sha256": "0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f"
+  },
+  "installer_definition": {
+    "path": "installer/windows/VPS-Control-PNCC.iss",
+    "git_blob_sha": "d30a158aef3535a9066608495b45abcf41112926",
+    "expected_output_filename": "VPS-Control-PNCC-v7.0.2-setup.exe"
+  },
+  "execution_boundary": {
+    "runner_class": "GITHUB_HOSTED",
+    "runner_label": "windows-2025",
+    "one_controlled_execution": true,
+    "workspace_class": "RUNNER_TEMP_EPHEMERAL_ONLY",
+    "compiler_acquisition_allowed": true,
+    "ephemeral_compiler_installation_allowed": true,
+    "compiler_execution_allowed": true,
+    "binary_build_allowed": true,
+    "artifact_upload_allowed": false,
+    "cache_write_allowed": false,
+    "persistent_storage_allowed": false,
+    "release_allowed": false
+  },
+  "receipt": {
+    "durable_payload_class": "TEXT_ONLY_ACTIONS_LOG_AND_ISSUE_RECONCILIATION",
+    "require_compiler_exact_size": true,
+    "require_compiler_exact_sha256": true,
+    "require_installer_definition_exact_blob": true,
+    "require_candidate_nonempty": true,
+    "require_candidate_sha256": true,
+    "require_candidate_deleted_before_terminal_receipt": true
+  },
+  "authority": {
+    "network_acquisition": true,
+    "compiler_installation_ephemeral": true,
+    "compiler_execution": true,
+    "binary_build": true,
+    "artifact_upload": false,
+    "cache_write": false,
+    "product_runtime_mutation": false,
+    "release": false,
+    "tag": false,
+    "promotion": false,
+    "stable_transition": false,
+    "ruleset_or_security_weakening": false,
+    "self_hosted_runner": false,
+    "reserve_1080_lifecycle_mutation": false,
+    "primary_1081_lifecycle_mutation": false,
+    "v631_mutation": false,
+    "force_or_bypass": false
+  }
+}
