@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "pncc://wave6/wu187/installer-definition-identity-proposal",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "source_main_sha", "installer_definition_identity", "semantics"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "source_main_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "installer_definition_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "git_blob_sha"],
+      "properties": {
+        "path": {"type": "string", "pattern": "^[A-Za-z0-9._/-]+\\.iss$"},
+        "git_blob_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"}
+      }
+    },
+    "semantics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["windows_10_compatible", "powershell_51_compatible", "reserve_1080_mode", "reserve_1080_automated_lifecycle", "primary_1081_mode", "primary_1081_authority_expansion", "v631_sha256", "embed_secrets_or_passwords", "putty_plaintext_pw", "host_key_verification_fail_closed"],
+      "properties": {
+        "windows_10_compatible": {"const": true},
+        "powershell_51_compatible": {"const": true},
+        "reserve_1080_mode": {"const": "RESERVE_MANUAL/MANUAL_ONLY"},
+        "reserve_1080_automated_lifecycle": {"const": false},
+        "primary_1081_mode": {"const": "PRIMARY_AUTO"},
+        "primary_1081_authority_expansion": {"const": false},
+        "v631_sha256": {"const": "385e5178f10e79b0b234376e6a6671b64ce523a3971b2b4341ec94ce1efee11e"},
+        "embed_secrets_or_passwords": {"const": false},
+        "putty_plaintext_pw": {"const": false},
+        "host_key_verification_fail_closed": {"const": true}
+      }
+    }
+  }
+}
