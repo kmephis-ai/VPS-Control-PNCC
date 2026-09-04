@@ -1,0 +1,78 @@
+name: wave6-wu185-installer-compiler-receipt-admission
+
+on:
+  pull_request:
+    paths:
+      - '.pncc-dev/contracts/wave6-wu185-installer-compiler-receipt-consumer-admission.json'
+      - '.pncc-dev/scripts/evaluate_wave6_wu185-installer-compiler-receipt-admission.py'
+      - '.pncc-dev/tests/test_wu185_installer_compiler_receipt_admission.py'
+      - '.github/workflows/wave6-wu185-installer-compiler-receipt-admission.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  receipt-consumer-admission:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Compile evaluator and tests
+        run: |
+          python3 -m py_compile \
+            .pncc-dev/scripts/evaluate_wave6_wu185_installer_compiler_receipt_admission.py \
+            .pncc-dev/tests/test_wu185_installer_compiler_receipt_admission.py
+
+      - name: Run adversarial admission tests
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_wu185_installer_compiler_receipt_admission.py' -v
+
+      - name: Exercise admission CLI with ephemeral verified receipt
+        run: |
+          python3 - <<'PY'
+          import importlib.util, json, pathlib
+          p=pathlib.Path('.pncc-dev/tests/test_wu185_installer_compiler_receipt_admission.py')
+          s=importlib.util.spec_from_file_location('t',p); m=importlib.util.module_from_spec(s); s.loader.exec_module(m)
+          pathlib.Path('/tmp/wu185-receipt.json').write_text(json.dumps(m.receipt()), encoding='utf-8')
+          PY
+          python3 .pncc-dev/scripts/evaluate_wave6_wu185_installer_compiler_receipt_admission.py /tmp/wu185-receipt.json | grep -F '"decision":"ADMITTED"'
+          rm -f /tmp/wu185-receipt.json
+
+      - name: Enforce bounded four-file diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='${{ github.event.pull_request.base.sha }}'
+          head='${{ github.event.pull_request.head.sha }}'
+          mapfile -t changed < <(git diff --name-only "$base" "$head" | sort)
+          printf '%s\n' "${changed[@]}"
+          expected=(
+            '.github/workflows/wave6-wu185-installer-compiler-receipt-admission.yml'
+            '.pncc-dev/contracts/wave6-wu185-installer-compiler-receipt-consumer-admission.json'
+            '.pncc-dev/scripts/evaluate_wave6_wu185-installer-compiler-receipt-admission.py'
+            '.pncc-dev/tests/test_wu185_installer_compiler_receipt_admission.py'
+          )
+          [[ ${#changed[@]} -eq 4 ]]
+          for i in 0 1 2 3; do [[ "${changed[$i]}" == "${expected[$i]}" ]]; done
+          ! git diff --name-only "$base" "$head" -- 'src/**' 'tools/runtime-agent/**' | grep -q .
+
+      - name: Enforce least authority and receipt-consumer-only boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          wf='.github/workflows/wave6-wu185-installer-compiler-receipt-admission.yml'
+          grep -Fq 'contents: read' "$wf"
+          ! grep -Eq 'contents:[[:space:]]*write|issues:[[:space:]]*write|pull-requests:[[:space:]]*write|self-hosted' "$wf"
+          ! grep -Eiq 'curl|wget|Invoke-WebRequest|Start-Process.*innosetup|gh release download|gh release upload|iscc\.exe' "$wf"
+          python3 - <<'PY'
+          import json
+          d=json.load(open('.pncc-dev/contracts/wave6-wu185-installer-compiler-receipt-consumer-admission.json', encoding='utf-8'))
+          assert all(v is False for v in d['execution_boundary'].values())
+          assert all(v is False for v in d['authority'].values())
+          assert d['classification']=='RECEIPT_CONSUMER_ADMISSION_ONLY_NOT_ACQUISITION_OR_BUILD_AUTHORITY'
+          assert d['depends_on']['validator_git_blob_sha']=='36e665149b27d2c058fc5bfd31a714ae8fe98dfa'
+          PY
