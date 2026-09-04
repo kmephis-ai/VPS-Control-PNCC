@@ -1,0 +1,64 @@
+name: wave6-wu197-installer-compiler-acquisition-authorization-readiness
+
+on:
+  pull_request:
+    paths:
+      - '.pncc-dev/contracts/wave6-wu197-installer-compiler-acquisition-authorization-readiness.json'
+      - '.pncc-dev/schemas/wave6-wu197-installer-compiler-acquisition-owner-grant.schema.json'
+      - '.pncc-dev/scripts/evaluate_wave6_wu197_installer_compiler_acquisition_authorization_readiness.py'
+      - '.pncc-dev/tests/test_wu197_installer_compiler_acquisition_authorization_readiness.py'
+      - '.github/workflows/wave6-wu197-installer-compiler-acquisition-authorization-readiness.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  authorization-readiness:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify exact PR head
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+      - name: Compile evaluator
+        run: python3 -m py_compile .pncc-dev/scripts/evaluate_wave6_wu197_installer_compiler_acquisition_authorization_readiness.py
+      - name: Run adversarial regression suite
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_wu197_installer_compiler_acquisition_authorization_readiness.py' -v
+      - name: Prove exact candidate is readiness only
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import importlib.util, json, pathlib
+          p=pathlib.Path('.pncc-dev/scripts/evaluate_wave6_wu197_installer_compiler_acquisition_authorization_readiness.py')
+          s=importlib.util.spec_from_file_location('wu197',p); m=importlib.util.module_from_spec(s); s.loader.exec_module(m)
+          policy=json.loads(pathlib.Path('.pncc-dev/contracts/wave6-wu197-installer-compiler-acquisition-authorization-readiness.json').read_text())
+          c={'schema_version':1,'work_unit':'PIPE-WU-197','owner_authorization_state':'NOT_GRANTED','acquisition_authorized':False,'one_time_only':True,'runner_class':'GITHUB_HOSTED','destination_class':'EPHEMERAL_WORKSPACE_ONLY','target':policy['upstream_target']}
+          out=m.evaluate(c)
+          assert out['decision']=='READY_FOR_OWNER_GRANT', out
+          assert out['acquisition_authorized'] is False, out
+          assert out['authority']=='AUTHORIZATION_READINESS_ONLY', out
+          assert not any(policy['authority'].values()), policy
+          PY
+      - name: Verify bounded diff and no execution path
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "${{ github.event.pull_request.base.sha }}"
+          git diff --name-only "${{ github.event.pull_request.base.sha }}"...HEAD | sort > /tmp/actual
+          cat > /tmp/expected <<'EOF'
+          .github/workflows/wave6-wu197-installer-compiler-acquisition-authorization-readiness.yml
+          .pncc-dev/contracts/wave6-wu197-installer-compiler-acquisition-authorization-readiness.json
+          .pncc-dev/schemas/wave6-wu197-installer-compiler-acquisition-owner-grant.schema.json
+          .pncc-dev/scripts/evaluate_wave6_wu197_installer_compiler_acquisition_authorization_readiness.py
+          .pncc-dev/tests/test_wu197_installer_compiler_acquisition_authorization_readiness.py
+          EOF
+          sort -o /tmp/expected /tmp/expected
+          diff -u /tmp/expected /tmp/actual
+          ! git diff --name-only "${{ github.event.pull_request.base.sha }}"...HEAD | grep -E '(^src/|^tools/runtime-agent/|\.iss$|\.exe$)'
+          ! grep -R -n -E 'runs-on:[[:space:]]*self-hosted|contents:[[:space:]]*write|pull-requests:[[:space:]]*write|security-events:[[:space:]]*write' .github/workflows/wave6-wu197-installer-compiler-acquisition-authorization-readiness.yml
+          ! grep -R -n -E 'Invoke-WebRequest|curl[[:space:]]|wget[[:space:]]|gh[[:space:]]+release[[:space:]]+download|iscc(\.exe)?' .pncc-dev/contracts/wave6-wu197-installer-compiler-acquisition-authorization-readiness.json .pncc-dev/scripts/evaluate_wave6_wu197_installer_compiler_acquisition_authorization_readiness.py .pncc-dev/tests/test_wu197_installer_compiler_acquisition_authorization_readiness.py
+          test -z "$(git status --porcelain)"
