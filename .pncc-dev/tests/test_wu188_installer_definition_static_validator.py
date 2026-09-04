@@ -1,11 +1,13 @@
 import importlib.util
 import pathlib
+import sys
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / ".pncc-dev" / "scripts" / "wu188_installer_definition_static_validator.py"
 spec = importlib.util.spec_from_file_location("wu188", SCRIPT)
 wu188 = importlib.util.module_from_spec(spec)
+sys.modules["wu188"] = wu188
 spec.loader.exec_module(wu188)
 
 GOOD = f"""
