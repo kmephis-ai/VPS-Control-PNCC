@@ -1,0 +1,70 @@
+name: wave6-wu186-installer-build-request-admission-readiness
+
+on:
+  pull_request:
+    paths:
+      - '.pncc-dev/contracts/wave6-wu186-installer-build-request-admission-policy.json'
+      - '.pncc-dev/schemas/wave6-wu186-installer-build-request.schema.json'
+      - '.pncc-dev/scripts/evaluate_wave6_wu186_installer_build_request_admission.py'
+      - '.pncc-dev/tests/test_wu186_installer_build_request_admission.py'
+      - '.github/workflows/wave6-wu186-installer-build-request-admission-readiness.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  admission-readiness:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Verify exact PR head
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+
+      - name: Compile evaluator
+        run: python3 -m py_compile .pncc-dev/scripts/evaluate_wave6_wu186_installer_build_request_admission.py
+
+      - name: Run adversarial tests
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_wu186_installer_build_request_admission.py' -v
+
+      - name: Prove durable policy remains fail-closed
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import importlib.util, json, pathlib
+          p=pathlib.Path('.pncc-dev/scripts/evaluate_wave6_wu186_installer_build_request_admission.py')
+          s=importlib.util.spec_from_file_location('wu186',p); m=importlib.util.module_from_spec(s); s.loader.exec_module(m)
+          req={'schema_version':1,'source_main_sha':'52e635d81f3d76485ffdff9bce774fc7a9a1f7ff','installer_definition':{'path':'installer/PNCC.iss','git_blob_sha':'1'*40},'compiler_receipt_admission':{'schema_version':1,'work_unit':'PIPE-WU-185','decision':'ADMITTED','reason_codes':['WU184_RECEIPT_VERIFIED'],'authority':'RECEIPT_CONSUMER_ADMISSION_ONLY'}}
+          out=m.evaluate(req)
+          assert out['decision']=='BLOCKED', out
+          assert out['reason_codes']==['INSTALLER_DEFINITION_NOT_AUTHORIZED'], out
+          policy=json.loads(pathlib.Path('.pncc-dev/contracts/wave6-wu186-installer-build-request-admission-policy.json').read_text())
+          assert policy['installer_definition'] is None
+          assert policy['execution_boundary']['persist_admitted_request'] is False
+          assert not any(policy['authority'].values())
+          print(json.dumps(out,sort_keys=True))
+          PY
+
+      - name: Verify bounded diff and least authority
+        shell: bash
+        run: |
+          git fetch --no-tags origin "${{ github.event.pull_request.base.sha }}"
+          git diff --name-only "${{ github.event.pull_request.base.sha }}"...HEAD | sort > /tmp/actual
+          cat > /tmp/expected <<'EOF'
+          .github/workflows/wave6-wu186-installer-build-request-admission-readiness.yml
+          .pncc-dev/contracts/wave6-wu186-installer-build-request-admission-policy.json
+          .pncc-dev/schemas/wave6-wu186-installer-build-request.schema.json
+          .pncc-dev/scripts/evaluate_wave6_wu186_installer_build_request_admission.py
+          .pncc-dev/tests/test_wu186_installer_build_request_admission.py
+          EOF
+          sort -o /tmp/expected /tmp/expected
+          diff -u /tmp/expected /tmp/actual
+          ! git diff --name-only "${{ github.event.pull_request.base.sha }}"...HEAD | grep -E '(^src/|^tools/runtime-agent/|\.iss$|\.exe$)'
+          ! grep -R -n -E 'runs-on:[[:space:]]*self-hosted|contents:[[:space:]]*write|pull-requests:[[:space:]]*write|security-events:[[:space:]]*write' .github/workflows/wave6-wu186-installer-build-request-admission-readiness.yml
+          ! grep -R -n -E 'Invoke-WebRequest|curl[[:space:]]|wget[[:space:]]|iscc(\.exe)?|innosetup-.*\.exe' .pncc-dev/contracts/wave6-wu186-installer-build-request-admission-policy.json .pncc-dev/scripts/evaluate_wave6_wu186_installer_build_request_admission.py
+          test -z "$(git status --porcelain)"
