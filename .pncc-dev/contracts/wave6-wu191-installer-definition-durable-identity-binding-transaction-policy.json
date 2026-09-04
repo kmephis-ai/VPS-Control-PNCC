@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "work_unit_id": "PIPE-WU-191",
+  "role": "INSTALLER_DEFINITION_DURABLE_IDENTITY_BINDING_TRANSACTION_READINESS",
+  "source_receipt_dependency": {
+    "work_unit_id": "PIPE-WU-190",
+    "single_source_of_truth": true,
+    "required_decision": "READY_ONLY",
+    "required_exact_identity_match": true,
+    "required_empty_reasons": true
+  },
+  "transaction_intent_identity": {
+    "canonical_json": "RFC8259_JSON_SORTED_KEYS_COMPACT_UTF8",
+    "digest": "SHA256",
+    "proposal_sha256_must_match_source_receipt": true,
+    "proposal_byte_count_must_match_source_receipt": true,
+    "binding_request_sha256_must_match_source_receipt": true,
+    "unknown_intent_fields_allowed": false
+  },
+  "receipt": {
+    "allowed_decisions": ["TRANSACTION_READY_ONLY", "BLOCKED"],
+    "transaction_ready_only_meaning": "Exact transaction-intent metadata matches one WU190 READY_ONLY binding request; no installer-definition identity is bound, persisted, materialized, or verified.",
+    "verified": false,
+    "durable_identity_bound": false,
+    "proposal_materialized": false,
+    "binding_receipt_persisted": false,
+    "compiler_execution_authorized": false,
+    "build_authorized": false
+  },
+  "durable_state": {
+    "installer_definition_path": null,
+    "installer_definition_blob_sha": null,
+    "installer_definition_sha256": null,
+    "binding_receipt_path": null,
+    "binding_receipt_persisted": false
+  },
+  "authority": {
+    "persist_iss": false,
+    "bind_installer_definition_identity": false,
+    "verify_installer_definition_identity": false,
+    "persist_binding_receipt": false,
+    "acquire_or_install_compiler": false,
+    "execute_compiler": false,
+    "build_binary": false,
+    "upload_artifact": false,
+    "mutate_product_or_runtime": false,
+    "release_tag_promote_or_mark_stable": false,
+    "weaken_ruleset_or_security": false,
+    "use_self_hosted_runner": false,
+    "mutate_1080_lifecycle": false,
+    "expand_1081_authority": false,
+    "mutate_v631": false
+  }
+}
