@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "work_unit_id": "PIPE-WU-184",
+  "role": "INSTALLER_COMPILER_ACQUISITION_RECEIPT_POLICY",
+  "runtime_required": false,
+  "depends_on": {
+    "work_unit_id": "PIPE-WU-183",
+    "issue": 416,
+    "pull_request": 417,
+    "qualified_head_sha": "71c43f65ec03d93f90ea0a93ee355b0cb19277e5",
+    "merged_main_sha": "ebc23f0534747079fb756f514d085378002b428b"
+  },
+  "toolchain": {
+    "family": "Inno Setup",
+    "version": "7.1.0",
+    "edition": "x64",
+    "upstream_repository": "jrsoftware/issrc",
+    "immutable_release_tag": "is-7_1_0",
+    "release_id": 369110765,
+    "asset_id": 511336600,
+    "asset_filename": "innosetup-7.1.0-x64.exe",
+    "asset_byte_count": 14304168,
+    "asset_sha256": "0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f",
+    "asset_url": "https://github.com/jrsoftware/issrc/releases/download/is-7_1_0/innosetup-7.1.0-x64.exe",
+    "authenticode_publisher": "Pyrsys B.V."
+  },
+  "required_receipt": {
+    "receipt_type": "PNCC_INSTALLER_COMPILER_ACQUISITION",
+    "policy_source": "PIPE-WU-184",
+    "github_release_attestation_verified": true,
+    "github_release_attestation_repository": "jrsoftware/issrc",
+    "github_release_attestation_verifier": "gh release verify-asset",
+    "authenticode_verified": true,
+    "runner_provider": "github-hosted",
+    "runner_os": "Windows",
+    "verification_status": "VERIFIED",
+    "fail_closed": true,
+    "mutable_latest": false,
+    "mirror_trust_anchor": false,
+    "package_manager_sole_trust": false
+  },
+  "execution_boundary": {
+    "download_compiler_in_this_work_unit": false,
+    "install_compiler_in_this_work_unit": false,
+    "execute_compiler_in_this_work_unit": false,
+    "create_pncc_installer_binary": false,
+    "consume_receipt_for_build_in_this_work_unit": false
+  },
+  "authority": {
+    "installer_implementation": false,
+    "binary_build": false,
+    "runtime_execution": false,
+    "product_runtime_mutation": false,
+    "release": false,
+    "tag": false,
+    "promotion": false,
+    "stable_transition": false,
+    "ruleset_or_security_weakening": false,
+    "self_hosted_runner": false,
+    "reserve_1080_lifecycle_mutation": false,
+    "primary_1081_lifecycle_mutation": false,
+    "v631_mutation": false,
+    "secret_collection": false
+  },
+  "classification": "RECEIPT_PROVENANCE_ONLY_NOT_ACQUISITION_AUTHORITY"
+}

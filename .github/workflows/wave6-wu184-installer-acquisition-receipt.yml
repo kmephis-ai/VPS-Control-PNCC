@@ -1,0 +1,79 @@
+name: wave6-wu184-installer-acquisition-receipt
+
+on:
+  pull_request:
+    paths:
+      - '.pncc-dev/contracts/wave6-wu184-installer-acquisition-receipt-policy.json'
+      - '.pncc-dev/schemas/wave6-wu184-installer-acquisition-receipt.schema.json'
+      - '.pncc-dev/scripts/validate_wave6_wu184_installer_acquisition_receipt.py'
+      - '.pncc-dev/tests/test_wu184_installer_acquisition_receipt.py'
+      - '.github/workflows/wave6-wu184-installer-acquisition-receipt.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  receipt-provenance:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Compile validator and tests
+        run: |
+          python3 -m py_compile \
+            .pncc-dev/scripts/validate_wave6_wu184_installer_acquisition_receipt.py \
+            .pncc-dev/tests/test_wu184_installer_acquisition_receipt.py
+
+      - name: Run adversarial receipt tests
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_wu184_installer_acquisition_receipt.py' -v
+
+      - name: Exercise validator CLI on ephemeral in-memory fixture
+        run: |
+          python3 - <<'PY'
+          import importlib.util, json, pathlib
+          p=pathlib.Path('.pncc-dev/tests/test_wu184_installer_acquisition_receipt.py')
+          s=importlib.util.spec_from_file_location('t',p); m=importlib.util.module_from_spec(s); s.loader.exec_module(m)
+          pathlib.Path('/tmp/wu184-receipt.json').write_text(json.dumps(m.receipt()), encoding='utf-8')
+          PY
+          python3 .pncc-dev/scripts/validate_wave6_wu184_installer_acquisition_receipt.py /tmp/wu184-receipt.json
+          rm -f /tmp/wu184-receipt.json
+
+      - name: Enforce bounded five-file diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='${{ github.event.pull_request.base.sha }}'
+          head='${{ github.event.pull_request.head.sha }}'
+          mapfile -t changed < <(git diff --name-only "$base" "$head" | sort)
+          printf '%s\n' "${changed[@]}"
+          expected=(
+            '.github/workflows/wave6-wu184-installer-acquisition-receipt.yml'
+            '.pncc-dev/contracts/wave6-wu184-installer-acquisition-receipt-policy.json'
+            '.pncc-dev/schemas/wave6-wu184-installer-acquisition-receipt.schema.json'
+            '.pncc-dev/scripts/validate_wave6_wu184_installer_acquisition_receipt.py'
+            '.pncc-dev/tests/test_wu184_installer_acquisition_receipt.py'
+          )
+          [[ ${#changed[@]} -eq 5 ]]
+          for i in 0 1 2 3 4; do [[ "${changed[$i]}" == "${expected[$i]}" ]]; done
+          ! git diff --name-only "$base" "$head" -- 'src/**' 'tools/runtime-agent/**' | grep -q .
+
+      - name: Enforce least authority and no acquisition execution
+        shell: bash
+        run: |
+          set -euo pipefail
+          wf='.github/workflows/wave6-wu184-installer-acquisition-receipt.yml'
+          grep -Fq 'contents: read' "$wf"
+          ! grep -Eq 'contents:[[:space:]]*write|issues:[[:space:]]*write|pull-requests:[[:space:]]*write|self-hosted' "$wf"
+          ! grep -Eiq 'curl|wget|Invoke-WebRequest|Start-Process.*innosetup|gh release download|gh release upload' "$wf"
+          python3 - <<'PY'
+          import json
+          d=json.load(open('.pncc-dev/contracts/wave6-wu184-installer-acquisition-receipt-policy.json', encoding='utf-8'))
+          assert all(v is False for v in d['execution_boundary'].values())
+          assert all(v is False for v in d['authority'].values())
+          assert d['classification']=='RECEIPT_PROVENANCE_ONLY_NOT_ACQUISITION_AUTHORITY'
+          PY
