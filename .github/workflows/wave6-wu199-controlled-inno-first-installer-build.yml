@@ -31,12 +31,13 @@ jobs:
       - name: Verify exact PR head
         shell: pwsh
         run: if ((git rev-parse HEAD).Trim() -ne '${{ github.event.pull_request.head.sha }}') { throw 'EXACT_HEAD_MISMATCH' }
-      - name: Parse controlled build executor under PowerShell
+      - name: Parse controlled build executor under Windows PowerShell 5.1
         shell: powershell
         run: |
+          $tokens = $null
           $errors = $null
-          [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path '.pncc-dev/scripts/wu199_controlled_inno_first_installer_build.ps1'), [ref]$null, [ref]$errors)
-          if ($errors.Count -ne 0) { $errors | Out-String | Write-Error; exit 1 }
+          [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path '.pncc-dev/scripts/wu199_controlled_inno_first_installer_build.ps1'), [ref]$tokens, [ref]$errors)
+          if (@($errors).Count -ne 0) { $errors | Out-String | Write-Error; exit 1 }
       - name: Run WU199 adversarial/static tests
         shell: pwsh
         run: python .pncc-dev/tests/test_wu199_controlled_inno_first_installer_build.py -v
