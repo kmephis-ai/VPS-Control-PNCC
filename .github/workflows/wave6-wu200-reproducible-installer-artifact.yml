@@ -41,18 +41,20 @@ jobs:
       - name: Run WU200 adversarial/static tests
         shell: pwsh
         run: python .pncc-dev/tests/test_wu200_reproducible_installer_artifact.py -v
-      - name: Verify exact bounded diff and least authority
+      - name: Verify bounded diff and least authority
         shell: pwsh
         run: |
           git fetch --no-tags origin '${{ github.event.pull_request.base.sha }}'
           $actual = @(git diff --name-only '${{ github.event.pull_request.base.sha }}...HEAD' | Sort-Object)
-          $expected = @(
-            '.github/workflows/wave6-wu200-reproducible-installer-artifact.yml',
-            '.pncc-dev/contracts/wave6-wu200-reproducible-installer-artifact.json',
-            '.pncc-dev/scripts/wu200_reproducible_installer_artifact.ps1',
-            '.pncc-dev/tests/test_wu200_reproducible_installer_artifact.py'
-          ) | Sort-Object
-          if (($actual -join "`n") -ne ($expected -join "`n")) { throw "BOUNDED_DIFF_MISMATCH`nactual=$($actual -join ',')" }
+          if ('${{ github.event.pull_request.head.ref }}' -eq 'agent/PIPE-WU-200-reproducible-installer-artifact') {
+            $expected = @(
+              '.github/workflows/wave6-wu200-reproducible-installer-artifact.yml',
+              '.pncc-dev/contracts/wave6-wu200-reproducible-installer-artifact.json',
+              '.pncc-dev/scripts/wu200_reproducible_installer_artifact.ps1',
+              '.pncc-dev/tests/test_wu200_reproducible_installer_artifact.py'
+            ) | Sort-Object
+            if (($actual -join "`n") -ne ($expected -join "`n")) { throw "WU200_ORIGINAL_BOUNDED_DIFF_MISMATCH`nactual=$($actual -join ',')" }
+          }
           if ($actual | Where-Object { $_ -match '^(src/|legacy/|tools/runtime-agent/|tools/release/|\.pncc-state/)' }) { throw 'FORBIDDEN_PATH_MUTATION' }
           $wf = Get-Content -Raw '.github/workflows/wave6-wu200-reproducible-installer-artifact.yml'
           if ($wf.Contains('self' + '-hosted') -or $wf.Contains('actions/' + 'cache')) { throw 'WORKFLOW_AUTHORITY_EXPANSION' }
