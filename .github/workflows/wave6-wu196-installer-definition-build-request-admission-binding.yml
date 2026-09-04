@@ -60,5 +60,5 @@ jobs:
           diff -u /tmp/expected /tmp/actual
           ! git diff --name-only "${{ github.event.pull_request.base.sha }}"...HEAD | grep -E '(^src/|^tools/runtime-agent/|\.iss$|\.exe$)'
           ! grep -R -n -E 'runs-on:[[:space:]]*self-hosted|contents:[[:space:]]*write|pull-requests:[[:space:]]*write|security-events:[[:space:]]*write' .github/workflows/wave6-wu186-installer-build-request-admission-readiness.yml .github/workflows/wave6-wu196-installer-definition-build-request-admission-binding.yml
-          ! grep -R -n -E 'Invoke-WebRequest|curl[[:space:]]|wget[[:space:]]|iscc(\.exe)?|innosetup-.*\.exe' .github/workflows/wave6-wu196-installer-definition-build-request-admission-binding.yml .pncc-dev/contracts/wave6-wu186-installer-build-request-admission-policy.json
+          ! grep -R -n -E 'Invoke-WebRequest|curl[[:space:]]|wget[[:space:]]|iscc(\.exe)?|innosetup-.*\.exe' .pncc-dev/contracts/wave6-wu186-installer-build-request-admission-policy.json .pncc-dev/tests/test_wu186_installer_build_request_admission.py
           test -z "$(git status --porcelain)"
