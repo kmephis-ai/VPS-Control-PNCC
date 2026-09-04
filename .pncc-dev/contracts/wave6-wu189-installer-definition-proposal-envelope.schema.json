@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kmephis-ai/VPS-Control-PNCC/.pncc-dev/contracts/wave6-wu189-installer-definition-proposal-envelope.schema.json",
+  "title": "PNCC WU189 installer-definition proposal envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "work_unit_id",
+    "source_validator_work_unit",
+    "classification",
+    "reasons",
+    "proposal_sha256",
+    "proposal_byte_count",
+    "exact_utf8_bytes",
+    "newline_normalization",
+    "installer_definition_identity_bound",
+    "materialization_authorized",
+    "build_authorized"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "work_unit_id": {"const": "PIPE-WU-189"},
+    "source_validator_work_unit": {"const": "PIPE-WU-188"},
+    "classification": {"enum": ["ADMITTED", "BLOCKED"]},
+    "reasons": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    },
+    "proposal_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "proposal_byte_count": {"type": "integer", "minimum": 0},
+    "exact_utf8_bytes": {"const": true},
+    "newline_normalization": {"const": false},
+    "installer_definition_identity_bound": {"const": false},
+    "materialization_authorized": {"const": false},
+    "build_authorized": {"const": false}
+  }
+}
