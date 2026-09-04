@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "work_unit_id": "PIPE-WU-187",
+  "role": "INSTALLER_DEFINITION_IDENTITY_AUTHORITY_PREPARATION",
+  "runtime_required": false,
+  "source_identity": {
+    "repository": "kmephis-ai/VPS-Control-PNCC",
+    "main_sha": "bf29176481dddfec825ced9236dac9c708e476e1"
+  },
+  "compiler_provenance_dependencies": {
+    "wu184": "INSTALLER_COMPILER_ACQUISITION_RECEIPT_PROVENANCE",
+    "wu185": "RECEIPT_CONSUMER_ADMISSION_ONLY"
+  },
+  "installer_definition_identity": null,
+  "required_semantics": {
+    "windows_10_compatible": true,
+    "powershell_51_compatible": true,
+    "reserve_1080_mode": "RESERVE_MANUAL/MANUAL_ONLY",
+    "reserve_1080_automated_lifecycle": false,
+    "primary_1081_mode": "PRIMARY_AUTO",
+    "primary_1081_authority_expansion": false,
+    "v631_sha256": "385e5178f10e79b0b234376e6a6671b64ce523a3971b2b4341ec94ce1efee11e",
+    "embed_secrets_or_passwords": false,
+    "putty_plaintext_pw": false,
+    "host_key_verification_fail_closed": true
+  },
+  "decision": {
+    "default": "BLOCKED",
+    "allowed": ["ADMITTED", "BLOCKED"],
+    "require_exact_source_main_sha": true,
+    "require_exact_path_and_git_blob_sha": true,
+    "require_exact_semantics": true,
+    "unexpected_input_is_blocked": true
+  },
+  "authority": {
+    "bind_installer_definition_identity": false,
+    "create_installer_definition": false,
+    "compiler_acquisition": false,
+    "compiler_execution": false,
+    "binary_build": false,
+    "artifact_upload": false,
+    "product_runtime_mutation": false,
+    "release": false,
+    "tag": false,
+    "promotion": false,
+    "stable_transition": false,
+    "ruleset_or_security_weakening": false,
+    "self_hosted_runner": false,
+    "reserve_1080_lifecycle_mutation": false,
+    "primary_1081_lifecycle_mutation": false,
+    "v631_mutation": false,
+    "secret_collection": false
+  },
+  "classification": "INSTALLER_DEFINITION_IDENTITY_AUTHORITY_PREPARATION_ONLY_NOT_DEFINITION_OR_BUILD_AUTHORITY"
+}
