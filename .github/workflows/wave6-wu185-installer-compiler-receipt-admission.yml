@@ -48,17 +48,20 @@ jobs:
           set -euo pipefail
           base='${{ github.event.pull_request.base.sha }}'
           head='${{ github.event.pull_request.head.sha }}'
-          mapfile -t changed < <(git diff --name-only "$base" "$head" | sort)
-          printf '%s\n' "${changed[@]}"
-          expected=(
-            '.github/workflows/wave6-wu185-installer-compiler-receipt-admission.yml'
-            '.pncc-dev/contracts/wave6-wu185-installer-compiler-receipt-consumer-admission.json'
-            '.pncc-dev/scripts/evaluate_wave6_wu185-installer-compiler-receipt-admission.py'
-            '.pncc-dev/tests/test_wu185_installer_compiler_receipt_admission.py'
-          )
-          [[ ${#changed[@]} -eq 4 ]]
-          for i in 0 1 2 3; do [[ "${changed[$i]}" == "${expected[$i]}" ]]; done
-          ! git diff --name-only "$base" "$head" -- 'src/**' 'tools/runtime-agent/**' | grep -q .
+          git diff --name-only "$base" "$head" | sort > /tmp/wu185-changed.txt
+          cat > /tmp/wu185-expected.txt <<'EOF'
+          .github/workflows/wave6-wu185-installer-compiler-receipt-admission.yml
+          .pncc-dev/contracts/wave6-wu185-installer-compiler-receipt-consumer-admission.json
+          .pncc-dev/scripts/evaluate_wave6_wu185-installer-compiler-receipt-admission.py
+          .pncc-dev/tests/test_wu185_installer_compiler_receipt_admission.py
+          EOF
+          sort -o /tmp/wu185-expected.txt /tmp/wu185-expected.txt
+          printf '%s\n' '--- changed'; cat /tmp/wu185-changed.txt
+          diff -u /tmp/wu185-expected.txt /tmp/wu185-changed.txt
+          if git diff --name-only "$base" "$head" -- 'src/**' 'tools/runtime-agent/**' | grep -q .; then
+            echo 'Forbidden product/runtime diff detected' >&2
+            exit 1
+          fi
 
       - name: Enforce least authority and receipt-consumer-only boundary
         shell: bash
