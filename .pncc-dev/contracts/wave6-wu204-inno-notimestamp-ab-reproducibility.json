@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "role": "CONTROLLED_INNO_NOTIMESTAMP_AB_REPRODUCIBILITY_EXPERIMENT",
+  "work_unit_id": "PIPE-WU-204",
+  "source_main_sha": "62bd3570e1cd1ed1e5db367b7606c9d675ca6bb9",
+  "runner_class": "GITHUB_HOSTED_WINDOWS",
+  "compiler": {
+    "repository": "jrsoftware/issrc",
+    "tag": "is-7_1_0",
+    "release_id": 369110765,
+    "asset_id": 511336600,
+    "asset_name": "innosetup-7.1.0-x64.exe",
+    "size_bytes": 14304168,
+    "sha256": "0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f"
+  },
+  "installer_definition": {
+    "path": "installer/windows/VPS-Control-PNCC.iss",
+    "git_blob_sha": "d30a158aef3535a9066608495b45abcf41112926",
+    "canonical_mutation_allowed": false,
+    "treatment_ephemeral_only": true,
+    "single_treatment_change": "ADD_NOTIMESTAMP_TO_EXISTING_FILES_FLAGS"
+  },
+  "experiment": {
+    "source_mtime_a_utc": "2001-01-01T01:01:02Z",
+    "source_mtime_b_utc": "2025-12-30T23:58:57Z",
+    "builds": ["baseline_a", "baseline_b", "treatment_a", "treatment_b"],
+    "required_evidence": ["source_file_count", "source_mtime_utc", "candidate_size_bytes", "candidate_sha256"],
+    "success_promotion_requires": "BASELINE_DIFFERS_AND_TREATMENT_IDENTICAL"
+  },
+  "authority": {
+    "network_acquisition": true,
+    "compiler_ephemeral_installation": true,
+    "compiler_execution": true,
+    "installer_candidate_build": true,
+    "controlled_source_mtime_mutation_in_runner_temp": true,
+    "ephemeral_treatment_definition_materialization": true,
+    "artifact_upload": false,
+    "artifact_publication": false,
+    "artifact_persistence": false,
+    "canonical_installer_definition_mutation": false,
+    "product_runtime_mutation": false,
+    "release": false,
+    "tag": false,
+    "stable_transition": false,
+    "self_hosted_runner": false,
+    "port_1080_lifecycle": false,
+    "port_1081_lifecycle": false,
+    "v6_3_1_mutation": false,
+    "ruleset_or_security_weakening": false,
+    "force_or_bypass": false
+  }
+}
