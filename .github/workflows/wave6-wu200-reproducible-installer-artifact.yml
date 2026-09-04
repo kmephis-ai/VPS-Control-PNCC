@@ -1,0 +1,144 @@
+name: wave6-wu200-reproducible-installer-artifact
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/wave6-wu200-reproducible-installer-artifact.yml'
+      - '.pncc-dev/contracts/wave6-wu200-reproducible-installer-artifact.json'
+      - '.pncc-dev/scripts/wu200_reproducible_installer_artifact.ps1'
+      - '.pncc-dev/tests/test_wu200_reproducible_installer_artifact.py'
+  issues:
+    types: [edited]
+
+permissions:
+  contents: read
+
+jobs:
+  validate-wu200:
+    if: github.event_name == 'pull_request'
+    runs-on: windows-2025
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify exact PR head
+        shell: pwsh
+        run: if ((git rev-parse HEAD).Trim() -ne '${{ github.event.pull_request.head.sha }}') { throw 'EXACT_HEAD_MISMATCH' }
+      - name: Parse WU200 executor under Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path '.pncc-dev/scripts/wu200_reproducible_installer_artifact.ps1'), [ref]$tokens, [ref]$errors)
+          if (@($errors).Count -ne 0) { $errors | Out-String | Write-Error; exit 1 }
+      - name: Run WU200 adversarial/static tests
+        shell: pwsh
+        run: python .pncc-dev/tests/test_wu200_reproducible_installer_artifact.py -v
+      - name: Verify exact bounded diff and least authority
+        shell: pwsh
+        run: |
+          git fetch --no-tags origin '${{ github.event.pull_request.base.sha }}'
+          $actual = @(git diff --name-only '${{ github.event.pull_request.base.sha }}...HEAD' | Sort-Object)
+          $expected = @(
+            '.github/workflows/wave6-wu200-reproducible-installer-artifact.yml',
+            '.pncc-dev/contracts/wave6-wu200-reproducible-installer-artifact.json',
+            '.pncc-dev/scripts/wu200_reproducible_installer_artifact.ps1',
+            '.pncc-dev/tests/test_wu200_reproducible_installer_artifact.py'
+          ) | Sort-Object
+          if (($actual -join "`n") -ne ($expected -join "`n")) { throw "BOUNDED_DIFF_MISMATCH`nactual=$($actual -join ',')" }
+          if ($actual | Where-Object { $_ -match '^(src/|legacy/|tools/runtime-agent/|tools/release/|\.pncc-state/)' }) { throw 'FORBIDDEN_PATH_MUTATION' }
+          $wf = Get-Content -Raw '.github/workflows/wave6-wu200-reproducible-installer-artifact.yml'
+          if ($wf.Contains('self' + '-hosted') -or $wf.Contains('actions/' + 'cache')) { throw 'WORKFLOW_AUTHORITY_EXPANSION' }
+          if ($wf -match '(?m)^\s*contents:\s*write\s*$' -or $wf -match '(?m)^\s*security-events:\s*write\s*$') { throw 'WORKFLOW_WRITE_PERMISSION_EXPANSION' }
+          $uploads = ([regex]::Matches($wf, 'actions/upload-artifact@')).Count
+          if ($uploads -ne 1) { throw 'UPLOAD_ACTION_COUNT_NOT_ONE' }
+          if (git status --porcelain) { throw 'DIRTY_CHECKOUT' }
+
+  build-upload-and-receipt:
+    if: github.event_name == 'issues' && github.event.issue.number == 450 && contains(github.event.issue.body, 'PNCC-WU200-ARTIFACT-BUILD-EXECUTE')
+    runs-on: windows-2025
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      issues: read
+    concurrency:
+      group: pncc-wu200-reproducible-installer-artifact
+      cancel-in-progress: false
+    steps:
+      - name: Checkout exact default-branch revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Verify exact default-branch revision
+        shell: pwsh
+        run: if ((git rev-parse HEAD).Trim() -ne '${{ github.sha }}') { throw 'EXACT_MAIN_MISMATCH' }
+      - name: Controlled exact build and pre-upload provenance
+        id: build
+        shell: powershell
+        env:
+          PNCC_ISSUE_BODY: ${{ github.event.issue.body }}
+          PNCC_MAIN_SHA: ${{ github.sha }}
+        run: .\.pncc-dev\scripts\wu200_reproducible_installer_artifact.ps1
+      - name: Prove exact single upload payload
+        shell: pwsh
+        run: |
+          $path = '${{ steps.build.outputs.candidate_path }}'
+          if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw 'CANDIDATE_MISSING_BEFORE_UPLOAD' }
+          if ([IO.Path]::GetFileName($path) -ne 'VPS-Control-PNCC-v7.0.2-setup.exe') { throw 'CANDIDATE_NAME_DRIFT' }
+          if ((Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash.ToLowerInvariant() -ne '${{ steps.build.outputs.candidate_sha256 }}') { throw 'CANDIDATE_HASH_DRIFT_BEFORE_UPLOAD' }
+          $siblings = @(Get-ChildItem -LiteralPath (Split-Path -Parent $path) -File)
+          if ($siblings.Count -ne 1) { throw 'UPLOAD_PAYLOAD_COUNT_NOT_ONE' }
+      - name: Upload exact installer candidate only
+        id: upload
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: VPS-Control-PNCC-v7.0.2-setup
+          path: ${{ steps.build.outputs.candidate_path }}
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+          include-hidden-files: false
+      - name: Emit terminal artifact provenance
+        shell: pwsh
+        run: |
+          $receipt = [ordered]@{
+            schema_version = 1
+            role = 'REPRODUCIBLE_INSTALLER_ARTIFACT_TERMINAL_RECEIPT'
+            work_unit_id = 'PIPE-WU-200'
+            main_sha = '${{ github.sha }}'
+            candidate_filename = 'VPS-Control-PNCC-v7.0.2-setup.exe'
+            candidate_size_bytes = [int64]'${{ steps.build.outputs.candidate_size }}'
+            candidate_sha256 = '${{ steps.build.outputs.candidate_sha256 }}'
+            wu199_byte_identical = [System.Convert]::ToBoolean('${{ steps.build.outputs.wu199_byte_identical }}')
+            artifact_name = 'VPS-Control-PNCC-v7.0.2-setup'
+            artifact_id = '${{ steps.upload.outputs.artifact-id }}'
+            artifact_url = '${{ steps.upload.outputs.artifact-url }}'
+            artifact_digest = '${{ steps.upload.outputs.artifact-digest }}'
+            artifact_payload_count = 1
+            artifact_retention_days = 1
+            release_created = $false
+            tag_created = $false
+            stable_transition = $false
+            product_runtime_mutated = $false
+          }
+          Write-Output ('PNCC_WU200_ARTIFACT_TERMINAL_RECEIPT=' + ($receipt | ConvertTo-Json -Compress))
+      - name: Delete local candidate after upload
+        shell: pwsh
+        run: |
+          $path = '${{ steps.build.outputs.candidate_path }}'
+          if (Test-Path -LiteralPath $path) { Remove-Item -LiteralPath (Split-Path -Parent $path) -Recurse -Force }
+          if (Test-Path -LiteralPath $path) { throw 'LOCAL_CANDIDATE_REMAINS' }
+          if (Test-Path "$env:RUNNER_TEMP\innosetup-7.1.0-x64.exe") { throw 'COMPILER_SETUP_REMAINS' }
+          if (Test-Path "$env:RUNNER_TEMP\pncc-inno-7.1.0-wu200") { throw 'COMPILER_INSTALL_REMAINS' }
+      - name: Prove checkout remained clean
+        shell: pwsh
+        run: if (git status --porcelain) { throw 'DIRTY_CHECKOUT' }
