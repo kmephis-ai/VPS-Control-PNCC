@@ -6,7 +6,7 @@ on:
     paths:
       - '.pncc-dev/scripts/wu200_reproducible_installer_artifact.ps1'
       - '.github/workflows/wave6-wu200-reproducible-installer-artifact.yml'
-      - '.pncc-dev/tests/test_wu200_reproducible_installer_artifact.py'
+      - '.pncc-dev/tests/test_wu200_reproducible-installer-artifact.py'
       - '.github/workflows/wave6-wu201-wu200-output-handoff-remediation.yml'
       - '.pncc-dev/tests/test_wu201_wu200_output_handoff_remediation.py'
       - '.pncc-dev/contracts/wave6-wu202-wu200-output-transport-reproducibility-guard.json'
@@ -66,6 +66,9 @@ jobs:
           $wf = Get-Content -Raw '.github/workflows/wave6-wu202-wu200-output-transport-reproducibility-guard.yml'
           if ($wf.Contains('self' + '-hosted') -or $wf.Contains('actions/' + 'cache') -or $wf -match '(?m)^\s*contents:\s*write\s*$') { throw 'WU202_AUTHORITY_EXPANSION' }
           if ($wf -match '(?m)^\s*issues:\s*write\s*$' -or $wf -match '(?m)^\s*security-events:\s*write\s*$') { throw 'WU202_WRITE_PERMISSION_EXPANSION' }
-          if ($wf -match 'actions/upload-artifact@') { throw 'WU202_ARTIFACT_PUBLICATION_NOT_ALLOWED' }
-          if ($wf -match 'Invoke-WebRequest|Start-Process|ISCC\.exe') { throw 'WU202_BUILD_EXECUTION_NOT_ALLOWED' }
+          $uploadToken = 'actions/' + 'upload-' + 'artifact@'
+          if ($wf.Contains($uploadToken)) { throw 'WU202_ARTIFACT_PUBLICATION_NOT_ALLOWED' }
+          foreach ($token in @('Invoke-' + 'WebRequest','Start-' + 'Process','ISCC' + '.exe')) {
+            if ($wf.Contains($token)) { throw 'WU202_BUILD_EXECUTION_NOT_ALLOWED' }
+          }
           if (git status --porcelain) { throw 'DIRTY_CHECKOUT' }
