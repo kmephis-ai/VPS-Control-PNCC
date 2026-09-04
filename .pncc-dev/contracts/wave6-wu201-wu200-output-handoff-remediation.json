@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "role": "WU200_GITHUB_OUTPUT_HANDOFF_REMEDIATION",
+  "work_unit_id": "PIPE-WU-201",
+  "source_main_sha": "7259be35a2f0cdff94e068e12d99b808633d452e",
+  "failure_class": "HARNESS_OUTPUT_HANDOFF_DEFECT",
+  "target": {
+    "path": ".pncc-dev/scripts/wu200_reproducible_installer_artifact.ps1",
+    "boundary": "GITHUB_OUTPUT",
+    "powershell_runtime": "WINDOWS_POWERSHELL_5_1",
+    "required_encoding": "ASCII_BOM_FREE"
+  },
+  "allowed_mutations": [
+    ".pncc-dev/scripts/wu200_reproducible_installer_artifact.ps1",
+    ".pncc-dev/contracts/wave6-wu201-wu200-output-handoff-remediation.json",
+    ".pncc-dev/tests/test_wu201_wu200_output_handoff_remediation.py",
+    ".github/workflows/wave6-wu201-wu200-output-handoff-remediation.yml"
+  ],
+  "authority": {
+    "product_runtime_mutation": false,
+    "installer_definition_mutation": false,
+    "compiler_pin_mutation": false,
+    "artifact_upload_during_pr": false,
+    "release": false,
+    "tag": false,
+    "stable": false,
+    "self_hosted_runner": false,
+    "routing_1080_lifecycle": false,
+    "routing_1081_lifecycle_expansion": false,
+    "v631_mutation": false,
+    "ruleset_security_weakening": false,
+    "force_bypass": false
+  }
+}
