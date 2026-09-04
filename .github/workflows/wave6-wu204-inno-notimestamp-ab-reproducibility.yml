@@ -1,0 +1,105 @@
+name: wave6-wu204-inno-notimestamp-ab-reproducibility
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/wave6-wu204-inno-notimestamp-ab-reproducibility.yml'
+      - '.pncc-dev/contracts/wave6-wu204-inno-notimestamp-ab-reproducibility.json'
+      - '.pncc-dev/scripts/wu204_inno_notimestamp_ab_reproducibility.ps1'
+      - '.pncc-dev/tests/test_wu204_inno_notimestamp_ab_reproducibility.py'
+  issues:
+    types: [edited]
+
+permissions:
+  contents: read
+
+jobs:
+  validate-wu204:
+    if: github.event_name == 'pull_request'
+    runs-on: windows-2025
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify exact PR head
+        shell: pwsh
+        run: if ((git rev-parse HEAD).Trim() -ne '${{ github.event.pull_request.head.sha }}') { throw 'EXACT_HEAD_MISMATCH' }
+      - name: Parse WU204 executor under Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path '.pncc-dev/scripts/wu204_inno_notimestamp_ab_reproducibility.ps1'), [ref]$tokens, [ref]$errors)
+          if (@($errors).Count -ne 0) { $errors | Out-String | Write-Error; exit 1 }
+      - name: Run WU204 adversarial tests
+        shell: pwsh
+        run: python .pncc-dev/tests/test_wu204_inno_notimestamp_ab_reproducibility.py -v
+      - name: Verify bounded four-path diff and least authority
+        shell: pwsh
+        run: |
+          git fetch --no-tags origin '${{ github.event.pull_request.base.sha }}'
+          $actual = @(git diff --name-only '${{ github.event.pull_request.base.sha }}...HEAD' | Sort-Object)
+          $expected = @(
+            '.github/workflows/wave6-wu204-inno-notimestamp-ab-reproducibility.yml',
+            '.pncc-dev/contracts/wave6-wu204-inno-notimestamp-ab-reproducibility.json',
+            '.pncc-dev/scripts/wu204_inno_notimestamp_ab_reproducibility.ps1',
+            '.pncc-dev/tests/test_wu204_inno_notimestamp_ab_reproducibility.py'
+          ) | Sort-Object
+          if (($actual -join "`n") -ne ($expected -join "`n")) { throw "BOUNDED_DIFF_MISMATCH`nactual=$($actual -join ',')" }
+          if ($actual | Where-Object { $_ -match '^(installer/windows/|src/|legacy/|tools/runtime-agent/|tools/release/|\.pncc-state/)' }) { throw 'FORBIDDEN_PATH_MUTATION' }
+          $wf = Get-Content -Raw '.github/workflows/wave6-wu204-inno-notimestamp-ab-reproducibility.yml'
+          foreach ($needle in @('self' + '-hosted', 'actions/' + 'upload-artifact', 'actions/' + 'cache')) { if ($wf.Contains($needle)) { throw ('WORKFLOW_AUTHORITY_EXPANSION_' + $needle) } }
+          if ($wf -match '(?m)^\s*contents:\s*write\s*$' -or $wf -match '(?m)^\s*security-events:\s*write\s*$') { throw 'WORKFLOW_WRITE_PERMISSION_EXPANSION' }
+          if (git status --porcelain) { throw 'DIRTY_CHECKOUT' }
+
+  run-ab-experiment:
+    if: github.event_name == 'issues' && github.event.issue.number == 458 && contains(github.event.issue.body, 'PNCC-WU204-AB-EXECUTE')
+    runs-on: windows-2025
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      issues: read
+    concurrency:
+      group: pncc-wu204-inno-notimestamp-ab-reproducibility
+      cancel-in-progress: false
+    steps:
+      - name: Checkout exact default-branch revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Verify exact default-branch revision and execution marker
+        shell: pwsh
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ((git rev-parse HEAD).Trim() -ne '${{ github.sha }}') { throw 'EXACT_MAIN_MISMATCH' }
+          $pattern = '<!--\s*PNCC-WU204-AB-EXECUTE\s+schema=1\s+expected_main=' + [Regex]::Escape('${{ github.sha }}') + '\s*-->'
+          if ([Regex]::Matches($env:ISSUE_BODY, $pattern).Count -ne 1) { throw 'EXACT_MAIN_EXECUTION_MARKER_INVALID' }
+          if ([Regex]::Matches($env:ISSUE_BODY, 'PNCC-WU204-AB-EXECUTE').Count -ne 1) { throw 'EXECUTION_MARKER_AMBIGUOUS' }
+          if ((git rev-parse ('${{ github.sha }}:installer/windows/VPS-Control-PNCC.iss')).Trim() -ne 'd30a158aef3535a9066608495b45abcf41112926') { throw 'INSTALLER_DEFINITION_BLOB_MISMATCH' }
+      - name: Execute controlled A/B experiment
+        shell: powershell
+        env:
+          PNCC_ISSUE_BODY: ${{ github.event.issue.body }}
+          PNCC_MAIN_SHA: ${{ github.sha }}
+        run: .\.pncc-dev\scripts\wu204_inno_notimestamp_ab_reproducibility.ps1
+      - name: Prove zero experiment persistence and clean checkout
+        if: always()
+        shell: pwsh
+        run: |
+          foreach ($path in @(
+            (Join-Path $env:RUNNER_TEMP 'innosetup-7.1.0-x64.exe'),
+            (Join-Path $env:RUNNER_TEMP 'pncc-wu204-inno-7.1.0'),
+            (Join-Path $env:RUNNER_TEMP 'pncc-wu204-ab')
+          )) { if (Test-Path -LiteralPath $path) { throw "EPHEMERAL_PATH_PERSISTED:$path" } }
+          if (git status --porcelain) { throw 'CHECKOUT_NOT_CLEAN' }
