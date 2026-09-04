@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "receipt_type": "PNCC_INSTALLER_COMPILER_ACQUISITION",
+  "policy_source": "PIPE-WU-184",
+  "toolchain": {
+    "family": "Inno Setup",
+    "version": "7.1.0",
+    "edition": "x64",
+    "upstream_repository": "jrsoftware/issrc",
+    "immutable_release_tag": "is-7_1_0",
+    "release_id": 369110765,
+    "asset_id": 511336600,
+    "asset_filename": "innosetup-7.1.0-x64.exe"
+  },
+  "artifact": {
+    "sha256": "0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f",
+    "byte_count": 14304168
+  },
+  "source": {
+    "url": "https://github.com/jrsoftware/issrc/releases/download/is-7_1_0/innosetup-7.1.0-x64.exe",
+    "mutable_latest": false,
+    "mirror_trust_anchor": false,
+    "package_manager_sole_trust": false
+  },
+  "github_release_attestation": {
+    "verified": true,
+    "repository": "jrsoftware/issrc",
+    "verifier": "gh release verify-asset"
+  },
+  "authenticode": {
+    "verified": true,
+    "publisher": "Pyrsys B.V."
+  },
+  "acquisition": {
+    "runner_provider": "github-hosted",
+    "runner_os": "Windows",
+    "runner_image": "windows-2025",
+    "acquired_at_utc": "2026-09-04T05:20:00Z"
+  },
+  "verification": {
+    "status": "VERIFIED",
+    "fail_closed": true
+  }
+}
