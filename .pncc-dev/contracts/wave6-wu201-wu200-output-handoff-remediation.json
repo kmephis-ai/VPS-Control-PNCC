@@ -10,10 +10,16 @@
     "powershell_runtime": "WINDOWS_POWERSHELL_5_1",
     "required_encoding": "ASCII_BOM_FREE"
   },
+  "compatibility_remediation": {
+    "workflow": ".github/workflows/wave6-wu200-reproducible-installer-artifact.yml",
+    "rule": "ORIGINAL_WU200_EXACT_DIFF_ONLY_ON_ORIGINAL_WU200_BRANCH",
+    "future_maintenance": "RUN_WU200_TESTS_AND_LEAST_AUTHORITY_WITH_CURRENT_WU_OWNING_EXACT_DIFF"
+  },
   "allowed_mutations": [
     ".pncc-dev/scripts/wu200_reproducible_installer_artifact.ps1",
+    ".github/workflows/wave6-wu200-reproducible-installer-artifact.yml",
     ".pncc-dev/contracts/wave6-wu201-wu200-output-handoff-remediation.json",
-    ".pncc-dev/tests/test_wu201_wu200_output_handoff_remediation.py",
+    ".pncc-dev/tests/test_wu201_wu200-output-handoff-remediation.py",
     ".github/workflows/wave6-wu201-wu200-output-handoff-remediation.yml"
   ],
   "authority": {
