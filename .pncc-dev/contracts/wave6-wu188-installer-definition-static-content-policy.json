@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "work_unit_id": "PIPE-WU-188",
+  "role": "INSTALLER_DEFINITION_STATIC_CONTENT_VALIDATOR_READINESS",
+  "runtime_required": false,
+  "source_identity": {
+    "repository": "kmephis-ai/VPS-Control-PNCC",
+    "main_sha": "e4b64a6b3d5972584d80370f626c819ec56bbaab"
+  },
+  "wu187_identity_dependency": {
+    "work_unit_id": "PIPE-WU-187",
+    "installer_definition_identity_authorized": false
+  },
+  "proposal_content_authorized": false,
+  "required_markers": [
+    "; PNCC-INVARIANT WINDOWS_10_COMPATIBLE=true",
+    "; PNCC-INVARIANT POWERSHELL_51_COMPATIBLE=true",
+    "; PNCC-INVARIANT RESERVE_1080=RESERVE_MANUAL/MANUAL_ONLY",
+    "; PNCC-INVARIANT RESERVE_1080_AUTOMATED_LIFECYCLE=false",
+    "; PNCC-INVARIANT PRIMARY_1081=PRIMARY_AUTO",
+    "; PNCC-INVARIANT PRIMARY_1081_AUTHORITY_EXPANSION=false",
+    "; PNCC-INVARIANT V631_SHA256=385e5178f10e79b0b234376e6a6671b64ce523a3971b2b4341ec94ce1efee11e",
+    "; PNCC-INVARIANT EMBED_SECRETS_OR_PASSWORDS=false",
+    "; PNCC-INVARIANT PUTTY_PLAINTEXT_PW=false",
+    "; PNCC-INVARIANT HOST_KEY_VERIFICATION_FAIL_CLOSED=true"
+  ],
+  "forbidden_pattern_classes": [
+    "plaintext_putty_pw",
+    "secret_or_password_assignment",
+    "host_key_verification_weakening",
+    "reserve_1080_automated_lifecycle",
+    "v631_mutation",
+    "network_or_download_execution",
+    "compiler_execution",
+    "security_weakening"
+  ],
+  "decision": {
+    "allowed": ["ADMITTED", "BLOCKED"],
+    "unexpected_input_is_blocked": true,
+    "admitted_means_static_safety_only": true,
+    "admitted_does_not_authorize_identity_materialization_or_build": true
+  },
+  "authority": {
+    "bind_installer_definition_identity": false,
+    "persist_installer_definition": false,
+    "authorize_proposal_content": false,
+    "compiler_acquisition": false,
+    "compiler_execution": false,
+    "binary_build": false,
+    "artifact_upload": false,
+    "product_runtime_mutation": false,
+    "release": false,
+    "tag": false,
+    "promotion": false,
+    "stable_transition": false,
+    "ruleset_or_security_weakening": false,
+    "self_hosted_runner": false,
+    "reserve_1080_lifecycle_mutation": false,
+    "primary_1081_lifecycle_mutation": false,
+    "v631_mutation": false,
+    "secret_collection": false
+  },
+  "classification": "INSTALLER_DEFINITION_STATIC_CONTENT_VALIDATOR_READINESS_ONLY_NOT_DEFINITION_OR_BUILD_AUTHORITY"
+}
