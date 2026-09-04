@@ -86,7 +86,7 @@ jobs:
           f=.github/workflows/wave6-wu191-installer-definition-durable-identity-binding-transaction.yml
           grep -q '^  contents: read$' "$f"
           ! grep -Eq 'contents: write|issues: write|pull-requests: write|self-hosted' "$f"
-          ! grep -Eq 'compiler|iscc|innosetup|artifact.*upload' .pncc-dev/scripts/wu191_installer_definition_durable_identity_binding_transaction.py
+          ! grep -Eq 'subprocess|os\.system|Popen|iscc|innosetup|artifact.*upload' .pncc-dev/scripts/wu191_installer_definition_durable_identity_binding_transaction.py
 
       - name: Clean checkout after validation
         shell: bash
