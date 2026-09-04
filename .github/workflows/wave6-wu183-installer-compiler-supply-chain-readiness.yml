@@ -1,0 +1,74 @@
+name: wave6-wu183-installer-compiler-supply-chain-readiness
+
+on:
+  pull_request:
+    paths:
+      - '.pncc-dev/contracts/wave6-wu183-installer-compiler-supply-chain-readiness.json'
+      - '.pncc-dev/scripts/evaluate_wave6_wu183_installer_compiler_supply_chain_readiness.py'
+      - '.pncc-dev/tests/test_wu183_installer_compiler_supply_chain_readiness.py'
+      - '.github/workflows/wave6-wu183-installer-compiler-supply-chain-readiness.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  readiness:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Compile evaluator and tests
+        run: |
+          python3 -m py_compile \
+            .pncc-dev/scripts/evaluate_wave6_wu183_installer_compiler_supply_chain_readiness.py \
+            .pncc-dev/tests/test_wu183_installer_compiler_supply_chain_readiness.py
+
+      - name: Run adversarial tests
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_wu183_installer_compiler_supply_chain_readiness.py' -v
+
+      - name: Evaluate canonical readiness contract
+        run: python3 .pncc-dev/scripts/evaluate_wave6_wu183_installer_compiler_supply_chain_readiness.py
+
+      - name: Enforce bounded four-file diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='${{ github.event.pull_request.base.sha }}'
+          head='${{ github.event.pull_request.head.sha }}'
+          mapfile -t changed < <(git diff --name-only "$base" "$head" | sort)
+          printf '%s\n' "${changed[@]}"
+          expected=(
+            '.github/workflows/wave6-wu183-installer-compiler-supply-chain-readiness.yml'
+            '.pncc-dev/contracts/wave6-wu183-installer-compiler-supply-chain-readiness.json'
+            '.pncc-dev/scripts/evaluate_wave6_wu183_installer_compiler_supply_chain_readiness.py'
+            '.pncc-dev/tests/test_wu183_installer_compiler_supply_chain_readiness.py'
+          )
+          [[ ${#changed[@]} -eq 4 ]]
+          for i in 0 1 2 3; do [[ "${changed[$i]}" == "${expected[$i]}" ]]; done
+          ! git diff --name-only "$base" "$head" -- 'src/**' 'tools/runtime-agent/**' | grep -q .
+
+      - name: Enforce least-authority workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          wf='.github/workflows/wave6-wu183-installer-compiler-supply-chain-readiness.yml'
+          contract='.pncc-dev/contracts/wave6-wu183-installer-compiler-supply-chain-readiness.json'
+          grep -Fq 'permissions:' "$wf"
+          grep -Fq 'contents: read' "$wf"
+          ! grep -Eq 'contents:[[:space:]]*write|issues:[[:space:]]*write|pull-requests:[[:space:]]*write|self-hosted' "$wf"
+          ! grep -Eiq 'curl|wget|Invoke-WebRequest|innosetup-.*\.exe.*(run|start|exec)|gh release upload|upload-release-asset' "$wf"
+          python3 - <<'PY'
+          import json
+          p='.pncc-dev/contracts/wave6-wu183-installer-compiler-supply-chain-readiness.json'
+          d=json.load(open(p, encoding='utf-8'))
+          assert d['execution_boundary']['download_compiler_in_this_work_unit'] is False
+          assert d['execution_boundary']['execute_compiler_in_this_work_unit'] is False
+          assert d['execution_boundary']['create_pncc_installer_binary'] is False
+          assert d['authority']['installer_implementation'] is False
+          assert d['authority']['binary_build'] is False
+          PY
