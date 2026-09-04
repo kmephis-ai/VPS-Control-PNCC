@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "role": "INSTALLER_DEFINITION_EXACT_WRITE_AUTHORIZATION_CONTRACT_READINESS",
+  "work_unit_id": "PIPE-WU-193",
+  "source_work_unit_id": "PIPE-WU-192",
+  "repository": "kmephis-ai/VPS-Control-PNCC",
+  "positive_decision": "WRITE_AUTHORIZATION_CONTRACT_READY_ONLY",
+  "authority_boundary": {
+    "owner_authorization_state_required": "NOT_GRANTED",
+    "write_authorized": false,
+    "durable_identity_bound": false,
+    "proposal_materialized": false,
+    "binding_receipt_persisted": false,
+    "verified": false,
+    "compiler_execution_authorized": false,
+    "build_authorized": false
+  },
+  "future_grant_must_bind": [
+    "exact repository",
+    "exact base SHA",
+    "exact non-main target branch",
+    "safe repository-relative .iss target path",
+    "exact proposal SHA-256",
+    "exact proposal byte count",
+    "exact WU192 execution-authorization-request SHA-256",
+    "exact expected prewrite path state",
+    "force=false",
+    "immutable postwrite blob readback",
+    "single transaction semantics",
+    "unconsumed authorization identifier"
+  ],
+  "prewrite_states": {
+    "ABSENT": "expected_prewrite_blob_sha must be empty",
+    "EXACT_BLOB": "expected_prewrite_blob_sha must be a lowercase Git SHA-1"
+  },
+  "single_use_semantics": {
+    "single_transaction": true,
+    "consumed": false,
+    "scope": "exactly one future bounded identity-binding write transaction"
+  },
+  "forbidden": [
+    "persisting any .iss file",
+    "creating or updating the installer-definition target path",
+    "activating write authority",
+    "persisting a binding receipt",
+    "compiler acquisition, installation or execution",
+    "binary or .exe build",
+    "artifact upload",
+    "src/** or product/runtime mutation",
+    "release, tag, promotion or Stable transition",
+    "ruleset or security weakening",
+    "self-hosted runner",
+    "force update",
+    "main branch target",
+    "1080 lifecycle mutation",
+    "1081 authority expansion",
+    "V6.3.1 mutation"
+  ],
+  "canonical_digest": "SHA-256 of compact sorted-key UTF-8 JSON authorization contract",
+  "runtime_required": false
+}
