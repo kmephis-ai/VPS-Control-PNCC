@@ -189,7 +189,7 @@ def main(argv: Iterable[str] | None = None) -> int:
         print(json.dumps({"error": "INVALID_JSON", "detail": str(exc)}, sort_keys=True))
         return 2
     receipt = evaluate(source, request)
-    print(json.dumps(receipt, sort_keys=True, separators=(",", ",")))
+    print(json.dumps(receipt, sort_keys=True, separators=(",", ":")))
     return 0 if receipt["decision"] == "EXECUTION_AUTHORIZATION_READY_ONLY" else 1
 
 
