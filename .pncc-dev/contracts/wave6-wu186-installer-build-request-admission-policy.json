@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "work_unit_id": "PIPE-WU-186",
+  "role": "INSTALLER_BUILD_REQUEST_ADMISSION_READINESS",
+  "runtime_required": false,
+  "depends_on": {
+    "wu185_work_unit_id": "PIPE-WU-185",
+    "wu185_merged_main_sha": "52e635d81f3d76485ffdff9bce774fc7a9a1f7ff",
+    "wu185_evaluator_path": ".pncc-dev/scripts/evaluate_wave6_wu185_installer_compiler_receipt_admission.py"
+  },
+  "source_identity": {
+    "repository": "kmephis-ai/VPS-Control-PNCC",
+    "main_sha": "52e635d81f3d76485ffdff9bce774fc7a9a1f7ff"
+  },
+  "installer_definition": null,
+  "decision": {
+    "default": "BLOCKED",
+    "allowed": ["ADMITTED", "BLOCKED"],
+    "require_wu185_admitted": true,
+    "require_exact_source_main_sha": true,
+    "require_exact_installer_definition_path_and_git_blob_sha": true,
+    "unexpected_input_is_blocked": true
+  },
+  "execution_boundary": {
+    "persist_admitted_request": false,
+    "create_installer_definition": false,
+    "download_compiler": false,
+    "install_compiler": false,
+    "execute_compiler": false,
+    "build_installer_binary": false,
+    "upload_artifact": false,
+    "mutate_product_runtime": false
+  },
+  "authority": {
+    "installer_definition": false,
+    "compiler_acquisition": false,
+    "binary_build": false,
+    "runtime_execution": false,
+    "product_runtime_mutation": false,
+    "release": false,
+    "tag": false,
+    "promotion": false,
+    "stable_transition": false,
+    "ruleset_or_security_weakening": false,
+    "self_hosted_runner": false,
+    "reserve_1080_lifecycle_mutation": false,
+    "primary_1081_lifecycle_mutation": false,
+    "v631_mutation": false,
+    "secret_collection": false
+  },
+  "classification": "BUILD_REQUEST_ADMISSION_READINESS_ONLY_NOT_INSTALLER_DEFINITION_OR_BUILD_AUTHORITY"
+}
