@@ -27,9 +27,32 @@ def git_blob(path: str) -> str:
     ).strip()
 
 
-def git_tree(path: str) -> str:
+def ensure_historical_commit(ref: str) -> None:
+    present = subprocess.run(
+        ['git', 'cat-file', '-e', f'{ref}^{{commit}}'],
+        cwd=ROOT,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    )
+    if present.returncode == 0:
+        return
+    subprocess.check_call(
+        ['git', 'fetch', '--no-tags', '--depth=1', 'origin', ref],
+        cwd=ROOT,
+    )
+    subprocess.check_call(
+        ['git', 'cat-file', '-e', f'{ref}^{{commit}}'],
+        cwd=ROOT,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
+
+def git_object_at(ref: str, path: str) -> str:
+    ensure_historical_commit(ref)
     return subprocess.check_output(
-        ['git', 'rev-parse', f'HEAD:{path}'], cwd=ROOT, text=True
+        ['git', 'rev-parse', f'{ref}:{path}'], cwd=ROOT, text=True
     ).strip()
 
 
@@ -37,6 +60,8 @@ class ProductStateSnapshotContractWU143Tests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.contract = json.loads(CONTRACT.read_text(encoding='utf-8'))
+        cls.authorized_base = cls.contract['authorized_base_sha']
+        ensure_historical_commit(cls.authorized_base)
         cls.source_bytes = SOURCE.read_bytes()
         cls.source = cls.source_bytes.decode('utf-8-sig')
         cls.source_lower = cls.source.lower()
@@ -62,7 +87,7 @@ class ProductStateSnapshotContractWU143Tests(unittest.TestCase):
         boundary = self.contract['packaging_boundary']
         self.assertEqual(boundary['canonical_package_source_root'], CANONICAL_PACKAGE_ROOT)
         self.assertEqual(boundary['authorized_base_tree_sha'], CANONICAL_PACKAGE_TREE)
-        self.assertEqual(git_tree(CANONICAL_PACKAGE_ROOT), CANONICAL_PACKAGE_TREE)
+        self.assertEqual(git_object_at(self.authorized_base, CANONICAL_PACKAGE_ROOT), CANONICAL_PACKAGE_TREE)
         self.assertEqual(boundary['foundation_source_root'], 'src/foundations/windows-v7')
         self.assertFalse(boundary['foundation_in_current_candidate_package'])
         self.assertFalse(boundary['candidate_source_declaration_modified'])
@@ -149,7 +174,7 @@ class ProductStateSnapshotContractWU143Tests(unittest.TestCase):
     def test_existing_product_and_wu137_anchors_are_byte_preserved(self):
         self.assertEqual(self.contract['byte_preserved_existing_product_anchors'], EXPECTED_ANCHORS)
         for path, expected in EXPECTED_ANCHORS.items():
-            self.assertEqual(git_blob(path), expected, path)
+            self.assertEqual(git_object_at(self.authorized_base, path), expected, path)
         self.assertEqual(
             self.contract['stable_routing_baseline_sha256'],
             '385e5178f10e79b0b234376e6a6671b64ce523a3971b2b4341ec94ce1efee11e',
