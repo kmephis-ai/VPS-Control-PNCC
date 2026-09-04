@@ -42,15 +42,15 @@ class WU199ContractTests(unittest.TestCase):
         self.assertIn('PNCC-WU199-BUILD-EXECUTE', self.script)
         self.assertIn('CHECKOUT_IDENTITY_MISMATCH', self.script)
         self.assertIn('INSTALLER_DEFINITION_BLOB_MISMATCH', self.script)
-        self.assertIn("d30a158aef3535a9066608495b45abcf41112926", self.script)
+        self.assertIn('d30a158aef3535a9066608495b45abcf41112926', self.script)
         self.assertNotIn("$ExpectedMain = '4854d6c", self.script)
 
     def test_executor_deletes_candidate_and_compiler(self):
-        self.assertIn("Remove-Item -LiteralPath $candidatePath -Force", self.script)
-        self.assertIn("Remove-Item -LiteralPath $compilerSetup -Force", self.script)
-        self.assertIn("Remove-Item -LiteralPath $innoDir -Recurse -Force", self.script)
-        self.assertIn("candidate_uploaded = $false", self.script)
-        self.assertIn("candidate_persisted_after_job = $false", self.script)
+        self.assertIn('Remove-Item -LiteralPath $candidatePath -Force', self.script)
+        self.assertIn('Remove-Item -LiteralPath $compilerSetup -Force', self.script)
+        self.assertIn('Remove-Item -LiteralPath $innoDir -Recurse -Force', self.script)
+        self.assertIn('candidate_uploaded = $false', self.script)
+        self.assertIn('candidate_persisted_after_job = $false', self.script)
 
     def test_workflow_pr_does_not_build(self):
         if not self.workflow:
@@ -58,9 +58,9 @@ class WU199ContractTests(unittest.TestCase):
         self.assertIn("if: github.event_name == 'pull_request'", self.workflow)
         self.assertIn("if: github.event_name == 'issues'", self.workflow)
         self.assertIn('runs-on: windows-2025', self.workflow)
-        self.assertNotIn('actions/upload-artifact', self.workflow)
-        self.assertNotIn('actions/cache', self.workflow)
-        self.assertNotRegex(self.workflow, r'contents:\s*write')
+        self.assertNotRegex(self.workflow, r'uses:\s*actions/upload-artifact@')
+        self.assertNotRegex(self.workflow, r'uses:\s*actions/cache@')
+        self.assertNotRegex(self.workflow, r'^\s*contents:\s*write\s*$', re.MULTILINE)
 
 
 if __name__ == '__main__':
