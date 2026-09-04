@@ -44,5 +44,7 @@ jobs:
         run: |
           set -euo pipefail
           file=.github/workflows/wu181-windows-installation-readiness.yml
-          ! grep -Eq 'self-hosted|contents:[[:space:]]*write|actions:[[:space:]]*write|pull-requests:[[:space:]]*write' "$file"
-          ! grep -Eq 'workflow_dispatch|schedule:' "$file"
+          grep -Fxq '  contents: read' "$file"
+          grep -Fxq '    runs-on: ubuntu-24.04' "$file"
+          ! grep -Eq '^[[:space:]]+(contents|actions|pull-requests):[[:space:]]+write' "$file"
+          ! grep -Eq '^[[:space:]]*(workflow_dispatch|schedule):' "$file"
