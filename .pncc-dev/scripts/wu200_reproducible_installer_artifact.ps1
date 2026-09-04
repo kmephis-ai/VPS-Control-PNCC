@@ -79,7 +79,7 @@ if (-not $buildCompleted) { if (Test-Path -LiteralPath $outputDir) { Remove-Item
 if (Test-Path -LiteralPath $compilerSetup) { Fail 'COMPILER_SETUP_NOT_DELETED' }
 if (Test-Path -LiteralPath $innoDir) { Fail 'EPHEMERAL_COMPILER_NOT_DELETED' }
 
-@('candidate_path=' + $candidatePath,'candidate_sha256=' + $candidateSha,'candidate_size=' + $candidateSize,'wu199_byte_identical=' + $byteIdentical.ToString().ToLowerInvariant()) | Add-Content -LiteralPath $githubOutput -Encoding utf8
+@('candidate_path=' + $candidatePath,'candidate_sha256=' + $candidateSha,'candidate_size=' + $candidateSize,'wu199_byte_identical=' + $byteIdentical.ToString().ToLowerInvariant()) | Add-Content -LiteralPath $githubOutput -Encoding ascii
 $receipt = [ordered]@{
     schema_version = 1; role = 'REPRODUCIBLE_INSTALLER_ARTIFACT_PREUPLOAD_RECEIPT'; work_unit_id = 'PIPE-WU-200'; main_sha = $mainSha
     runner_class = 'GITHUB_HOSTED'; compiler_expected_size_bytes = $ExpectedCompilerSize; compiler_observed_size_bytes = $compilerObservedSize
