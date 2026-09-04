@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "work_unit_id": "PIPE-WU-189",
+  "role": "INSTALLER_DEFINITION_CANONICAL_PROPOSAL_ENVELOPE_DIGEST_READINESS",
+  "runtime_required": false,
+  "source_identity": {
+    "repository": "kmephis-ai/VPS-Control-PNCC",
+    "main_sha": "3f2c7cb81fc21ddb5a4e412df142ed4a9a1e59f9"
+  },
+  "static_validator_dependency": {
+    "work_unit_id": "PIPE-WU-188",
+    "path": ".pncc-dev/scripts/wu188_installer_definition_static_validator.py",
+    "single_source_of_truth": true
+  },
+  "proposal_identity": {
+    "encoding": "UTF-8",
+    "hash": "SHA-256",
+    "exact_bytes": true,
+    "newline_normalization": false,
+    "include_byte_count": true,
+    "durable_installer_definition_identity_bound": false
+  },
+  "decision": {
+    "allowed": ["ADMITTED", "BLOCKED"],
+    "unexpected_input_is_blocked": true,
+    "blocked_input_retains_audit_digest": true,
+    "admitted_means_static_safety_only": true,
+    "admitted_does_not_authorize_identity_materialization_or_build": true
+  },
+  "durable_state": {
+    "installer_definition_path": null,
+    "installer_definition_blob_sha": null,
+    "installer_definition_sha256": null,
+    "proposal_receipt_persisted": false
+  },
+  "authority": {
+    "bind_installer_definition_identity": false,
+    "persist_installer_definition": false,
+    "persist_verified_proposal_receipt": false,
+    "authorize_proposal_content": false,
+    "compiler_acquisition": false,
+    "compiler_execution": false,
+    "binary_build": false,
+    "artifact_upload": false,
+    "product_runtime_mutation": false,
+    "release": false,
+    "tag": false,
+    "promotion": false,
+    "stable_transition": false,
+    "ruleset_or_security_weakening": false,
+    "self_hosted_runner": false,
+    "reserve_1080_lifecycle_mutation": false,
+    "primary_1081_authority_expansion": false,
+    "v631_mutation": false,
+    "secret_collection": false
+  },
+  "classification": "INSTALLER_DEFINITION_CANONICAL_PROPOSAL_ENVELOPE_DIGEST_READINESS_ONLY_NOT_IDENTITY_OR_BUILD_AUTHORITY"
+}
