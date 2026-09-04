@@ -1,4 +1,4 @@
-# VPS Control Center v7.0.1 — Candidate build-input activation
+# VPS Control Center v7.0.2 — Candidate build-input activation
 
 RC14.39 is the first governed candidate-source identity derived from the admitted post-RC14.38 credential-remediation baseline. The deterministic build recipe is declared separately; no candidate artifact is created by this source-identity transaction. Runtime/promotion authority remains false.
 

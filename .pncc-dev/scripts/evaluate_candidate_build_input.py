@@ -308,7 +308,72 @@ def _validate_version_surface(root: Path, source_root: str, candidate_version: s
     return None
 
 
-def _validate_provenance_and_manifest(root: Path, *, source_root: str, candidate_version: str, provenance_path: str, manifest_path: str) -> Tuple[Optional[str], Optional[int], Optional[int]]:
+def _validate_previous_runtime_lineage(
+    root: Path,
+    *,
+    provenance_path: str,
+    provenance: Dict[str, Any],
+    baseline: Dict[str, Any],
+    candidate_version: str,
+    allowed_provenance_prefixes: Sequence[str],
+) -> Optional[str]:
+    parent = provenance.get("parent")
+    if parent is None:
+        if baseline.get("previous_runtime_version") != "7.0.0-rc14.38":
+            return "provenance previous_runtime_version mismatch"
+        return None
+    if not isinstance(parent, dict):
+        return "provenance parent must be an object"
+    previous_version = parent.get("previous_release_version")
+    if not isinstance(previous_version, str) or not VERSION_RX.fullmatch(previous_version):
+        return "provenance parent previous_release_version invalid"
+    if previous_version == candidate_version:
+        return "provenance parent previous_release_version cannot equal candidate_version"
+    previous_path = _normalize_relative_path(parent.get("previous_provenance_path"))
+    if previous_path is None:
+        return "provenance parent previous_provenance_path invalid"
+    if not _under_prefix(previous_path, allowed_provenance_prefixes):
+        return "provenance parent previous_provenance_path outside governed prefixes"
+    if previous_path == provenance_path:
+        return "provenance parent cannot self-reference current provenance"
+    if baseline.get("previous_runtime_version") != previous_version:
+        return "provenance previous_runtime_version mismatch"
+    previous_blob = _git_blob(root, previous_path)
+    if previous_blob is None:
+        return "previous provenance is not available from exact HEAD"
+    try:
+        previous = json.loads(previous_blob.decode("utf-8-sig"))
+    except Exception as exc:
+        return f"cannot parse previous provenance: {exc}"
+    if not isinstance(previous, dict):
+        return "previous provenance must be an object"
+    if previous.get("hash_semantics") != "CANONICAL_GIT_BLOB_BYTES":
+        return "previous provenance hash_semantics mismatch"
+    previous_baseline = previous.get("baseline")
+    if not isinstance(previous_baseline, dict):
+        return "previous provenance baseline missing"
+    if previous_baseline.get("activated_candidate_version") != previous_version:
+        return "previous provenance activated_candidate_version mismatch"
+    if previous_baseline.get("embedded_version") != previous_version:
+        return "previous provenance embedded_version mismatch"
+    previous_safety = previous.get("safety")
+    if not isinstance(previous_safety, dict):
+        return "previous provenance safety block missing"
+    for key in ("runtime_authority", "promotion_authority", "stable_done"):
+        if previous_safety.get(key) is not False:
+            return f"previous provenance safety authority weakened: {key}"
+    return None
+
+
+def _validate_provenance_and_manifest(
+    root: Path,
+    *,
+    source_root: str,
+    candidate_version: str,
+    provenance_path: str,
+    manifest_path: str,
+    allowed_provenance_prefixes: Sequence[str],
+) -> Tuple[Optional[str], Optional[int], Optional[int]]:
     prov_blob = _git_blob(root, provenance_path)
     if prov_blob is None:
         return "provenance is not available from exact HEAD", None, None
@@ -316,6 +381,8 @@ def _validate_provenance_and_manifest(root: Path, *, source_root: str, candidate
         prov = json.loads(prov_blob.decode("utf-8-sig"))
     except Exception as exc:
         return f"cannot parse provenance: {exc}", None, None
+    if not isinstance(prov, dict):
+        return "provenance must be an object", None, None
     if prov.get("hash_semantics") != "CANONICAL_GIT_BLOB_BYTES":
         return "provenance hash_semantics mismatch", None, None
     if prov.get("source_root") != source_root:
@@ -329,8 +396,16 @@ def _validate_provenance_and_manifest(root: Path, *, source_root: str, candidate
         return "provenance still requires a version bump", None, None
     if baseline.get("activated_candidate_version") != candidate_version:
         return "provenance activated_candidate_version mismatch", None, None
-    if baseline.get("previous_runtime_version") != "7.0.0-rc14.38":
-        return "provenance previous_runtime_version mismatch", None, None
+    lineage_error = _validate_previous_runtime_lineage(
+        root,
+        provenance_path=provenance_path,
+        provenance=prov,
+        baseline=baseline,
+        candidate_version=candidate_version,
+        allowed_provenance_prefixes=allowed_provenance_prefixes,
+    )
+    if lineage_error:
+        return lineage_error, None, None
     safety = prov.get("safety")
     if not isinstance(safety, dict):
         return "provenance safety block missing", None, None
@@ -509,7 +584,14 @@ def evaluate(repository_root: Path, policy_path: Path) -> Dict[str, Any]:
     if version_error:
         return _result(BLOCKED_VERSION_MISMATCH, version_error, subject_sha)
     manifest_path = recipe["manifest_path"]
-    provenance_error, inventory_count, manifest_count = _validate_provenance_and_manifest(root, source_root=source_root, candidate_version=candidate_version, provenance_path=provenance_path, manifest_path=manifest_path)
+    provenance_error, inventory_count, manifest_count = _validate_provenance_and_manifest(
+        root,
+        source_root=source_root,
+        candidate_version=candidate_version,
+        provenance_path=provenance_path,
+        manifest_path=manifest_path,
+        allowed_provenance_prefixes=policy["allowed_provenance_prefixes"],
+    )
     if provenance_error:
         state = BLOCKED_MANIFEST_MISMATCH if "manifest" in provenance_error.lower() else BLOCKED_PROVENANCE_MISMATCH
         return _result(state, provenance_error, subject_sha)
