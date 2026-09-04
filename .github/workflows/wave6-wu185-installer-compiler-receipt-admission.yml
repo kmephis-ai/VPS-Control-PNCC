@@ -4,7 +4,7 @@ on:
   pull_request:
     paths:
       - '.pncc-dev/contracts/wave6-wu185-installer-compiler-receipt-consumer-admission.json'
-      - '.pncc-dev/scripts/evaluate_wave6_wu185-installer-compiler-receipt-admission.py'
+      - '.pncc-dev/scripts/evaluate_wave6_wu185_installer_compiler_receipt_admission.py'
       - '.pncc-dev/tests/test_wu185_installer_compiler_receipt_admission.py'
       - '.github/workflows/wave6-wu185-installer-compiler-receipt-admission.yml'
 
@@ -52,7 +52,7 @@ jobs:
           cat > /tmp/wu185-expected.txt <<'EOF'
           .github/workflows/wave6-wu185-installer-compiler-receipt-admission.yml
           .pncc-dev/contracts/wave6-wu185-installer-compiler-receipt-consumer-admission.json
-          .pncc-dev/scripts/evaluate_wave6_wu185-installer-compiler-receipt-admission.py
+          .pncc-dev/scripts/evaluate_wave6_wu185_installer_compiler_receipt_admission.py
           .pncc-dev/tests/test_wu185_installer_compiler_receipt_admission.py
           EOF
           sort -o /tmp/wu185-expected.txt /tmp/wu185-expected.txt
