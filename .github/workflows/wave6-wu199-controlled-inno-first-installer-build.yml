@@ -1,0 +1,97 @@
+name: wave6-wu199-controlled-inno-first-installer-build
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/wave6-wu199-controlled-inno-first-installer-build.yml'
+      - '.pncc-dev/contracts/wave6-wu199-controlled-inno-first-installer-build.json'
+      - '.pncc-dev/scripts/wu199_controlled_inno_first_installer_build.ps1'
+      - '.pncc-dev/tests/test_wu199_controlled_inno_first_installer_build.py'
+  issues:
+    types: [edited]
+
+permissions:
+  contents: read
+
+jobs:
+  validate-wu199:
+    if: github.event_name == 'pull_request'
+    runs-on: windows-2025
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify exact PR head
+        shell: pwsh
+        run: if ((git rev-parse HEAD).Trim() -ne '${{ github.event.pull_request.head.sha }}') { throw 'EXACT_HEAD_MISMATCH' }
+      - name: Parse controlled build executor under Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path '.pncc-dev/scripts/wu199_controlled_inno_first_installer_build.ps1'), [ref]$tokens, [ref]$errors)
+          if (@($errors).Count -ne 0) { $errors | Out-String | Write-Error; exit 1 }
+      - name: Run WU199 adversarial/static tests
+        shell: pwsh
+        run: python .pncc-dev/tests/test_wu199_controlled_inno_first_installer_build.py -v
+      - name: Verify exact bounded diff and least authority
+        shell: pwsh
+        run: |
+          git fetch --no-tags origin '${{ github.event.pull_request.base.sha }}'
+          $actual = @(git diff --name-only '${{ github.event.pull_request.base.sha }}...HEAD' | Sort-Object)
+          $expected = @(
+            '.github/workflows/wave6-wu199-controlled-inno-first-installer-build.yml',
+            '.pncc-dev/contracts/wave6-wu199-controlled-inno-first-installer-build.json',
+            '.pncc-dev/scripts/wu199_controlled_inno_first_installer_build.ps1',
+            '.pncc-dev/tests/test_wu199_controlled_inno_first_installer_build.py'
+          ) | Sort-Object
+          if (($actual -join "`n") -ne ($expected -join "`n")) { throw "BOUNDED_DIFF_MISMATCH`nactual=$($actual -join ',')" }
+          if ($actual | Where-Object { $_ -match '^(src/|legacy/|tools/runtime-agent/|tools/release/|\.pncc-state/)' }) { throw 'FORBIDDEN_PATH_MUTATION' }
+          $wf = Get-Content -Raw '.github/workflows/wave6-wu199-controlled-inno-first-installer-build.yml'
+          $forbiddenLiterals = @('self' + '-hosted', 'actions/' + 'upload-artifact', 'actions/' + 'cache')
+          foreach ($needle in $forbiddenLiterals) { if ($wf.Contains($needle)) { throw ('WORKFLOW_AUTHORITY_EXPANSION_' + $needle) } }
+          if ($wf -match '(?m)^\s*contents:\s*write\s*$' -or $wf -match '(?m)^\s*security-events:\s*write\s*$') { throw 'WORKFLOW_WRITE_PERMISSION_EXPANSION' }
+          if (git status --porcelain) { throw 'DIRTY_CHECKOUT' }
+
+  build-and-receipt:
+    if: github.event_name == 'issues' && github.event.issue.number == 448 && contains(github.event.issue.body, 'PNCC-WU199-BUILD-EXECUTE')
+    runs-on: windows-2025
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      issues: read
+    concurrency:
+      group: pncc-wu199-controlled-first-installer-build
+      cancel-in-progress: false
+    steps:
+      - name: Checkout exact default-branch revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Verify exact default-branch revision
+        shell: pwsh
+        run: if ((git rev-parse HEAD).Trim() -ne '${{ github.sha }}') { throw 'EXACT_MAIN_MISMATCH' }
+      - name: Controlled acquire, ephemeral install, ISCC build, hash and delete candidate
+        shell: powershell
+        env:
+          PNCC_ISSUE_BODY: ${{ github.event.issue.body }}
+          PNCC_MAIN_SHA: ${{ github.sha }}
+        run: .\.pncc-dev\scripts\wu199_controlled_inno_first_installer_build.ps1
+      - name: Prove no compiler or candidate remains
+        shell: pwsh
+        run: |
+          if (Test-Path "$env:RUNNER_TEMP\innosetup-7.1.0-x64.exe") { throw 'COMPILER_SETUP_REMAINS' }
+          if (Test-Path "$env:RUNNER_TEMP\pncc-inno-7.1.0") { throw 'COMPILER_INSTALL_REMAINS' }
+          if (Test-Path "$env:RUNNER_TEMP\pncc-installer-output") { throw 'CANDIDATE_OUTPUT_REMAINS' }
+      - name: Prove checkout remained clean
+        shell: pwsh
+        run: if (git status --porcelain) { throw 'DIRTY_CHECKOUT' }
