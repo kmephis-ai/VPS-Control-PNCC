@@ -52,7 +52,7 @@ jobs:
           cat > /tmp/expected <<'EOF'
           .github/workflows/wave6-wu196-installer-definition-build-request-admission-binding.yml
           .pncc-dev/contracts/wave6-wu186-installer-build-request-admission-policy.json
-          .pncc-dev/tests/test_wu186-installer-build-request-admission.py
+          .pncc-dev/tests/test_wu186_installer_build_request_admission.py
           EOF
           sort -o /tmp/expected /tmp/expected
           diff -u /tmp/expected /tmp/actual
