@@ -1,0 +1,41 @@
+from pathlib import Path
+import json
+import re
+import unittest
+
+ROOT = Path(__file__).resolve().parents[2]
+SCRIPT = ROOT / '.pncc-dev/scripts/wu200_reproducible_installer_artifact.ps1'
+CONTRACT = ROOT / '.pncc-dev/contracts/wave6-wu201-wu200-output-handoff-remediation.json'
+
+
+class Wu201OutputHandoffTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.script = SCRIPT.read_text(encoding='utf-8-sig')
+        cls.contract = json.loads(CONTRACT.read_text(encoding='utf-8'))
+
+    def test_contract_is_bounded_harness_remediation(self):
+        self.assertEqual(self.contract['work_unit_id'], 'PIPE-WU-201')
+        self.assertEqual(self.contract['failure_class'], 'HARNESS_OUTPUT_HANDOFF_DEFECT')
+        self.assertEqual(self.contract['target']['required_encoding'], 'ASCII_BOM_FREE')
+        self.assertTrue(all(v is False for v in self.contract['authority'].values()))
+
+    def test_github_output_uses_ascii_encoding(self):
+        lines = [line for line in self.script.splitlines() if 'Add-Content' in line and '$githubOutput' in line]
+        self.assertEqual(len(lines), 1)
+        self.assertRegex(lines[0], r'-Encoding\s+ascii(?:\s|$)')
+        self.assertNotRegex(lines[0], r'-Encoding\s+utf8(?:\s|$)')
+
+    def test_all_four_output_keys_remain_present(self):
+        for key in ('candidate_path=', 'candidate_sha256=', 'candidate_size=', 'wu199_byte_identical='):
+            self.assertEqual(self.script.count(key), 1)
+
+    def test_no_scope_expansion_in_executor(self):
+        self.assertIn("$ExpectedCompilerSha256 = '0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f'", self.script)
+        self.assertIn("$ExpectedIssBlob = 'd30a158aef3535a9066608495b45abcf41112926'", self.script)
+        self.assertIn("$CandidateName = 'VPS-Control-PNCC-v7.0.2-setup.exe'", self.script)
+        self.assertNotIn('actions/upload-artifact', self.script)
+
+
+if __name__ == '__main__':
+    unittest.main()
