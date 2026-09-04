@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "role": "WINDOWS_INSTALLATION_FIRST_RUN_READINESS",
+  "work_unit": "PIPE-WU-181",
+  "base_sha": "3159da904a3f0741804cd3f67332e6e40c434604",
+  "status": "READY_FOR_SEPARATE_IMPLEMENTATION_WU",
+  "technology_selection": {
+    "installer_family": "Inno Setup 7",
+    "compiler_version_pinned": false,
+    "delivery_shape": "single-exe",
+    "reason": "lowest-risk fit for the current PowerShell-centric Windows package while retaining explicit upgrade, repair, uninstall and privilege policy controls"
+  },
+  "supported_platform": {
+    "os": "Windows 10",
+    "powershell": ["Windows PowerShell 5.1", "PowerShell 7"]
+  },
+  "prerequisites": {
+    "required_discovery": [
+      "PowerShell compatibility",
+      "Proxifier discovery/readiness",
+      "PuTTY discovery/readiness",
+      "supported existing VPSCC installation/configuration",
+      "credential storage readiness",
+      "host-key trust readiness",
+      "PRIMARY_AUTO 127.0.0.1:1081 readiness",
+      "RESERVE_MANUAL 127.0.0.1:1080 visibility/readiness"
+    ],
+    "automatic_install_of_proxifier": false,
+    "automatic_install_of_putty": false
+  },
+  "lifecycle_contract": {
+    "fresh_install": "stage immutable application files separately from owner configuration and secrets",
+    "upgrade": "preserve supported owner configuration and secret bindings unless explicit migration is required",
+    "migration": "fail closed on unknown layout or unsupported schema; never infer or expose secret values",
+    "repair": "repair application-owned files only; do not overwrite owner configuration or secret state by default",
+    "uninstall": "remove application-owned files and shortcuts; preserve owner configuration/secrets unless the user explicitly opts in to delete them",
+    "rollback": "future implementation must define an atomic or recoverable rollback boundary before replacing an existing supported installation"
+  },
+  "first_run_contract": {
+    "result_states": ["READY", "ATTENTION_REQUIRED", "BLOCKED"],
+    "must_explain": ["what happened", "why", "what the user can do next"],
+    "must_not_claim_runtime_truth_without_physical_evidence": true,
+    "must_not_weaken_security": true
+  },
+  "security_invariants": {
+    "primary_auto": "127.0.0.1:1081",
+    "reserve_manual": "127.0.0.1:1080",
+    "reserve_manual_lifecycle_automation_forbidden": true,
+    "v631_sha256": "385e5178f10e79b0b234376e6a6671b64ce523a3971b2b4341ec94ce1efee11e",
+    "v631_mutation_forbidden": true,
+    "dpapi_plaintext_export_forbidden": true,
+    "putty_password_transport": "-pwfile",
+    "plaintext_putty_pw_forbidden": true,
+    "host_key_verification": "fail-closed"
+  },
+  "authority": {
+    "installer_implementation": false,
+    "binary_build": false,
+    "runtime_execution": false,
+    "runtime_mutation": false,
+    "release": false,
+    "tag": false,
+    "promotion": false,
+    "stable": false,
+    "ruleset_or_security_weakening": false,
+    "self_hosted_runner": false
+  }
+}

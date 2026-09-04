@@ -1,0 +1,50 @@
+name: WU181 Windows installation readiness
+
+on:
+  pull_request:
+    paths:
+      - '.pncc-dev/contracts/windows-installation-first-run-readiness.json'
+      - '.pncc-dev/scripts/evaluate_windows_installation_first_run_readiness.py'
+      - '.pncc-dev/tests/test_windows_installation_first_run_readiness.py'
+      - '.github/workflows/wu181-windows-installation-readiness.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  readiness:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Compile evaluator
+        run: python3 -m py_compile .pncc-dev/scripts/evaluate_windows_installation_first_run_readiness.py
+      - name: Evaluate canonical contract
+        run: python3 .pncc-dev/scripts/evaluate_windows_installation_first_run_readiness.py
+      - name: Run adversarial tests
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_windows_installation_first_run_readiness.py' -v
+      - name: Enforce bounded WU181 diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='${{ github.event.pull_request.base.sha }}'
+          git fetch --no-tags --depth=1 origin "$base"
+          mapfile -t changed < <(git diff --name-only "$base" HEAD)
+          allowed='^(\.pncc-dev/contracts/windows-installation-first-run-readiness\.json|\.pncc-dev/scripts/evaluate_windows_installation_first_run_readiness\.py|\.pncc-dev/tests/test_windows_installation_first_run_readiness\.py|\.github/workflows/wu181-windows-installation-readiness\.yml)$'
+          for path in "${changed[@]}"; do
+            [[ "$path" =~ $allowed ]] || { echo "Forbidden WU181 path: $path"; exit 1; }
+          done
+          test "${#changed[@]}" -eq 4
+          ! git diff --name-only "$base" HEAD | grep -q '^src/windows-v7/'
+          ! git diff --name-only "$base" HEAD | grep -q '^tools/runtime-agent/'
+          ! git diff --name-only "$base" HEAD | grep -Eqi '\.(exe|msi)$'
+      - name: Enforce least-authority workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          file=.github/workflows/wu181-windows-installation-readiness.yml
+          grep -Fxq '  contents: read' "$file"
+          grep -Fxq '    runs-on: ubuntu-24.04' "$file"
+          ! grep -Eq '^[[:space:]]+(contents|actions|pull-requests):[[:space:]]+write' "$file"
+          ! grep -Eq '^[[:space:]]*(workflow_dispatch|schedule):' "$file"
