@@ -90,16 +90,21 @@ jobs:
           PNCC_ISSUE_BODY: ${{ github.event.issue.body }}
           PNCC_MAIN_SHA: ${{ github.sha }}
         run: .\.pncc-dev\scripts\wu200_reproducible_installer_artifact.ps1
-      - name: Prove exact single upload payload
+      - name: Prove exact reproducible single upload payload
         shell: pwsh
         run: |
           $path = '${{ steps.build.outputs.candidate_path }}'
+          if ('${{ steps.build.outputs.wu199_byte_identical }}' -ne 'true') { throw 'WU199_BYTE_IDENTITY_NOT_PROVEN' }
+          if ('${{ steps.build.outputs.candidate_size }}' -ne '2230935') { throw 'WU199_SIZE_IDENTITY_NOT_PROVEN' }
+          if ('${{ steps.build.outputs.candidate_sha256 }}' -ne '13ea7db85ce1c997f1bcc9566c615c1000eeaf33909a208ab6207f4e5ba22f06') { throw 'WU199_SHA256_IDENTITY_NOT_PROVEN' }
           if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw 'CANDIDATE_MISSING_BEFORE_UPLOAD' }
           if ([IO.Path]::GetFileName($path) -ne 'VPS-Control-PNCC-v7.0.2-setup.exe') { throw 'CANDIDATE_NAME_DRIFT' }
-          if ((Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash.ToLowerInvariant() -ne '${{ steps.build.outputs.candidate_sha256 }}') { throw 'CANDIDATE_HASH_DRIFT_BEFORE_UPLOAD' }
+          if ((Get-Item -LiteralPath $path).Length -ne 2230935) { throw 'CANDIDATE_SIZE_DRIFT_BEFORE_UPLOAD' }
+          if ((Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash.ToLowerInvariant() -ne '13ea7db85ce1c997f1bcc9566c615c1000eeaf33909a208ab6207f4e5ba22f06') { throw 'CANDIDATE_HASH_DRIFT_BEFORE_UPLOAD' }
           $siblings = @(Get-ChildItem -LiteralPath (Split-Path -Parent $path) -File)
           if ($siblings.Count -ne 1) { throw 'UPLOAD_PAYLOAD_COUNT_NOT_ONE' }
       - name: Upload exact installer candidate only
+        if: steps.build.outputs.wu199_byte_identical == 'true' && steps.build.outputs.candidate_size == '2230935' && steps.build.outputs.candidate_sha256 == '13ea7db85ce1c997f1bcc9566c615c1000eeaf33909a208ab6207f4e5ba22f06'
         id: upload
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
@@ -110,6 +115,7 @@ jobs:
           compression-level: 0
           include-hidden-files: false
       - name: Emit terminal artifact provenance
+        if: steps.upload.outcome == 'success'
         shell: pwsh
         run: |
           $receipt = [ordered]@{
@@ -133,14 +139,16 @@ jobs:
             product_runtime_mutated = $false
           }
           Write-Output ('PNCC_WU200_ARTIFACT_TERMINAL_RECEIPT=' + ($receipt | ConvertTo-Json -Compress))
-      - name: Delete local candidate after upload
+      - name: Delete local candidate and ephemeral compiler state
+        if: always()
         shell: pwsh
         run: |
-          $path = '${{ steps.build.outputs.candidate_path }}'
-          if (Test-Path -LiteralPath $path) { Remove-Item -LiteralPath (Split-Path -Parent $path) -Recurse -Force }
-          if (Test-Path -LiteralPath $path) { throw 'LOCAL_CANDIDATE_REMAINS' }
+          $outputDir = "$env:RUNNER_TEMP\pncc-installer-artifact-wu200"
+          if (Test-Path -LiteralPath $outputDir) { Remove-Item -LiteralPath $outputDir -Recurse -Force }
+          if (Test-Path -LiteralPath $outputDir) { throw 'LOCAL_CANDIDATE_REMAINS' }
           if (Test-Path "$env:RUNNER_TEMP\innosetup-7.1.0-x64.exe") { throw 'COMPILER_SETUP_REMAINS' }
           if (Test-Path "$env:RUNNER_TEMP\pncc-inno-7.1.0-wu200") { throw 'COMPILER_INSTALL_REMAINS' }
       - name: Prove checkout remained clean
+        if: always()
         shell: pwsh
         run: if (git status --porcelain) { throw 'DIRTY_CHECKOUT' }

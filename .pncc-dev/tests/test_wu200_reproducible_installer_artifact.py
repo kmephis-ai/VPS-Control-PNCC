@@ -36,7 +36,7 @@ class WU200Tests(unittest.TestCase):
         self.assertNotIn('workflow_dispatch:', self.workflow)
 
     def test_upload_is_single_exact_file_and_pinned(self):
-        self.assertIn('actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02', self.workflow)
+        self.assertEqual(self.workflow.count('uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02'), 1)
         self.assertIn('VPS-Control-PNCC-v7.0.2-setup.exe', self.workflow)
         self.assertIn('retention-days: 1', self.workflow)
         self.assertIn('compression-level: 0', self.workflow)
@@ -44,8 +44,23 @@ class WU200Tests(unittest.TestCase):
         self.assertNotIn('actions/cache@', self.workflow)
 
     def test_script_guards_marker_hash_and_single_output(self):
-        for needle in ('EXECUTION_MARKER_AMBIGUOUS','COMPILER_SHA256_MISMATCH','INSTALLER_DEFINITION_BLOB_MISMATCH','ARTIFACT_PAYLOAD_NOT_SINGLE_EXACT_CANDIDATE','wu199_byte_identical'):
+        for needle in ('EXECUTION_MARKER_AMBIGUOUS','COMPILER_SHA256_MISMATCH','INSTALLER_DEFINITION_BLOB_MISMATCH','ARTIFACT_PAYLOAD_NOT_SINGLE_EXACT_CANDIDATE','WU199_REPRODUCIBILITY_MISMATCH'):
             self.assertIn(needle, self.script)
+
+    def test_github_output_transport_is_distinct_ascii_lines(self):
+        self.assertIn('[System.IO.File]::AppendAllText', self.script)
+        self.assertIn('[System.Text.Encoding]::ASCII', self.script)
+        self.assertIn('[Environment]::NewLine', self.script)
+        self.assertNotIn("@('candidate_path='", self.script)
+        for name in ('candidate_path','candidate_sha256','candidate_size','wu199_byte_identical'):
+            self.assertEqual(self.script.count("Write-GitHubOutputLine '" + name + "'"), 1)
+
+    def test_reproducibility_is_required_before_upload(self):
+        self.assertIn("steps.build.outputs.wu199_byte_identical == 'true'", self.workflow)
+        self.assertIn("steps.build.outputs.candidate_size == '2230935'", self.workflow)
+        self.assertIn("steps.build.outputs.candidate_sha256 == '13ea7db85ce1c997f1bcc9566c615c1000eeaf33909a208ab6207f4e5ba22f06'", self.workflow)
+        self.assertIn("artifact_upload_authorized = $byteIdentical", self.script)
+        self.assertIn("if: always()", self.workflow)
 
     def test_no_release_or_runtime_write_paths(self):
         combined = self.script + '\n' + self.workflow

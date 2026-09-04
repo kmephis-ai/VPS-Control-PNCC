@@ -12,6 +12,9 @@ $Wu199Size = 2230935
 $Wu199Sha = '13ea7db85ce1c997f1bcc9566c615c1000eeaf33909a208ab6207f4e5ba22f06'
 
 function Fail([string]$Message) { throw $Message }
+function Write-GitHubOutputLine([string]$Name, [string]$Value) {
+    [System.IO.File]::AppendAllText($githubOutput, ($Name + '=' + $Value + [Environment]::NewLine), [System.Text.Encoding]::ASCII)
+}
 
 $issueBody = [Environment]::GetEnvironmentVariable('PNCC_ISSUE_BODY')
 $mainSha = [Environment]::GetEnvironmentVariable('PNCC_MAIN_SHA')
@@ -79,15 +82,23 @@ if (-not $buildCompleted) { if (Test-Path -LiteralPath $outputDir) { Remove-Item
 if (Test-Path -LiteralPath $compilerSetup) { Fail 'COMPILER_SETUP_NOT_DELETED' }
 if (Test-Path -LiteralPath $innoDir) { Fail 'EPHEMERAL_COMPILER_NOT_DELETED' }
 
-@('candidate_path=' + $candidatePath,'candidate_sha256=' + $candidateSha,'candidate_size=' + $candidateSize,'wu199_byte_identical=' + $byteIdentical.ToString().ToLowerInvariant()) | Add-Content -LiteralPath $githubOutput -Encoding ascii
+Write-GitHubOutputLine 'candidate_path' $candidatePath
+Write-GitHubOutputLine 'candidate_sha256' $candidateSha
+Write-GitHubOutputLine 'candidate_size' ([string]$candidateSize)
+Write-GitHubOutputLine 'wu199_byte_identical' $byteIdentical.ToString().ToLowerInvariant()
 $receipt = [ordered]@{
     schema_version = 1; role = 'REPRODUCIBLE_INSTALLER_ARTIFACT_PREUPLOAD_RECEIPT'; work_unit_id = 'PIPE-WU-200'; main_sha = $mainSha
     runner_class = 'GITHUB_HOSTED'; compiler_expected_size_bytes = $ExpectedCompilerSize; compiler_observed_size_bytes = $compilerObservedSize
     compiler_expected_sha256 = $ExpectedCompilerSha256; compiler_observed_sha256 = $compilerObservedSha; compiler_identity_verified = $true
     installer_definition_path = $IssPath; installer_definition_git_blob_sha = $issBlob; candidate_filename = $CandidateName
     candidate_size_bytes = $candidateSize; candidate_sha256 = $candidateSha; wu199_reference_size_bytes = $Wu199Size; wu199_reference_sha256 = $Wu199Sha
-    wu199_byte_identical = $byteIdentical; artifact_payload_count = 1; artifact_upload_authorized = $true
+    wu199_byte_identical = $byteIdentical; artifact_payload_count = 1; artifact_upload_authorized = $byteIdentical
     product_runtime_mutated = $false; release_created = $false; tag_created = $false; stable_transition = $false
     built_at = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
 }
 Write-Output ('PNCC_WU200_ARTIFACT_PREUPLOAD_RECEIPT=' + ($receipt | ConvertTo-Json -Compress))
+if (-not $byteIdentical) {
+    if (Test-Path -LiteralPath $outputDir) { Remove-Item -LiteralPath $outputDir -Recurse -Force }
+    if (Test-Path -LiteralPath $candidatePath) { Fail 'NONREPRODUCIBLE_CANDIDATE_CLEANUP_FAILED' }
+    Fail 'WU199_REPRODUCIBILITY_MISMATCH'
+}

@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "role": "WU200_OUTPUT_TRANSPORT_AND_REPRODUCIBILITY_FAIL_CLOSED_REMEDIATION",
+  "work_unit_id": "PIPE-WU-202",
+  "source_main_sha": "ceb649ae1f5c4c65614fb9db02d716ea71087b7c",
+  "failure_class": "HARNESS_OUTPUT_TRANSPORT_PLUS_REPRODUCIBILITY_MISMATCH",
+  "observed_run_id": 33899651324,
+  "target": {
+    "output_transport": "ASCII_BOM_FREE_DISTINCT_PHYSICAL_LINES",
+    "required_output_keys": ["candidate_path", "candidate_sha256", "candidate_size", "wu199_byte_identical"],
+    "upload_requires_wu199_byte_identity": true,
+    "mismatch_cleanup_required": true
+  },
+  "wu199_reference": {
+    "filename": "VPS-Control-PNCC-v7.0.2-setup.exe",
+    "size_bytes": 2230935,
+    "sha256": "13ea7db85ce1c997f1bcc9566c615c1000eeaf33909a208ab6207f4e5ba22f06"
+  },
+  "observed_nonreproducible_candidate": {
+    "size_bytes": 2230934,
+    "sha256": "b2a7cd7e00d5e8861255680c2b5e79f241d8721ac8636a2e6f5c542ed0f11851",
+    "artifact_uploaded": false
+  },
+  "immutable_identity": {
+    "compiler_sha256": "0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f",
+    "installer_definition_git_blob_sha": "d30a158aef3535a9066608495b45abcf41112926"
+  },
+  "allowed_mutations": [
+    ".pncc-dev/scripts/wu200_reproducible_installer_artifact.ps1",
+    ".github/workflows/wave6-wu200-reproducible-installer-artifact.yml",
+    ".pncc-dev/tests/test_wu200_reproducible_installer_artifact.py",
+    ".github/workflows/wave6-wu201-wu200-output-handoff-remediation.yml",
+    ".pncc-dev/tests/test_wu201_wu200_output_handoff_remediation.py",
+    ".pncc-dev/contracts/wave6-wu202-wu200-output-transport-reproducibility-guard.json",
+    ".pncc-dev/tests/test_wu202_wu200_output_transport_reproducibility_guard.py",
+    ".github/workflows/wave6-wu202-wu200-output-transport-reproducibility-guard.yml"
+  ],
+  "authority": {
+    "artifact_publication": false,
+    "release": false,
+    "tag": false,
+    "promotion": false,
+    "stable_transition": false,
+    "product_runtime_mutation": false,
+    "self_hosted_runner": false,
+    "reserve_1080_lifecycle_mutation": false,
+    "primary_1081_lifecycle_mutation": false,
+    "v631_mutation": false,
+    "ruleset_or_security_weakening": false,
+    "force_or_bypass": false
+  }
+}
