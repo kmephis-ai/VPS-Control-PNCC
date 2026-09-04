@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kmephis-ai/VPS-Control-PNCC/.pncc-dev/contracts/wave6-wu190-installer-definition-identity-binding-request.schema.json",
+  "title": "PNCC WU190 installer-definition exact identity binding readiness receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "work_unit_id",
+    "source_envelope_work_unit",
+    "decision",
+    "reasons",
+    "proposal_sha256",
+    "proposal_byte_count",
+    "binding_request_sha256",
+    "exact_identity_match",
+    "verified",
+    "durable_identity_bound",
+    "proposal_materialized",
+    "compiler_execution_authorized",
+    "build_authorized"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "work_unit_id": {"const": "PIPE-WU-190"},
+    "source_envelope_work_unit": {"const": "PIPE-WU-189"},
+    "decision": {"enum": ["READY_ONLY", "BLOCKED"]},
+    "reasons": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    },
+    "proposal_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "proposal_byte_count": {"type": "integer", "minimum": 0},
+    "binding_request_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "exact_identity_match": {"type": "boolean"},
+    "verified": {"const": false},
+    "durable_identity_bound": {"const": false},
+    "proposal_materialized": {"const": false},
+    "compiler_execution_authorized": {"const": false},
+    "build_authorized": {"const": false}
+  }
+}

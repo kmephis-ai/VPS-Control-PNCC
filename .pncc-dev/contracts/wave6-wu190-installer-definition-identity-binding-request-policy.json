@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "work_unit_id": "PIPE-WU-190",
+  "role": "INSTALLER_DEFINITION_EXACT_IDENTITY_BINDING_REQUEST_READINESS",
+  "source_envelope_dependency": {
+    "work_unit_id": "PIPE-WU-189",
+    "single_source_of_truth": true,
+    "required_classification": "ADMITTED",
+    "required_exact_utf8_bytes": true,
+    "required_newline_normalization": false
+  },
+  "request_identity": {
+    "canonical_json": "RFC8259_JSON_SORTED_KEYS_COMPACT_UTF8",
+    "digest": "SHA256",
+    "proposal_sha256_must_match_envelope": true,
+    "proposal_byte_count_must_match_envelope": true,
+    "unknown_request_fields_allowed": false
+  },
+  "receipt": {
+    "allowed_decisions": ["READY_ONLY", "BLOCKED"],
+    "ready_only_meaning": "Exact request metadata matches one WU189 ADMITTED proposal envelope; no installer-definition identity is bound or verified.",
+    "verified": false,
+    "durable_identity_bound": false,
+    "proposal_materialized": false,
+    "compiler_execution_authorized": false,
+    "build_authorized": false
+  },
+  "durable_state": {
+    "installer_definition_path": null,
+    "installer_definition_blob_sha": null,
+    "installer_definition_sha256": null,
+    "binding_receipt_persisted": false
+  },
+  "authority": {
+    "persist_iss": false,
+    "bind_installer_definition_identity": false,
+    "verify_installer_definition_identity": false,
+    "acquire_or_install_compiler": false,
+    "execute_compiler": false,
+    "build_binary": false,
+    "upload_artifact": false,
+    "mutate_product_or_runtime": false,
+    "release_tag_promote_or_mark_stable": false,
+    "weaken_ruleset_or_security": false,
+    "use_self_hosted_runner": false,
+    "mutate_1080_lifecycle": false,
+    "expand_1081_authority": false,
+    "mutate_v631": false
+  }
+}
