@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "work_unit_id": "PIPE-WU-200",
+  "role": "REPRODUCIBLE_EXACT_INSTALLER_ARTIFACT_FOR_MANUAL_WINDOWS10_VALIDATION",
+  "source_main_sha": "411fd33de7a96e43add073a1fe3c9574e3301176",
+  "owner_grant": {
+    "granted": true,
+    "scope": "ONE_EXACT_MAIN_BUILD_AND_SINGLE_INSTALLER_ACTIONS_ARTIFACT"
+  },
+  "compiler": {
+    "repository": "jrsoftware/issrc",
+    "tag": "is-7_1_0",
+    "release_id": 369110765,
+    "asset_id": 511336600,
+    "asset_name": "innosetup-7.1.0-x64.exe",
+    "size_bytes": 14304168,
+    "sha256": "0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f"
+  },
+  "installer_definition": {
+    "path": "installer/windows/VPS-Control-PNCC.iss",
+    "git_blob_sha": "d30a158aef3535a9066608495b45abcf41112926",
+    "candidate_filename": "VPS-Control-PNCC-v7.0.2-setup.exe"
+  },
+  "wu199_reference": {
+    "size_bytes": 2230935,
+    "sha256": "13ea7db85ce1c997f1bcc9566c615c1000eeaf33909a208ab6207f4e5ba22f06",
+    "byte_identity_is_observed_not_assumed": true
+  },
+  "artifact": {
+    "name": "VPS-Control-PNCC-v7.0.2-setup",
+    "payload_filename": "VPS-Control-PNCC-v7.0.2-setup.exe",
+    "payload_count": 1,
+    "retention_days": 1,
+    "compression_level": 0,
+    "hidden_files": false
+  },
+  "authority": {
+    "github_hosted_windows": true,
+    "network_acquisition": true,
+    "compiler_installation_ephemeral": true,
+    "compiler_execution": true,
+    "binary_build": true,
+    "artifact_upload_single_candidate_only": true,
+    "release": false,
+    "tag": false,
+    "promotion": false,
+    "stable_transition": false,
+    "product_runtime_mutation": false,
+    "self_hosted_runner": false,
+    "reserve_1080_lifecycle_mutation": false,
+    "primary_1081_lifecycle_mutation": false,
+    "v631_mutation": false,
+    "ruleset_or_security_weakening": false,
+    "force_or_bypass": false
+  }
+}
