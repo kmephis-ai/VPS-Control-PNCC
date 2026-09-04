@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-import copy
 import hashlib
 import importlib.util
 import json
@@ -26,12 +25,21 @@ def load_module(name: str, path: pathlib.Path):
 
 WU190 = load_module("pncc_wu190", SCRIPT)
 WU189 = load_module("pncc_wu189_for_wu190_tests", WU189_SCRIPT)
+GOOD = f"""; PNCC future installer-definition proposal text only
+; Windows 10 target intent
+; PowerShell 5.1 compatibility required
+; 127.0.0.1:1080 = RESERVE_MANUAL / MANUAL_ONLY
+; 127.0.0.1:1081 = PRIMARY_AUTO
+; V6.3.1 immutable SHA-256 {WU189.WU188.V631_SHA256}
+; PuTTY transport uses -pwfile only
+; host-key verification is fail-closed and must remain enabled
+"""
 
 
 class WU190Tests(unittest.TestCase):
     def admitted(self):
         # Static safety remains owned by WU188 through the real WU189 builder.
-        envelope = WU189.build_envelope("[Setup]\nAppName=PNCC\nAppVersion=7.0.2\nDefaultDirName={autopf}\\PNCC\n")
+        envelope = WU189.build_envelope(GOOD)
         self.assertEqual(envelope["classification"], "ADMITTED")
         return envelope
 
@@ -53,7 +61,7 @@ class WU190Tests(unittest.TestCase):
             self.assertFalse(receipt[key])
 
     def test_blocked_wu189_envelope_fails_closed(self):
-        envelope = WU189.build_envelope("[Run]\nFilename=cmd.exe\n")
+        envelope = WU189.build_envelope(GOOD + "\nrun ISCC.exe during setup")
         self.assertEqual(envelope["classification"], "BLOCKED")
         receipt = WU190.evaluate(envelope, self.request_for(envelope))
         self.assertEqual(receipt["decision"], "BLOCKED")
