@@ -1,0 +1,64 @@
+name: wave6-wu187-installer-definition-identity-authority-preparation
+
+on:
+  pull_request:
+    paths:
+      - '.pncc-dev/contracts/wave6-wu187-installer-definition-identity-policy.json'
+      - '.pncc-dev/schemas/wave6-wu187-installer-definition-identity-proposal.schema.json'
+      - '.pncc-dev/scripts/evaluate_wave6_wu187_installer_definition_identity.py'
+      - '.pncc-dev/tests/test_wu187_installer_definition_identity.py'
+      - '.github/workflows/wave6-wu187-installer-definition-identity-authority-preparation.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  identity-preparation:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Verify exact PR head
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+      - name: Compile evaluator
+        run: python3 -m py_compile .pncc-dev/scripts/evaluate_wave6_wu187_installer_definition_identity.py
+      - name: Run adversarial tests
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_wu187_installer_definition_identity.py' -v
+      - name: Prove durable identity remains unbound
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, pathlib
+          p=json.loads(pathlib.Path('.pncc-dev/contracts/wave6-wu187-installer-definition-identity-policy.json').read_text())
+          assert p['installer_definition_identity'] is None
+          assert not any(p['authority'].values())
+          s=p['required_semantics']
+          assert s['reserve_1080_mode']=='RESERVE_MANUAL/MANUAL_ONLY'
+          assert s['reserve_1080_automated_lifecycle'] is False
+          assert s['primary_1081_mode']=='PRIMARY_AUTO'
+          assert s['primary_1081_authority_expansion'] is False
+          assert s['v631_sha256']=='385e5178f10e79b0b234376e6a6671b64ce523a3971b2b4341ec94ce1efee11e'
+          assert s['putty_plaintext_pw'] is False
+          assert s['host_key_verification_fail_closed'] is True
+          PY
+      - name: Verify bounded diff and least authority
+        shell: bash
+        run: |
+          git fetch --no-tags origin "${{ github.event.pull_request.base.sha }}"
+          git diff --name-only "${{ github.event.pull_request.base.sha }}"...HEAD | sort > /tmp/actual
+          cat > /tmp/expected <<'EOF'
+          .github/workflows/wave6-wu187-installer-definition-identity-authority-preparation.yml
+          .pncc-dev/contracts/wave6-wu187-installer-definition-identity-policy.json
+          .pncc-dev/schemas/wave6-wu187-installer-definition-identity-proposal.schema.json
+          .pncc-dev/scripts/evaluate_wave6_wu187_installer_definition_identity.py
+          .pncc-dev/tests/test_wu187_installer_definition_identity.py
+          EOF
+          sort -o /tmp/expected /tmp/expected
+          diff -u /tmp/expected /tmp/actual
+          ! git diff --name-only "${{ github.event.pull_request.base.sha }}"...HEAD | grep -E '(^src/|^tools/runtime-agent/|\.iss$|\.exe$)'
+          ! grep -n -E 'runs-on:[[:space:]]*self-hosted|contents:[[:space:]]*write|pull-requests:[[:space:]]*write|security-events:[[:space:]]*write' .github/workflows/wave6-wu187-installer-definition-identity-authority-preparation.yml
+          ! grep -R -n -E 'Invoke-WebRequest|curl[[:space:]]|wget[[:space:]]|iscc(\.exe)?' .pncc-dev/contracts/wave6-wu187-installer-definition-identity-policy.json .pncc-dev/scripts/evaluate_wave6_wu187_installer_definition_identity.py
+          test -z "$(git status --porcelain)"
