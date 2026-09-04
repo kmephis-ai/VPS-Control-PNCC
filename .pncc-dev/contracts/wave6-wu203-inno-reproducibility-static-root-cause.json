@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "role": "INNO_SETUP_REPRODUCIBILITY_STATIC_ROOT_CAUSE_READINESS",
+  "work_unit_id": "PIPE-WU-203",
+  "source_main_sha": "64e8a45d34022cee82a46f79e34fdb4e2b73a036",
+  "classification": "HIGH_CONFIDENCE_STATIC_CAUSE_CANDIDATE_NOT_EXECUTION_PROVEN",
+  "observed_reproducibility_drift": {
+    "wu199": {
+      "size_bytes": 2230935,
+      "sha256": "13ea7db85ce1c997f1bcc9566c615c1000eeaf33909a208ab6207f4e5ba22f06"
+    },
+    "wu200": {
+      "size_bytes": 2230934,
+      "sha256": "b2a7cd7e00d5e8861255680c2b5e79f241d8721ac8636a2e6f5c542ed0f11851"
+    },
+    "byte_identical": false
+  },
+  "compiler_identity": {
+    "repository": "jrsoftware/issrc",
+    "tag": "is-7_1_0",
+    "source_commit": "1ae7bf81dc0d2013235dfe4bb0b6f4e4a0b6b25c",
+    "asset_sha256": "0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f"
+  },
+  "canonical_installer_definition": {
+    "path": "installer/windows/VPS-Control-PNCC.iss",
+    "git_blob_sha": "d30a158aef3535a9066608495b45abcf41112926",
+    "files_flags": [
+      "ignoreversion",
+      "recursesubdirs",
+      "createallsubdirs"
+    ],
+    "notimestamp_present": false
+  },
+  "static_causal_chain": {
+    "upstream_path": "Projects/Src/Compiler.SetupCompiler.pas",
+    "facts": [
+      "files_flag_notimestamp_is_recognized",
+      "notimestamp_sets_NoTimeStamp_true",
+      "NoTimeStamp_includes_floNoTimeStamp",
+      "compiler_reads_source_GetFileTime",
+      "floNoTimeStamp_clears_FL_TimeStamp",
+      "without_floNoTimeStamp_source_timestamp_is_retained"
+    ],
+    "candidate_mechanism": "GIT_CHECKOUT_FILESYSTEM_MTIME_PROPAGATES_INTO_INSTALLER_FILE_METADATA",
+    "confidence": "HIGH_STATIC_CONFIDENCE",
+    "execution_proven": false
+  },
+  "future_ab_experiment_readiness": {
+    "authorized_now": false,
+    "required_owner_grant": true,
+    "control": "exact_main_exact_compiler_current_installer_definition",
+    "treatment": "exact_main_exact_compiler_same_definition_with_only_files_notimestamp_enabled",
+    "required_observations": [
+      "candidate_size",
+      "candidate_sha256",
+      "repeat_build_byte_identity",
+      "source_file_mtime_snapshot"
+    ],
+    "success_condition": "two_treatment_builds_are_byte_identical_under_distinct_checkout_mtimes"
+  },
+  "allowed_mutations": [
+    ".pncc-dev/contracts/wave6-wu203-inno-reproducibility-static-root-cause.json",
+    ".pncc-dev/tests/test_wu203_inno_reproducibility_static_root_cause.py",
+    ".github/workflows/wave6-wu203-inno-reproducibility-static-root-cause.yml"
+  ],
+  "authority": {
+    "network_acquisition": false,
+    "compiler_installation": false,
+    "compiler_execution": false,
+    "binary_build": false,
+    "artifact_upload": false,
+    "artifact_publication": false,
+    "product_runtime_mutation": false,
+    "release": false,
+    "tag": false,
+    "promotion": false,
+    "stable_transition": false,
+    "self_hosted_runner": false,
+    "reserve_1080_lifecycle_mutation": false,
+    "primary_1081_lifecycle_mutation": false,
+    "v631_mutation": false,
+    "ruleset_or_security_weakening": false,
+    "force_or_bypass": false
+  }
+}
