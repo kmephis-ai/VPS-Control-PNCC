@@ -1,0 +1,87 @@
+name: wave6-wu198-one-time-pinned-inno-acquisition
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/wave6-wu198-one-time-pinned-inno-acquisition.yml'
+      - '.pncc-dev/contracts/wave6-wu198-one-time-pinned-inno-acquisition.json'
+      - '.pncc-dev/scripts/wu198_one_time_pinned_inno_acquisition.py'
+      - '.pncc-dev/tests/test_wu198_one_time_pinned_inno_acquisition.py'
+  issues:
+    types: [edited]
+
+permissions:
+  contents: read
+
+jobs:
+  validate-wu198:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify exact PR head
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+      - name: Compile bounded acquisition verifier
+        run: python3 -m py_compile .pncc-dev/scripts/wu198_one_time_pinned_inno_acquisition.py
+      - name: Run adversarial tests
+        run: python3 -m unittest discover -s .pncc-dev/tests -p 'test_wu198_one_time_pinned_inno_acquisition.py' -v
+      - name: Verify exact bounded diff and least authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "${{ github.event.pull_request.base.sha }}"
+          git diff --name-only "${{ github.event.pull_request.base.sha }}"...HEAD | sort > /tmp/actual
+          cat > /tmp/expected <<'EOF'
+          .github/workflows/wave6-wu198-one-time-pinned-inno-acquisition.yml
+          .pncc-dev/contracts/wave6-wu198-one-time-pinned-inno-acquisition.json
+          .pncc-dev/scripts/wu198_one_time_pinned_inno_acquisition.py
+          .pncc-dev/tests/test_wu198_one_time_pinned_inno_acquisition.py
+          EOF
+          sort -o /tmp/expected /tmp/expected
+          diff -u /tmp/expected /tmp/actual
+          ! grep -E '^(src/|legacy/|tools/runtime-agent/|tools/release/|\.pncc-state/)' /tmp/actual
+          grep -F 'runs-on: ubuntu-24.04' .github/workflows/wave6-wu198-one-time-pinned-inno-acquisition.yml
+          ! grep -E 'runs-on:[[:space:]]*self-hosted|contents:[[:space:]]*write|actions/upload-artifact|actions/cache|security-events:[[:space:]]*write|pull-requests:[[:space:]]*write' .github/workflows/wave6-wu198-one-time-pinned-inno-acquisition.yml
+          ! grep -R -n -E 'subprocess|os\.system|Start-Process|iscc(\.exe)?|chmod.*\+x|wine[[:space:]]|\.\/innosetup|apt-get|dpkg|msiexec' .pncc-dev/scripts/wu198_one_time_pinned_inno_acquisition.py .pncc-dev/tests/test_wu198_one_time_pinned_inno_acquisition.py
+          test -z "$(git status --porcelain)"
+
+  acquire-and-receipt:
+    if: github.event_name == 'issues' && github.event.issue.number == 446 && contains(github.event.issue.body, 'PNCC-WU198-ACQUISITION-EXECUTE')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: read
+    concurrency:
+      group: pncc-wu198-one-time-pinned-inno-acquisition
+      cancel-in-progress: false
+    steps:
+      - name: Checkout exact default-branch revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Verify exact default-branch revision
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${{ github.sha }}"
+      - name: Acquire exact pinned asset, verify identity, delete bytes, emit receipt
+        env:
+          PNCC_ISSUE_BODY: ${{ github.event.issue.body }}
+          PNCC_MAIN_SHA: ${{ github.sha }}
+        run: python3 .pncc-dev/scripts/wu198_one_time_pinned_inno_acquisition.py
+      - name: Prove no pinned asset remains
+        shell: bash
+        run: test ! -e "$RUNNER_TEMP/innosetup-7.1.0-x64.exe"
+      - name: Prove checkout remained clean
+        run: test -z "$(git status --porcelain)"
