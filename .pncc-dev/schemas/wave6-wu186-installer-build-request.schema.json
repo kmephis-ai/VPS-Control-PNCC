@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "pncc://wave6/wu186/installer-build-request",
+  "title": "PNCC WU186 Installer Build Request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "source_main_sha", "installer_definition", "compiler_receipt_admission"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "source_main_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "installer_definition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "git_blob_sha"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "git_blob_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"}
+      }
+    },
+    "compiler_receipt_admission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "work_unit", "decision", "reason_codes", "authority"],
+      "properties": {
+        "schema_version": {"const": 1},
+        "work_unit": {"const": "PIPE-WU-185"},
+        "decision": {"enum": ["ADMITTED", "BLOCKED"]},
+        "reason_codes": {"type": "array", "items": {"type": "string"}},
+        "authority": {"const": "RECEIPT_CONSUMER_ADMISSION_ONLY"}
+      }
+    }
+  }
+}
