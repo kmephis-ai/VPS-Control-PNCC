@@ -1,0 +1,55 @@
+name: wave6-wu201-wu200-output-handoff-remediation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.pncc-dev/scripts/wu200_reproducible_installer_artifact.ps1'
+      - '.pncc-dev/contracts/wave6-wu201-wu200-output-handoff-remediation.json'
+      - '.pncc-dev/tests/test_wu201_wu200_output_handoff_remediation.py'
+      - '.github/workflows/wave6-wu201-wu200-output-handoff-remediation.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-wu201:
+    runs-on: windows-2025
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify exact PR head
+        shell: pwsh
+        run: if ((git rev-parse HEAD).Trim() -ne '${{ github.event.pull_request.head.sha }}') { throw 'EXACT_HEAD_MISMATCH' }
+      - name: Parse executor under Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path '.pncc-dev/scripts/wu200_reproducible_installer_artifact.ps1'), [ref]$tokens, [ref]$errors)
+          if (@($errors).Count -ne 0) { $errors | Out-String | Write-Error; exit 1 }
+      - name: Run WU201 regression tests
+        shell: pwsh
+        run: python .pncc-dev/tests/test_wu201_wu200_output_handoff_remediation.py -v
+      - name: Verify exact bounded diff
+        shell: pwsh
+        run: |
+          git fetch --no-tags origin '${{ github.event.pull_request.base.sha }}'
+          $actual = @(git diff --name-only '${{ github.event.pull_request.base.sha }}...HEAD' | Sort-Object)
+          $expected = @(
+            '.github/workflows/wave6-wu201-wu200-output-handoff-remediation.yml',
+            '.pncc-dev/contracts/wave6-wu201-wu200-output-handoff-remediation.json',
+            '.pncc-dev/scripts/wu200_reproducible_installer_artifact.ps1',
+            '.pncc-dev/tests/test_wu201_wu200_output_handoff_remediation.py'
+          ) | Sort-Object
+          if (($actual -join "`n") -ne ($expected -join "`n")) { throw "BOUNDED_DIFF_MISMATCH`nactual=$($actual -join ',')" }
+          $script = Get-Content -Raw '.pncc-dev/scripts/wu200_reproducible_installer_artifact.ps1'
+          $handoff = @($script -split "`r?`n" | Where-Object { $_ -match 'Add-Content' -and $_ -match '\$githubOutput' })
+          if ($handoff.Count -ne 1 -or $handoff[0] -notmatch '-Encoding\s+ascii') { throw 'ASCII_HANDOFF_NOT_PROVEN' }
+          if ($handoff[0] -match '-Encoding\s+utf8') { throw 'UTF8_BOM_RISK_REMAINS' }
+          if (git status --porcelain) { throw 'DIRTY_CHECKOUT' }
