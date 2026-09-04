@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "work_unit_id": "PIPE-WU-183",
+  "role": "INSTALLER_COMPILER_SUPPLY_CHAIN_READINESS",
+  "runtime_required": false,
+  "depends_on": {
+    "work_unit_id": "PIPE-WU-181",
+    "issue": 412,
+    "pull_request": 413,
+    "qualified_head_sha": "a904a7e191fa11801955336851b18180f9f06e97",
+    "installer_implementation_authority": false,
+    "binary_build_authority": false
+  },
+  "toolchain": {
+    "family": "Inno Setup",
+    "version": "7.1.0",
+    "edition": "x64",
+    "release_date": "2026-08-12",
+    "expected_asset_filename": "innosetup-7.1.0-x64.exe",
+    "upstream_repository": "jrsoftware/issrc",
+    "immutable_release_tag": "is-7_1_0",
+    "official_site_host": "jrsoftware.org",
+    "authenticode_publisher": "Pyrsys B.V."
+  },
+  "verification": {
+    "https_required": true,
+    "exact_versioned_asset_required": true,
+    "github_release_attestation_required": true,
+    "release_attestation_repository": "jrsoftware/issrc",
+    "release_attestation_command_template": "gh release verify-asset {asset} --repo jrsoftware/issrc",
+    "authenticode_publisher_match_required": true,
+    "mutable_latest_url_allowed": false,
+    "mirror_as_trust_anchor_allowed": false,
+    "package_manager_as_sole_trust_source_allowed": false,
+    "fallback_on_attestation_failure_allowed": false,
+    "verification_failure_semantics": "FAIL_CLOSED"
+  },
+  "execution_boundary": {
+    "github_hosted_runner_only": true,
+    "download_compiler_in_this_work_unit": false,
+    "execute_compiler_in_this_work_unit": false,
+    "create_pncc_installer_binary": false,
+    "install_compiler": false,
+    "upload_release_asset": false,
+    "default_branch_direct_write": false
+  },
+  "authority": {
+    "installer_implementation": false,
+    "binary_build": false,
+    "product_runtime_mutation": false,
+    "runtime_execution": false,
+    "release": false,
+    "tag": false,
+    "promotion": false,
+    "stable_transition": false,
+    "ruleset_or_security_weakening": false,
+    "self_hosted_runner": false,
+    "reserve_1080_lifecycle_mutation": false,
+    "primary_1081_lifecycle_mutation": false,
+    "v631_mutation": false,
+    "secret_collection": false
+  },
+  "allowed_repository_mutation_prefixes": [
+    ".pncc-dev/contracts/wave6-wu183-",
+    ".pncc-dev/scripts/evaluate_wave6_wu183_",
+    ".pncc-dev/tests/test_wu183_",
+    ".github/workflows/wave6-wu183-"
+  ],
+  "classification": "READINESS_ONLY_NOT_RUNTIME_VERIFIED"
+}
