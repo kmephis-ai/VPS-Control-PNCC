@@ -6,7 +6,7 @@ on:
     paths:
       - '.pncc-dev/scripts/wu200_reproducible_installer_artifact.ps1'
       - '.github/workflows/wave6-wu200-reproducible-installer-artifact.yml'
-      - '.pncc-dev/tests/test_wu200_reproducible-installer-artifact.py'
+      - '.pncc-dev/tests/test_wu200_reproducible_installer_artifact.py'
       - '.github/workflows/wave6-wu201-wu200-output-handoff-remediation.yml'
       - '.pncc-dev/tests/test_wu201_wu200_output_handoff_remediation.py'
       - '.pncc-dev/contracts/wave6-wu202-wu200-output-transport-reproducibility-guard.json'
