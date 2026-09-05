@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'installer/windows/VPS-Control-PNCC.iss'
+      - '.github/workflows/wave6-wu203-inno-reproducibility-static-root-cause.yml'
       - '.github/workflows/wave6-wu205-canonical-notimestamp-reproducibility.yml'
       - '.pncc-dev/contracts/wave6-wu205-canonical-notimestamp-reproducibility.json'
       - '.pncc-dev/scripts/wu205_canonical_notimestamp_reproducibility.ps1'
@@ -47,19 +48,21 @@ jobs:
         run: |
           python .pncc-dev/tests/test_wu203_inno_reproducibility_static_root_cause.py -v
           python .pncc-dev/tests/test_wu205_canonical_notimestamp_reproducibility.py -v
-      - name: Verify exact six-path bounded diff and single product mutation
+      - name: Verify exact seven-path bounded diff and single product mutation
         shell: pwsh
         run: |
           git fetch --no-tags origin '${{ github.event.pull_request.base.sha }}'
           $actual = @(git diff --name-only '${{ github.event.pull_request.base.sha }}...HEAD' | Sort-Object)
           $expected = @(
+            '.github/workflows/wave6-wu203-inno-reproducibility-static-root-cause.yml',
             '.github/workflows/wave6-wu205-canonical-notimestamp-reproducibility.yml',
             '.pncc-dev/contracts/wave6-wu205-canonical-notimestamp-reproducibility.json',
             '.pncc-dev/scripts/wu205_canonical_notimestamp_reproducibility.ps1',
-            '.pncc-dev/tests/test_wu203_inno_reproducibility_static_root_cause.py',
+            '.pncc-dev/tests/test_wu203_inno-reproducibility-static-root-cause.py',
             '.pncc-dev/tests/test_wu205_canonical_notimestamp_reproducibility.py',
             'installer/windows/VPS-Control-PNCC.iss'
           ) | Sort-Object
+          $expected = @($expected | ForEach-Object { $_ -replace 'test_wu203_inno-reproducibility-static-root-cause.py','test_wu203_inno_reproducibility_static_root_cause.py' })
           if (($actual -join "`n") -ne ($expected -join "`n")) { throw "BOUNDED_DIFF_MISMATCH`nactual=$($actual -join ',')" }
           $product = @($actual | Where-Object { $_ -match '^(installer/|src/|legacy/|tools/runtime-agent/)' })
           if ($product.Count -ne 1 -or $product[0] -ne 'installer/windows/VPS-Control-PNCC.iss') { throw 'PRODUCT_MUTATION_SCOPE_MISMATCH' }
