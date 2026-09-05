@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "role": "POST_REMEDIATION_INSTALLER_ARTIFACT_AUTHORITY_READINESS",
+  "work_unit_id": "PIPE-WU-206",
+  "source_main_sha": "7eba68fd235be2ea6ef39389eb990e231a69ceec",
+  "canonical_installer_definition": {
+    "path": "installer/windows/VPS-Control-PNCC.iss",
+    "git_blob_sha": "b744a7446e86b34b4be1df01349e7c033da81644"
+  },
+  "qualified_reference_candidate": {
+    "source_work_unit_id": "PIPE-WU-205",
+    "filename": "VPS-Control-PNCC-v7.0.2-setup.exe",
+    "size_bytes": 2230927,
+    "sha256": "b3d9a6d7e6562933d405333be51de94ccd009cabeaf6ab6877a0616b61d3b8a6",
+    "candidates_identical": true
+  },
+  "pinned_compiler": {
+    "repository": "jrsoftware/issrc",
+    "tag": "is-7_1_0",
+    "release_id": 369110765,
+    "asset_id": 511336600,
+    "asset_name": "innosetup-7.1.0-x64.exe",
+    "size_bytes": 14304168,
+    "sha256": "0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f"
+  },
+  "superseded_artifact_authority": {
+    "issue_number": 450,
+    "work_unit_id": "PIPE-WU-200",
+    "bound_installer_definition_git_blob_sha": "d30a158aef3535a9066608495b45abcf41112926",
+    "bound_execution_main_sha": "ceb649ae1f5c4c65614fb9db02d716ea71087b7c",
+    "classification": "PRE_REMEDIATION_ARTIFACT_AUTHORITY_NON_TRANSFERABLE",
+    "transferable_to_current_definition": false
+  },
+  "wu206_authority": {
+    "control_plane_contract": true,
+    "readiness_classification": true,
+    "exact_identity_binding": true,
+    "compiler_acquisition": false,
+    "compiler_installation": false,
+    "compiler_execution": false,
+    "binary_build": false,
+    "artifact_upload": false,
+    "artifact_publication": false,
+    "artifact_persistence": false,
+    "product_runtime_mutation": false,
+    "self_hosted_runner": false,
+    "release": false,
+    "tag": false,
+    "stable_transition": false,
+    "reserve_1080_lifecycle_mutation": false,
+    "primary_1081_lifecycle_mutation": false,
+    "v631_mutation": false,
+    "ruleset_security_weakening": false,
+    "force_bypass": false
+  },
+  "future_owner_grant_required": {
+    "required": true,
+    "purpose": "ONE_BOUNDED_POST_REMEDIATION_INSTALLER_BUILD_AND_ARTIFACT_UPLOAD_FOR_MANUAL_WINDOWS_10_VALIDATION",
+    "must_bind_post_merge_exact_main": true,
+    "must_bind_installer_definition_git_blob_sha": "b744a7446e86b34b4be1df01349e7c033da81644",
+    "must_bind_pinned_compiler_sha256": "0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f",
+    "allowed_artifact_filename": "VPS-Control-PNCC-v7.0.2-setup.exe",
+    "artifact_count": 1,
+    "github_hosted_windows_only": true,
+    "sha256_provenance_required": true,
+    "short_retention_required": true,
+    "release_tag_stable_forbidden": true,
+    "other_product_runtime_mutation_forbidden": true,
+    "self_hosted_runner_forbidden": true,
+    "lifecycle_1080_1081_changes_forbidden": true,
+    "v631_mutation_forbidden": true,
+    "ruleset_security_weakening_forbidden": true,
+    "force_bypass_forbidden": true
+  },
+  "classification": "POST_REMEDIATION_ARTIFACT_AUTHORITY_REQUIRES_FRESH_OWNER_GRANT"
+}
