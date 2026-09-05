@@ -1,0 +1,124 @@
+name: wave6-wu207-post-remediation-installer-build
+
+on:
+  issues:
+    types: [edited]
+
+permissions:
+  contents: read
+
+jobs:
+  build-one-installer:
+    if: github.event.issue.number == 465 && contains(github.event.issue.body, 'PNCC-WU207-INSTALLER-BUILD-EXECUTE')
+    runs-on: windows-2025
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      issues: read
+    concurrency:
+      group: pncc-wu207-one-post-remediation-installer-build
+      cancel-in-progress: false
+    steps:
+      - name: Checkout exact owner-authorized source main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: 8a424860c72586339cd578e1c26d2cb23ba84c82
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Verify exact execution authority and canonical identities
+        shell: pwsh
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $source = '8a424860c72586339cd578e1c26d2cb23ba84c82'
+          $marker = '<!--\s*PNCC-WU207-INSTALLER-BUILD-EXECUTE\s+schema=1\s+expected_source_main=' + [Regex]::Escape($source) + '\s+expected_blob=b744a7446e86b34b4be1df01349e7c033da81644\s*-->'
+          if ([Regex]::Matches($env:ISSUE_BODY, $marker).Count -ne 1) { throw 'WU207_EXECUTION_MARKER_INVALID' }
+          if ([Regex]::Matches($env:ISSUE_BODY, 'PNCC-WU207-INSTALLER-BUILD-EXECUTE').Count -ne 1) { throw 'WU207_EXECUTION_MARKER_AMBIGUOUS' }
+          if ($env:RUNNER_ENVIRONMENT -ne 'github-hosted') { throw 'GITHUB_HOSTED_RUNNER_REQUIRED' }
+          if ((git rev-parse HEAD).Trim() -ne $source) { throw 'EXACT_SOURCE_MAIN_MISMATCH' }
+          if ((git rev-parse ($source + ':installer/windows/VPS-Control-PNCC.iss')).Trim() -ne 'b744a7446e86b34b4be1df01349e7c033da81644') { throw 'CANONICAL_INSTALLER_BLOB_MISMATCH' }
+          if (git status --porcelain) { throw 'DIRTY_EXACT_SOURCE_CHECKOUT' }
+      - name: Acquire and verify pinned Inno Setup 7.1.0
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $url = 'https://github.com/jrsoftware/issrc/releases/download/is-7_1_0/innosetup-7.1.0-x64.exe'
+          $setup = Join-Path $env:RUNNER_TEMP 'innosetup-7.1.0-x64.exe'
+          if (Test-Path -LiteralPath $setup) { throw 'COMPILER_SETUP_PREEXISTS' }
+          Invoke-WebRequest -Uri $url -OutFile $setup
+          $item = Get-Item -LiteralPath $setup
+          if ($item.Length -ne 14304168) { throw "PINNED_COMPILER_SIZE_MISMATCH actual=$($item.Length)" }
+          $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $setup).Hash.ToLowerInvariant()
+          $expected = '0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f'
+          if ($actual -ne $expected) { throw "PINNED_COMPILER_SHA256_MISMATCH actual=$actual" }
+          "WU207_COMPILER_SHA256=$actual" | Add-Content -Path $env:GITHUB_ENV
+          "WU207_COMPILER_SETUP=$setup" | Add-Content -Path $env:GITHUB_ENV
+      - name: Install pinned compiler ephemerally
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $inno = Join-Path $env:RUNNER_TEMP 'pncc-wu207-inno-7.1.0'
+          if (Test-Path -LiteralPath $inno) { throw 'COMPILER_DIR_PREEXISTS' }
+          New-Item -ItemType Directory -Path $inno | Out-Null
+          $p = Start-Process -FilePath $env:WU207_COMPILER_SETUP -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-',('/DIR='+$inno)) -PassThru -Wait
+          if ($p.ExitCode -ne 0) { throw "INNO_SETUP_INSTALL_FAILED exit=$($p.ExitCode)" }
+          $iscc = Join-Path $inno 'ISCC.exe'
+          if (-not (Test-Path -LiteralPath $iscc -PathType Leaf)) { throw 'PINNED_ISCC_NOT_FOUND' }
+          "WU207_INNO_DIR=$inno" | Add-Content -Path $env:GITHUB_ENV
+          "WU207_ISCC=$iscc" | Add-Content -Path $env:GITHUB_ENV
+      - name: Build exactly one canonical installer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $out = Join-Path $env:RUNNER_TEMP 'pncc-wu207-output'
+          if (Test-Path -LiteralPath $out) { throw 'OUTPUT_DIR_PREEXISTS' }
+          New-Item -ItemType Directory -Path $out | Out-Null
+          $iss = (Resolve-Path -LiteralPath 'installer/windows/VPS-Control-PNCC.iss').Path
+          $base = 'VPS-Control-PNCC-v7.0.2-setup'
+          $p = Start-Process -FilePath $env:WU207_ISCC -ArgumentList @('/Q',('/O'+$out),('/F'+$base),$iss) -PassThru -Wait
+          if ($p.ExitCode -ne 0) { throw "ISCC_BUILD_FAILED exit=$($p.ExitCode)" }
+          $files = @(Get-ChildItem -LiteralPath $out -File)
+          if ($files.Count -ne 1) { throw "INSTALLER_OUTPUT_COUNT_MISMATCH count=$($files.Count)" }
+          $exe = $files[0]
+          if ($exe.Name -ne 'VPS-Control-PNCC-v7.0.2-setup.exe') { throw "INSTALLER_FILENAME_MISMATCH actual=$($exe.Name)" }
+          if ($exe.Length -ne 2230927) { throw "REPRODUCIBILITY_SIZE_MISMATCH actual=$($exe.Length)" }
+          $sha = (Get-FileHash -Algorithm SHA256 -LiteralPath $exe.FullName).Hash.ToLowerInvariant()
+          $expected = 'b3d9a6d7e6562933d405333be51de94ccd009cabeaf6ab6877a0616b61d3b8a6'
+          if ($sha -ne $expected) { throw "REPRODUCIBILITY_SHA256_MISMATCH actual=$sha expected=$expected" }
+          "WU207_EXE_PATH=$($exe.FullName)" | Add-Content -Path $env:GITHUB_ENV
+          "WU207_EXE_SHA256=$sha" | Add-Content -Path $env:GITHUB_ENV
+          "WU207_EXE_SIZE=$($exe.Length)" | Add-Content -Path $env:GITHUB_ENV
+      - name: Remove compiler and prove clean source checkout
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (Test-Path -LiteralPath $env:WU207_INNO_DIR) { Remove-Item -LiteralPath $env:WU207_INNO_DIR -Recurse -Force }
+          if (Test-Path -LiteralPath $env:WU207_COMPILER_SETUP) { Remove-Item -LiteralPath $env:WU207_COMPILER_SETUP -Force }
+          if (Test-Path -LiteralPath $env:WU207_INNO_DIR) { throw 'EPHEMERAL_COMPILER_DIR_PERSISTED' }
+          if (Test-Path -LiteralPath $env:WU207_COMPILER_SETUP) { throw 'EPHEMERAL_COMPILER_SETUP_PERSISTED' }
+          if (git status --porcelain) { throw 'SOURCE_CHECKOUT_MUTATED_BY_BUILD' }
+      - name: Record SHA-256 provenance
+        shell: pwsh
+        run: |
+          @"
+          ## PIPE-WU-207 installer provenance
+          - source exact main: 8a424860c72586339cd578e1c26d2cb23ba84c82
+          - installer definition blob: b744a7446e86b34b4be1df01349e7c033da81644
+          - Inno Setup: 7.1.0
+          - compiler installer SHA-256: $env:WU207_COMPILER_SHA256
+          - output: VPS-Control-PNCC-v7.0.2-setup.exe
+          - output SHA-256: $env:WU207_EXE_SHA256
+          - output bytes: $env:WU207_EXE_SIZE
+          - artifact retention: 2 days
+          - purpose: manual Windows 10 validation only
+          - release/tag/Stable: forbidden / not performed
+          "@ | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+      - name: Upload only the installer artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: VPS-Control-PNCC-v7.0.2-setup.exe
+          path: ${{ env.WU207_EXE_PATH }}
+          if-no-files-found: error
+          retention-days: 2
+          compression-level: 0

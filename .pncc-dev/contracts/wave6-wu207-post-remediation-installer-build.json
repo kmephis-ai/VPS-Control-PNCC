@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "role": "ONE_BOUNDED_POST_REMEDIATION_INSTALLER_BUILD",
+  "work_unit_id": "PIPE-WU-207",
+  "authorized_source_main_sha": "8a424860c72586339cd578e1c26d2cb23ba84c82",
+  "canonical_installer_definition": {
+    "path": "installer/windows/VPS-Control-PNCC.iss",
+    "git_blob_sha": "b744a7446e86b34b4be1df01349e7c033da81644"
+  },
+  "pinned_compiler": {
+    "repository": "jrsoftware/issrc",
+    "tag": "is-7_1_0",
+    "release_asset": "innosetup-7.1.0-x64.exe",
+    "download_url": "https://github.com/jrsoftware/issrc/releases/download/is-7_1_0/innosetup-7.1.0-x64.exe",
+    "sha256": "0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f"
+  },
+  "expected_reproducible_output": {
+    "filename": "VPS-Control-PNCC-v7.0.2-setup.exe",
+    "sha256": "b3d9a6d7e6562933d405333be51de94ccd009cabeaf6ab6877a0616b61d3b8a6"
+  },
+  "execution_authority": {
+    "github_hosted_windows_only": true,
+    "compiler_acquisition": true,
+    "compiler_installation": true,
+    "compiler_execution": true,
+    "binary_build": true,
+    "artifact_upload": true,
+    "artifact_count": 1,
+    "allowed_artifact_filename": "VPS-Control-PNCC-v7.0.2-setup.exe",
+    "artifact_retention_days": 2,
+    "sha256_provenance_required": true,
+    "manual_windows_10_validation_only": true,
+    "product_runtime_mutation": false,
+    "self_hosted_runner": false,
+    "release": false,
+    "tag": false,
+    "stable_transition": false,
+    "reserve_1080_lifecycle_mutation": false,
+    "primary_1081_lifecycle_mutation": false,
+    "v631_mutation": false,
+    "ruleset_security_weakening": false,
+    "force_bypass": false
+  },
+  "classification": "OWNER_AUTHORIZED_ONE_SHOT_BUILD"
+}
