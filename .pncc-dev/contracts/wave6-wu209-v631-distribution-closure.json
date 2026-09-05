@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "role": "WINDOWS_INSTALLER_IMMUTABLE_ROLLBACK_BASE_DISTRIBUTION_CLOSURE",
+  "work_unit_id": "PIPE-WU-209",
+  "source_main_sha": "7ec91428e04b54bfa74d22bee0a02b045e211fa9",
+  "issue": 469,
+  "immutable_v6_3_1": {
+    "source_authority": "OWNER_LOCAL_VERIFIED_IMPORT",
+    "owner_local_source": "M:\\YandexDisk\\!Coding\\VPS-Control-v6.3.1.ps1",
+    "canonical_distribution_path": "src/rollback-base/VPS-Control-v6.3.1.ps1",
+    "destination_name": "VPS-Control-v6.3.1.ps1",
+    "bytes": 162507,
+    "sha256": "385e5178f10e79b0b234376e6a6671b64ce523a3971b2b4341ec94ce1efee11e",
+    "git_blob_sha1": "fbcf80dac2d619c421b8a40b5612cd13d5da4a73",
+    "normalization_forbidden": true,
+    "semantic_mutation": false
+  },
+  "installer": {
+    "path": "installer/windows/VPS-Control-PNCC.iss",
+    "clean_install_places_exact_v6_3_1_next_to_v7": true,
+    "launcher_code_17_unchanged": true
+  },
+  "authority": {
+    "canonical_distribution_admission": true,
+    "installer_definition_mutation": true,
+    "gitattributes_exact_path_protection": true,
+    "regression_static_validation": true,
+    "github_hosted_ci": true,
+    "compiler_execution": false,
+    "artifact_build_or_upload": false,
+    "release": false,
+    "tag": false,
+    "stable_transition": false,
+    "self_hosted_runner": false,
+    "port_1080_lifecycle": false,
+    "port_1081_lifecycle": false,
+    "v6_3_1_byte_or_semantic_mutation": false,
+    "launcher_code_17_weakening": false,
+    "ruleset_or_security_weakening": false,
+    "force_or_bypass": false
+  },
+  "classification": "OWNER_AUTHORIZED_BOUNDED_SOURCE_PACKAGING_REMEDIATION_NO_BUILD"
+}
