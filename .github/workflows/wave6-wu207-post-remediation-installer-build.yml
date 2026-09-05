@@ -1,11 +1,11 @@
 name: wave6-wu207-post-remediation-installer-build
 
 on:
-  pull_request:
-    branches: [main]
+  push:
+    branches:
+      - agent/PIPE-WU-207-post-remediation-installer-build
     paths:
       - '.github/workflows/wave6-wu207-post-remediation-installer-build.yml'
-      - '.pncc-dev/contracts/wave6-wu207-post-remediation-installer-build.json'
 
 permissions:
   contents: read
@@ -17,18 +17,20 @@ jobs:
     permissions:
       contents: read
     steps:
-      - name: Checkout exact WU207 PR head
+      - name: Checkout exact WU207 execution head
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Verify exact authorized base and bounded zero-product diff
+      - name: Verify exact main authority and bounded zero-product diff
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = '${{ github.event.pull_request.head.sha }}'
-          test '${{ github.event.pull_request.base.sha }}' = '8a424860c72586339cd578e1c26d2cb23ba84c82'
+          test '${{ github.ref_name }}' = 'agent/PIPE-WU-207-post-remediation-installer-build'
+          test "$(git rev-parse HEAD)" = '${{ github.sha }}'
+          git fetch --no-tags --depth=1 origin refs/heads/main:refs/remotes/origin/main
+          test "$(git rev-parse origin/main)" = '8a424860c72586339cd578e1c26d2cb23ba84c82'
           git fetch --no-tags --depth=1 origin '8a424860c72586339cd578e1c26d2cb23ba84c82'
           mapfile -t actual < <(git diff --name-only '8a424860c72586339cd578e1c26d2cb23ba84c82...HEAD' | sort)
           expected=(
@@ -110,13 +112,13 @@ jobs:
         run: |
           @"
           ## PIPE-WU-207 installer provenance
-          - source exact main: `8a424860c72586339cd578e1c26d2cb23ba84c82`
-          - installer definition blob: `b744a7446e86b34b4be1df01349e7c033da81644`
-          - Inno Setup: `7.1.0`
-          - compiler installer SHA-256: `$env:WU207_COMPILER_SHA256`
-          - output: `VPS-Control-PNCC-v7.0.2-setup.exe`
-          - output SHA-256: `$env:WU207_EXE_SHA256`
-          - output bytes: `$env:WU207_EXE_SIZE`
+          - source exact main: 8a424860c72586339cd578e1c26d2cb23ba84c82
+          - installer definition blob: b744a7446e86b34b4be1df01349e7c033da81644
+          - Inno Setup: 7.1.0
+          - compiler installer SHA-256: $env:WU207_COMPILER_SHA256
+          - output: VPS-Control-PNCC-v7.0.2-setup.exe
+          - output SHA-256: $env:WU207_EXE_SHA256
+          - output bytes: $env:WU207_EXE_SIZE
           - purpose: manual Windows 10 validation only
           "@ | Add-Content -Path $env:GITHUB_STEP_SUMMARY
       - name: Upload the single short-retention installer artifact
