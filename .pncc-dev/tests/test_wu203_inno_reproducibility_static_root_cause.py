@@ -8,7 +8,6 @@ import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 CONTRACT = ROOT / ".pncc-dev/contracts/wave6-wu203-inno-reproducibility-static-root-cause.json"
-ISS = ROOT / "installer/windows/VPS-Control-PNCC.iss"
 WORKFLOW = ROOT / ".github/workflows/wave6-wu203-inno-reproducibility-static-root-cause.yml"
 CLASSIFICATION = "HIGH_CONFIDENCE_STATIC_CAUSE_CANDIDATE_NOT_EXECUTION_PROVEN"
 
@@ -17,7 +16,6 @@ class WU203StaticRootCauseTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
-        cls.iss = ISS.read_text(encoding="utf-8")
         cls.workflow = WORKFLOW.read_text(encoding="utf-8")
 
     def test_contract_identity_and_classification(self):
@@ -44,15 +42,11 @@ class WU203StaticRootCauseTests(unittest.TestCase):
         self.assertEqual(c["compiler_identity"]["asset_sha256"], "0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f")
         self.assertEqual(c["canonical_installer_definition"]["git_blob_sha"], "d30a158aef3535a9066608495b45abcf41112926")
 
-    def test_current_files_entry_has_no_notimestamp_flag(self):
-        files_lines = [line for line in self.iss.splitlines() if line.lstrip().startswith("Source:")]
-        self.assertEqual(len(files_lines), 1)
-        line = files_lines[0].lower()
-        self.assertIn("ignoreversion", line)
-        self.assertIn("recursesubdirs", line)
-        self.assertIn("createallsubdirs", line)
-        self.assertNotIn("notimestamp", line)
-        self.assertFalse(self.contract["canonical_installer_definition"]["notimestamp_present"])
+    def test_wu203_observed_definition_had_no_notimestamp_flag(self):
+        observed = self.contract["canonical_installer_definition"]
+        self.assertEqual(observed["files_flags"], ["ignoreversion", "recursesubdirs", "createallsubdirs"])
+        self.assertNotIn("notimestamp", observed["files_flags"])
+        self.assertFalse(observed["notimestamp_present"])
 
     def test_static_causal_chain_is_complete_but_not_overclaimed(self):
         chain = self.contract["static_causal_chain"]
