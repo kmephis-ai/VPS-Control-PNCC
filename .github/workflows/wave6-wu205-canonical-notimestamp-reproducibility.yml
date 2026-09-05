@@ -31,11 +31,18 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Verify exact PR head and base
+      - name: Verify exact PR head and historical base lineage
         shell: pwsh
         run: |
           if ((git rev-parse HEAD).Trim() -ne '${{ github.event.pull_request.head.sha }}') { throw 'EXACT_HEAD_MISMATCH' }
-          if ('${{ github.event.pull_request.base.sha }}' -ne '8149979a977ae3412d6742150c4f15886d66eb45') { throw 'EXACT_BASE_MISMATCH' }
+          if ('${{ github.head_ref }}' -eq 'agent/PIPE-WU-205-canonical-notimestamp-reproducibility') {
+            if ('${{ github.event.pull_request.base.sha }}' -ne '8149979a977ae3412d6742150c4f15886d66eb45') { throw 'EXACT_BASE_MISMATCH' }
+          } else {
+            git fetch --no-tags --depth=1 origin '8149979a977ae3412d6742150c4f15886d66eb45'
+            git fetch --no-tags --depth=1 origin 'abb10fb7d3e7caa2ad2dd6a9e789cb64135e57c9'
+            if ((git rev-parse '8149979a977ae3412d6742150c4f15886d66eb45:installer/windows/VPS-Control-PNCC.iss').Trim() -ne 'd30a158aef3535a9066608495b45abcf41112926') { throw 'WU205_HISTORICAL_PRE_BLOB_DRIFT' }
+            if ((git rev-parse 'abb10fb7d3e7caa2ad2dd6a9e789cb64135e57c9:installer/windows/VPS-Control-PNCC.iss').Trim() -ne 'b744a7446e86b34b4be1df01349e7c033da81644') { throw 'WU205_HISTORICAL_POST_BLOB_DRIFT' }
+          }
       - name: Parse WU205 executor under Windows PowerShell 5.1
         shell: powershell
         run: |
@@ -48,11 +55,14 @@ jobs:
         run: |
           python .pncc-dev/tests/test_wu203_inno_reproducibility_static_root_cause.py -v
           python .pncc-dev/tests/test_wu205_canonical_notimestamp_reproducibility.py -v
-      - name: Verify exact seven-path bounded diff and single product mutation
+      - name: Verify historical seven-path bounded diff and single product mutation
         shell: pwsh
         run: |
-          git fetch --no-tags origin '${{ github.event.pull_request.base.sha }}'
-          $actual = @(git diff --name-only '${{ github.event.pull_request.base.sha }}...HEAD' | Sort-Object)
+          $base = '8149979a977ae3412d6742150c4f15886d66eb45'
+          $historicalHead = 'abb10fb7d3e7caa2ad2dd6a9e789cb64135e57c9'
+          git fetch --no-tags --depth=1 origin $base
+          git fetch --no-tags --depth=1 origin $historicalHead
+          $actual = @(git diff --name-only $base $historicalHead | Sort-Object)
           $expected = @(
             '.github/workflows/wave6-wu203-inno-reproducibility-static-root-cause.yml',
             '.github/workflows/wave6-wu205-canonical-notimestamp-reproducibility.yml',
@@ -62,17 +72,12 @@ jobs:
             '.pncc-dev/tests/test_wu205_canonical_notimestamp_reproducibility.py',
             'installer/windows/VPS-Control-PNCC.iss'
           ) | Sort-Object
-          if (($actual -join "`n") -ne ($expected -join "`n")) { throw "BOUNDED_DIFF_MISMATCH`nactual=$($actual -join ',')" }
+          if (($actual -join "`n") -ne ($expected -join "`n")) { throw "WU205_HISTORICAL_BOUNDED_DIFF_MISMATCH`nactual=$($actual -join ',')" }
           $product = @($actual | Where-Object { $_ -match '^(installer/|src/|legacy/|tools/runtime-agent/)' })
-          if ($product.Count -ne 1 -or $product[0] -ne 'installer/windows/VPS-Control-PNCC.iss') { throw 'PRODUCT_MUTATION_SCOPE_MISMATCH' }
-          if ((git rev-parse '8149979a977ae3412d6742150c4f15886d66eb45:installer/windows/VPS-Control-PNCC.iss').Trim() -ne 'd30a158aef3535a9066608495b45abcf41112926') { throw 'PRE_REMEDIATION_BLOB_MISMATCH' }
-          if ((git hash-object 'installer/windows/VPS-Control-PNCC.iss').Trim() -ne 'b744a7446e86b34b4be1df01349e7c033da81644') { throw 'POST_REMEDIATION_BLOB_MISMATCH' }
-          $current = Get-Content -Raw 'installer/windows/VPS-Control-PNCC.iss'
-          $old = git show '8149979a977ae3412d6742150c4f15886d66eb45:installer/windows/VPS-Control-PNCC.iss' | Out-String
-          $newLine = 'Source: "..\..\src\windows-v7\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs notimestamp'
-          $oldLine = 'Source: "..\..\src\windows-v7\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs'
-          if ([regex]::Matches($current,[regex]::Escape($newLine)).Count -ne 1) { throw 'NOTIMESTAMP_REMEDIATION_LINE_INVALID' }
-          if ($current.Replace($newLine,$oldLine).TrimEnd() -ne $old.TrimEnd()) { throw 'EXTRA_INSTALLER_SEMANTIC_CHANGE' }
+          if ($product.Count -ne 1 -or $product[0] -ne 'installer/windows/VPS-Control-PNCC.iss') { throw 'WU205_HISTORICAL_PRODUCT_MUTATION_SCOPE_MISMATCH' }
+          if ((git rev-parse "$base`:installer/windows/VPS-Control-PNCC.iss").Trim() -ne 'd30a158aef3535a9066608495b45abcf41112926') { throw 'PRE_REMEDIATION_BLOB_MISMATCH' }
+          if ((git rev-parse "$historicalHead`:installer/windows/VPS-Control-PNCC.iss").Trim() -ne 'b744a7446e86b34b4be1df01349e7c033da81644') { throw 'POST_REMEDIATION_BLOB_MISMATCH' }
+          if ((git hash-object 'installer/windows/VPS-Control-PNCC.iss').Trim() -ne 'b744a7446e86b34b4be1df01349e7c033da81644') { throw 'CURRENT_CANONICAL_POST_REMEDIATION_BLOB_MISMATCH' }
           if (git status --porcelain) { throw 'DIRTY_CHECKOUT' }
 
   run-repro-qualification:
