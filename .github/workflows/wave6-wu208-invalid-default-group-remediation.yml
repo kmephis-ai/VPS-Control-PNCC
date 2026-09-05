@@ -1,0 +1,130 @@
+name: wave6-wu208-invalid-default-group-remediation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'installer/windows/VPS-Control-PNCC.iss'
+      - '.pncc-dev/contracts/wave6-wu208-invalid-default-group-remediation.json'
+      - '.pncc-dev/tests/test_wu208_invalid_default_group_remediation.py'
+      - '.github/workflows/wave6-wu208-invalid-default-group-remediation.yml'
+  issues:
+    types: [edited]
+
+permissions:
+  contents: read
+
+jobs:
+  validate-remediation:
+    if: github.event_name == 'pull_request'
+    runs-on: windows-2025
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify exact base and four-path bounded diff
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if ('${{ github.event.pull_request.base.sha }}' -ne '66772cee01d60489730039b0da8ad76bb290d4f2') { throw 'EXACT_BASE_MISMATCH' }
+          git fetch --no-tags --depth=1 origin '66772cee01d60489730039b0da8ad76bb290d4f2'
+          $actual=@(git diff --name-only '66772cee01d60489730039b0da8ad76bb290d4f2...HEAD' | Sort-Object)
+          $expected=@('.github/workflows/wave6-wu208-invalid-default-group-remediation.yml','.pncc-dev/contracts/wave6-wu208-invalid-default-group-remediation.json','.pncc-dev/tests/test_wu208_invalid_default_group_remediation.py','installer/windows/VPS-Control-PNCC.iss') | Sort-Object
+          if (($actual -join "`n") -ne ($expected -join "`n")) { throw "BOUNDED_DIFF_MISMATCH actual=$($actual -join ',')" }
+          $product=@($actual | Where-Object { $_ -match '^(installer/|src/|legacy/|tools/runtime-agent/)' })
+          if ($product.Count -ne 1 -or $product[0] -ne 'installer/windows/VPS-Control-PNCC.iss') { throw 'PRODUCT_SCOPE_MISMATCH' }
+      - name: Run WU208 regression
+        shell: pwsh
+        run: python .pncc-dev/tests/test_wu208_invalid_default_group_remediation.py -v
+
+  build-reproducible-installer:
+    if: github.event_name == 'issues' && github.event.issue.number == 466 && contains(github.event.issue.body, 'PNCC-WU208-INSTALLER-BUILD-EXECUTE')
+    runs-on: windows-2025
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      issues: read
+    concurrency:
+      group: pncc-wu208-remediated-installer
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Verify exact post-merge authority
+        shell: pwsh
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $sha='${{ github.sha }}'
+          $pattern='<!--\s*PNCC-WU208-INSTALLER-BUILD-EXECUTE\s+schema=1\s+expected_main='+[Regex]::Escape($sha)+'\s+expected_blob=8958839f25cc2ca82a07f90df80fe0d23b2fbb22\s*-->'
+          if ([Regex]::Matches($env:ISSUE_BODY,$pattern).Count -ne 1) { throw 'EXECUTION_MARKER_INVALID' }
+          if ([Regex]::Matches($env:ISSUE_BODY,'PNCC-WU208-INSTALLER-BUILD-EXECUTE').Count -ne 1) { throw 'EXECUTION_MARKER_AMBIGUOUS' }
+          if ($env:RUNNER_ENVIRONMENT -ne 'github-hosted') { throw 'GITHUB_HOSTED_REQUIRED' }
+          if ((git rev-parse HEAD).Trim() -ne $sha) { throw 'EXACT_MAIN_MISMATCH' }
+          if ((git hash-object 'installer/windows/VPS-Control-PNCC.iss').Trim() -ne '8958839f25cc2ca82a07f90df80fe0d23b2fbb22') { throw 'INSTALLER_BLOB_MISMATCH' }
+          python .pncc-dev/tests/test_wu208_invalid_default_group_remediation.py -v
+      - name: Acquire pinned Inno Setup 7.1.0
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $setup=Join-Path $env:RUNNER_TEMP 'innosetup-7.1.0-x64.exe'
+          Invoke-WebRequest -Uri 'https://github.com/jrsoftware/issrc/releases/download/is-7_1_0/innosetup-7.1.0-x64.exe' -OutFile $setup
+          if ((Get-Item $setup).Length -ne 14304168) { throw 'COMPILER_SIZE_MISMATCH' }
+          $h=(Get-FileHash -Algorithm SHA256 $setup).Hash.ToLowerInvariant()
+          if ($h -ne '0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f') { throw 'COMPILER_SHA256_MISMATCH' }
+          $dir=Join-Path $env:RUNNER_TEMP 'pncc-wu208-inno'
+          $p=Start-Process $setup -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-',('/DIR='+$dir)) -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw 'COMPILER_INSTALL_FAILED' }
+          "WU208_SETUP=$setup" | Add-Content $env:GITHUB_ENV
+          "WU208_INNO=$dir" | Add-Content $env:GITHUB_ENV
+          "WU208_ISCC=$(Join-Path $dir 'ISCC.exe')" | Add-Content $env:GITHUB_ENV
+      - name: Build two ephemeral candidates and prove byte identity
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:RUNNER_TEMP 'pncc-wu208-repro'; New-Item -ItemType Directory $root | Out-Null
+          $hashes=@(); $paths=@()
+          foreach($n in 'a','b') {
+            $out=Join-Path $root $n; New-Item -ItemType Directory $out | Out-Null
+            $p=Start-Process $env:WU208_ISCC -ArgumentList @('/Q',('/O'+$out),'/FVPS-Control-PNCC-v7.0.2-setup',(Resolve-Path 'installer/windows/VPS-Control-PNCC.iss').Path) -Wait -PassThru
+            if($p.ExitCode -ne 0){throw "BUILD_FAILED_$n"}
+            $exe=Join-Path $out 'VPS-Control-PNCC-v7.0.2-setup.exe'; if(-not(Test-Path $exe)){throw "OUTPUT_MISSING_$n"}
+            $paths += $exe; $hashes += (Get-FileHash -Algorithm SHA256 $exe).Hash.ToLowerInvariant()
+          }
+          if($hashes[0] -ne $hashes[1]){throw "REPRODUCIBILITY_SHA256_MISMATCH $($hashes -join ',')"}
+          if((Get-Item $paths[0]).Length -ne (Get-Item $paths[1]).Length){throw 'REPRODUCIBILITY_SIZE_MISMATCH'}
+          Copy-Item $paths[0] (Join-Path $env:RUNNER_TEMP 'VPS-Control-PNCC-v7.0.2-setup.exe')
+          "WU208_EXE=$(Join-Path $env:RUNNER_TEMP 'VPS-Control-PNCC-v7.0.2-setup.exe')" | Add-Content $env:GITHUB_ENV
+          "WU208_SHA=$($hashes[0])" | Add-Content $env:GITHUB_ENV
+          "WU208_SIZE=$((Get-Item $paths[0]).Length)" | Add-Content $env:GITHUB_ENV
+      - name: Cleanup compiler and record provenance
+        shell: pwsh
+        run: |
+          Remove-Item $env:WU208_INNO -Recurse -Force; Remove-Item $env:WU208_SETUP -Force
+          if(git status --porcelain){throw 'SOURCE_CHECKOUT_MUTATED'}
+          @"
+          ## PIPE-WU-208 remediated installer provenance
+          - exact main: ${{ github.sha }}
+          - installer blob: 8958839f25cc2ca82a07f90df80fe0d23b2fbb22
+          - compiler: Inno Setup 7.1.0
+          - output SHA-256: $env:WU208_SHA
+          - output bytes: $env:WU208_SIZE
+          - two candidates byte-identical: true
+          - uploaded artifacts: 1
+          - purpose: repeat manual Windows 10 validation
+          "@ | Add-Content $env:GITHUB_STEP_SUMMARY
+      - name: Upload only remediated installer
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: VPS-Control-PNCC-v7.0.2-setup.exe
+          path: ${{ env.WU208_EXE }}
+          if-no-files-found: error
+          retention-days: 2
+          compression-level: 0

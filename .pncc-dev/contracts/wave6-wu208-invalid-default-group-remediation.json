@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "role": "WINDOWS10_INVALID_DEFAULT_GROUP_NAME_REMEDIATION",
+  "work_unit_id": "PIPE-WU-208",
+  "source_main_sha": "66772cee01d60489730039b0da8ad76bb290d4f2",
+  "failure": {
+    "classification": "INSTALLER_RUNTIME_DEFECT",
+    "code": "INVALID_DEFAULT_GROUP_NAME",
+    "observed_message": "The folder name is not valid.",
+    "validation_environment": "Windows 10"
+  },
+  "installer_definition": {
+    "path": "installer/windows/VPS-Control-PNCC.iss",
+    "pre_remediation_git_blob_sha": "b744a7446e86b34b4be1df01349e7c033da81644",
+    "post_remediation_git_blob_sha": "8958839f25cc2ca82a07f90df80fe0d23b2fbb22",
+    "pre_line": "DefaultGroupName=VPS Control Center / PNCC",
+    "post_line": "DefaultGroupName=VPS Control Center - PNCC",
+    "semantic_change_count": 1
+  },
+  "post_merge_build": {
+    "github_hosted_windows_only": true,
+    "compiler": "Inno Setup 7.1.0",
+    "compiler_sha256": "0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f",
+    "ephemeral_reproducibility_build_count": 2,
+    "candidates_must_be_byte_identical": true,
+    "artifact_upload_count": 1,
+    "artifact_filename": "VPS-Control-PNCC-v7.0.2-setup.exe",
+    "artifact_retention_days": 2,
+    "sha256_provenance_required": true,
+    "purpose": "REPEAT_MANUAL_WINDOWS10_VALIDATION"
+  },
+  "authority": {
+    "canonical_installer_definition_mutation": true,
+    "allowed_product_runtime_paths": ["installer/windows/VPS-Control-PNCC.iss"],
+    "regression_static_validation": true,
+    "artifact_upload": true,
+    "other_product_runtime_mutation": false,
+    "release": false,
+    "tag": false,
+    "stable_transition": false,
+    "self_hosted_runner": false,
+    "port_1080_lifecycle": false,
+    "port_1081_lifecycle": false,
+    "v6_3_1_mutation": false,
+    "ruleset_or_security_weakening": false,
+    "force_or_bypass": false
+  },
+  "classification": "OWNER_AUTHORIZED_BOUNDED_REMEDIATION_AND_ONE_ARTIFACT"
+}
