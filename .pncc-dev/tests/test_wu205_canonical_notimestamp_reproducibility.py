@@ -15,6 +15,7 @@ WORKFLOW = ROOT / ".github/workflows/wave6-wu205-canonical-notimestamp-reproduci
 EXPECTED_FILES_LINE = 'Source: "..\\..\\src\\windows-v7\\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs notimestamp'
 OLD_FILES_LINE = 'Source: "..\\..\\src\\windows-v7\\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs'
 EXPECTED_PATHS = sorted([
+    ".github/workflows/wave6-wu203-inno-reproducibility-static-root-cause.yml",
     ".github/workflows/wave6-wu205-canonical-notimestamp-reproducibility.yml",
     ".pncc-dev/contracts/wave6-wu205-canonical-notimestamp-reproducibility.json",
     ".pncc-dev/scripts/wu205_canonical_notimestamp_reproducibility.ps1",
@@ -72,7 +73,7 @@ class WU205Tests(unittest.TestCase):
         for forbidden in ["self" + "-hosted", "actions/" + "upload-artifact", "actions/" + "cache", "contents: write", "security-events: write"]:
             self.assertNotIn(forbidden, text)
 
-    def test_branch_diff_is_exactly_six_paths(self):
+    def test_branch_diff_is_exactly_seven_paths(self):
         ensure_base()
         actual = sorted(x for x in git("diff", "--name-only", f"{BASE}...HEAD").splitlines() if x)
         self.assertEqual(actual, EXPECTED_PATHS)
