@@ -24,6 +24,7 @@ UninstallDisplayName=VPS Control Center / PNCC 7.0.2
 
 [Files]
 Source: "..\..\src\windows-v7\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs notimestamp
+Source: "..\..\src\rollback-base\VPS-Control-v6.3.1.ps1"; DestDir: "{app}"; DestName: "VPS-Control-v6.3.1.ps1"; Flags: ignoreversion notimestamp
 
 [Icons]
 Name: "{group}\VPS Control Center"; Filename: "{app}\VPS-Control-v7.cmd"; WorkingDir: "{app}"

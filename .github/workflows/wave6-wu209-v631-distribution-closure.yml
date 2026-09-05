@@ -1,0 +1,54 @@
+name: wave6-wu209-v631-distribution-closure
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.gitattributes'
+      - 'src/rollback-base/VPS-Control-v6.3.1.ps1'
+      - 'installer/windows/VPS-Control-PNCC.iss'
+      - '.pncc-dev/contracts/wave6-wu209-v631-distribution-closure.json'
+      - '.pncc-dev/tests/test_wu209_v631_distribution_closure.py'
+      - '.github/workflows/wave6-wu209-v631-distribution-closure.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: windows-2025
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify exact bounded diff
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $base='7ec91428e04b54bfa74d22bee0a02b045e211fa9'
+          if ('${{ github.event.pull_request.base.sha }}' -ne $base) { throw 'EXACT_BASE_MISMATCH' }
+          $expected=@(
+            '.gitattributes',
+            '.github/workflows/wave6-wu209-v631-distribution-closure.yml',
+            '.pncc-dev/contracts/wave6-wu209-v631-distribution-closure.json',
+            '.pncc-dev/tests/test_wu209_v631_distribution_closure.py',
+            'installer/windows/VPS-Control-PNCC.iss',
+            'src/rollback-base/VPS-Control-v6.3.1.ps1'
+          ) | Sort-Object
+          $actual=@(git diff --name-only "$base...HEAD" | Sort-Object)
+          if (($actual -join "`n") -ne ($expected -join "`n")) { throw "BOUNDED_DIFF_MISMATCH actual=$($actual -join ',')" }
+      - name: Verify immutable V6.3.1 bytes
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $p='src/rollback-base/VPS-Control-v6.3.1.ps1'
+          if ((Get-Item $p).Length -ne 162507) { throw 'V631_SIZE_MISMATCH' }
+          $h=(Get-FileHash -Algorithm SHA256 $p).Hash.ToLowerInvariant()
+          if ($h -ne '385e5178f10e79b0b234376e6a6671b64ce523a3971b2b4341ec94ce1efee11e') { throw 'V631_SHA256_MISMATCH' }
+          if ((git hash-object $p).Trim() -ne 'fbcf80dac2d619c421b8a40b5612cd13d5da4a73') { throw 'V631_GIT_BLOB_MISMATCH' }
+      - name: Run WU209 regression
+        shell: pwsh
+        run: python .pncc-dev/tests/test_wu209_v631_distribution_closure.py -v
