@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/wave6-wu206-post-remediation-installer-artifact-readiness.yml'
       - '.pncc-dev/contracts/wave6-wu206-post-remediation-installer-artifact-readiness.json'
+      - '.pncc-dev/tests/test_wu205_canonical_notimestamp_reproducibility.py'
       - '.pncc-dev/tests/test_wu206_post_remediation_installer_artifact_readiness.py'
 
 permissions:
@@ -30,10 +31,12 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = '${{ github.event.pull_request.head.sha }}'
           test '${{ github.event.pull_request.base.sha }}' = '7eba68fd235be2ea6ef39389eb990e231a69ceec'
-      - name: Run WU206 readiness regression tests
+      - name: Run WU206 readiness and WU205 successor-lineage regressions
         shell: bash
-        run: python .pncc-dev/tests/test_wu206_post_remediation_installer_artifact_readiness.py
-      - name: Verify exact three-path bounded diff and zero product mutation
+        run: |
+          python .pncc-dev/tests/test_wu205_canonical_notimestamp_reproducibility.py
+          python .pncc-dev/tests/test_wu206_post_remediation_installer_artifact_readiness.py
+      - name: Verify exact four-path bounded diff and zero product mutation
         shell: bash
         run: |
           set -euo pipefail
@@ -42,6 +45,7 @@ jobs:
           expected=(
             '.github/workflows/wave6-wu206-post-remediation-installer-artifact-readiness.yml'
             '.pncc-dev/contracts/wave6-wu206-post-remediation-installer-artifact-readiness.json'
+            '.pncc-dev/tests/test_wu205_canonical_notimestamp_reproducibility.py'
             '.pncc-dev/tests/test_wu206_post_remediation_installer_artifact_readiness.py'
           )
           mapfile -t expected < <(printf '%s\n' "${expected[@]}" | sort)
