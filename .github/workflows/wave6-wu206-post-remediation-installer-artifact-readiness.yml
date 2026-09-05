@@ -4,6 +4,7 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - '.github/workflows/wave6-wu205-canonical-notimestamp-reproducibility.yml'
       - '.github/workflows/wave6-wu206-post-remediation-installer-artifact-readiness.yml'
       - '.pncc-dev/contracts/wave6-wu206-post-remediation-installer-artifact-readiness.json'
       - '.pncc-dev/tests/test_wu205_canonical_notimestamp_reproducibility.py'
@@ -36,13 +37,14 @@ jobs:
         run: |
           python .pncc-dev/tests/test_wu205_canonical_notimestamp_reproducibility.py
           python .pncc-dev/tests/test_wu206_post_remediation_installer_artifact_readiness.py
-      - name: Verify exact four-path bounded diff and zero product mutation
+      - name: Verify exact five-path bounded diff and zero product mutation
         shell: bash
         run: |
           set -euo pipefail
           git fetch --no-tags origin '${{ github.event.pull_request.base.sha }}'
           mapfile -t actual < <(git diff --name-only '${{ github.event.pull_request.base.sha }}...HEAD' | sort)
           expected=(
+            '.github/workflows/wave6-wu205-canonical-notimestamp-reproducibility.yml'
             '.github/workflows/wave6-wu206-post-remediation-installer-artifact-readiness.yml'
             '.pncc-dev/contracts/wave6-wu206-post-remediation-installer-artifact-readiness.json'
             '.pncc-dev/tests/test_wu205_canonical_notimestamp_reproducibility.py'
