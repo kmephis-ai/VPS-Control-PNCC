@@ -1,0 +1,60 @@
+name: wave6-wu206-post-remediation-installer-artifact-readiness
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/wave6-wu206-post-remediation-installer-artifact-readiness.yml'
+      - '.pncc-dev/contracts/wave6-wu206-post-remediation-installer-artifact-readiness.json'
+      - '.pncc-dev/tests/test_wu206_post_remediation_installer_artifact_readiness.py'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-wu206:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify exact PR head and base
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = '${{ github.event.pull_request.head.sha }}'
+          test '${{ github.event.pull_request.base.sha }}' = '7eba68fd235be2ea6ef39389eb990e231a69ceec'
+      - name: Run WU206 readiness regression tests
+        shell: bash
+        run: python .pncc-dev/tests/test_wu206_post_remediation_installer_artifact_readiness.py
+      - name: Verify exact three-path bounded diff and zero product mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin '${{ github.event.pull_request.base.sha }}'
+          mapfile -t actual < <(git diff --name-only '${{ github.event.pull_request.base.sha }}...HEAD' | sort)
+          expected=(
+            '.github/workflows/wave6-wu206-post-remediation-installer-artifact-readiness.yml'
+            '.pncc-dev/contracts/wave6-wu206-post-remediation-installer-artifact-readiness.json'
+            '.pncc-dev/tests/test_wu206_post_remediation_installer_artifact_readiness.py'
+          )
+          mapfile -t expected < <(printf '%s\n' "${expected[@]}" | sort)
+          test "$(printf '%s\n' "${actual[@]}")" = "$(printf '%s\n' "${expected[@]}")"
+          if printf '%s\n' "${actual[@]}" | grep -Eq '^(installer/|src/|legacy/|tools/runtime-agent/|tools/release/|\.pncc-state/)'; then
+            echo 'FORBIDDEN_PRODUCT_OR_PROVIDER_STATE_MUTATION' >&2
+            exit 1
+          fi
+      - name: Verify exact current canonical installer identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse '7eba68fd235be2ea6ef39389eb990e231a69ceec:installer/windows/VPS-Control-PNCC.iss')" = 'b744a7446e86b34b4be1df01349e7c033da81644'
+      - name: Prove checkout remained clean
+        shell: bash
+        run: test -z "$(git status --porcelain)"
