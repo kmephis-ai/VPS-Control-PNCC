@@ -2,7 +2,6 @@
 import json
 import pathlib
 import subprocess
-import sys
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -19,12 +18,19 @@ EXPECTED_PATHS = sorted([
     ".github/workflows/wave6-wu205-canonical-notimestamp-reproducibility.yml",
     ".pncc-dev/contracts/wave6-wu205-canonical-notimestamp-reproducibility.json",
     ".pncc-dev/scripts/wu205_canonical_notimestamp_reproducibility.ps1",
+    ".pncc-dev/tests/test_wu203_inno_reproducibility_static_root_cause.py",
     ".pncc-dev/tests/test_wu205_canonical_notimestamp_reproducibility.py",
     "installer/windows/VPS-Control-PNCC.iss",
 ])
 
 def git(*args):
-    return subprocess.check_output(["git", *args], cwd=ROOT, text=True).strip()
+    return subprocess.check_output(["git", *args], cwd=ROOT, text=True, stderr=subprocess.DEVNULL).strip()
+
+def ensure_base():
+    try:
+        subprocess.check_call(["git", "cat-file", "-e", f"{BASE}^{{commit}}"], cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except subprocess.CalledProcessError:
+        subprocess.check_call(["git", "fetch", "--no-tags", "--depth=1", "origin", BASE], cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 class WU205Tests(unittest.TestCase):
     def test_contract_is_exact_and_least_authority(self):
@@ -40,6 +46,7 @@ class WU205Tests(unittest.TestCase):
             self.assertFalse(c["authority"][k], k)
 
     def test_canonical_iss_is_exact_single_semantic_remediation(self):
+        ensure_base()
         current = ISS.read_text(encoding="utf-8")
         old = subprocess.check_output(["git", "show", f"{BASE}:installer/windows/VPS-Control-PNCC.iss"], cwd=ROOT, text=True)
         self.assertEqual(git("rev-parse", f"{BASE}:installer/windows/VPS-Control-PNCC.iss"), PRE_BLOB)
@@ -65,7 +72,8 @@ class WU205Tests(unittest.TestCase):
         for forbidden in ["self" + "-hosted", "actions/" + "upload-artifact", "actions/" + "cache", "contents: write", "security-events: write"]:
             self.assertNotIn(forbidden, text)
 
-    def test_branch_diff_is_exactly_five_paths(self):
+    def test_branch_diff_is_exactly_six_paths(self):
+        ensure_base()
         actual = sorted(x for x in git("diff", "--name-only", f"{BASE}...HEAD").splitlines() if x)
         self.assertEqual(actual, EXPECTED_PATHS)
 
