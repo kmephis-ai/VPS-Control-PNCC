@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "role": "POST_MERGE_WINDOWS_INSTALLER_VALIDATION_BUILD_AUTHORITY",
+  "work_unit_id": "PIPE-WU-210",
+  "issue": 471,
+  "authorized_source_main_sha": "77314fc701eeba26ce068ed532beab1e8ecee251",
+  "immutable_v6_3_1": {
+    "path": "src/rollback-base/VPS-Control-v6.3.1.ps1",
+    "bytes": 162507,
+    "sha256": "385e5178f10e79b0b234376e6a6671b64ce523a3971b2b4341ec94ce1efee11e",
+    "git_blob_sha1": "fbcf80dac2d619c421b8a40b5612cd13d5da4a73"
+  },
+  "compiler": {
+    "name": "Inno Setup 7.1.0",
+    "asset": "innosetup-7.1.0-x64.exe",
+    "bytes": 14304168,
+    "sha256": "0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f"
+  },
+  "build": {
+    "runner": "windows-2025",
+    "runner_environment": "github-hosted",
+    "ephemeral_candidate_count": 2,
+    "byte_identical_required": true,
+    "uploaded_artifact_count": 1,
+    "artifact_filename": "VPS-Control-PNCC-v7.0.2-setup.exe",
+    "artifact_purpose": "MANUAL_WINDOWS10_VALIDATION_ONLY",
+    "artifact_retention_days": 2
+  },
+  "authority": {
+    "control_plane_build_gate_mutation": true,
+    "compiler_execution_once": true,
+    "installer_artifact_build_once": true,
+    "artifact_upload_once": true,
+    "product_runtime_mutation": false,
+    "v6_3_1_byte_or_semantic_mutation": false,
+    "launcher_code_17_weakening": false,
+    "self_hosted_runner": false,
+    "port_1080_lifecycle": false,
+    "port_1081_lifecycle": false,
+    "ruleset_or_security_weakening": false,
+    "force_or_bypass": false,
+    "release": false,
+    "tag": false,
+    "stable_transition": false
+  },
+  "classification": "OWNER_AUTHORIZED_ONE_GITHUB_HOSTED_REPRODUCIBLE_BUILD_AND_ONE_VALIDATION_ARTIFACT"
+}

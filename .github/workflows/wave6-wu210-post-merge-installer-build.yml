@@ -1,0 +1,163 @@
+name: wave6-wu210-post-merge-installer-build
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.pncc-dev/contracts/wave6-wu210-post-merge-installer-build.json'
+      - '.github/workflows/wave6-wu210-post-merge-installer-build.yml'
+  issues:
+    types: [edited]
+
+permissions:
+  contents: read
+
+jobs:
+  validate-control-plane:
+    if: github.event_name == 'pull_request'
+    runs-on: windows-2025
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify exact control-plane-only diff
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $base='77314fc701eeba26ce068ed532beab1e8ecee251'
+          if ('${{ github.event.pull_request.base.sha }}' -ne $base) { throw 'EXACT_BASE_MISMATCH' }
+          $expected=@(
+            '.github/workflows/wave6-wu210-post-merge-installer-build.yml',
+            '.pncc-dev/contracts/wave6-wu210-post-merge-installer-build.json'
+          ) | Sort-Object
+          $actual=@(git diff --name-only "$base...HEAD" | Sort-Object)
+          if (($actual -join "`n") -ne ($expected -join "`n")) { throw "BOUNDED_DIFF_MISMATCH actual=$($actual -join ',')" }
+          $forbidden=@($actual | Where-Object { $_ -match '^(installer/|src/|legacy/|tools/runtime-agent/)' })
+          if ($forbidden.Count -ne 0) { throw "PRODUCT_RUNTIME_MUTATION_FORBIDDEN paths=$($forbidden -join ',')" }
+      - name: Verify contract bounds
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $c=Get-Content '.pncc-dev/contracts/wave6-wu210-post-merge-installer-build.json' -Raw | ConvertFrom-Json
+          if($c.work_unit_id -ne 'PIPE-WU-210'){throw 'WORK_UNIT_ID_MISMATCH'}
+          if($c.authorized_source_main_sha -ne '77314fc701eeba26ce068ed532beab1e8ecee251'){throw 'SOURCE_MAIN_MISMATCH'}
+          if($c.immutable_v6_3_1.sha256 -ne '385e5178f10e79b0b234376e6a6671b64ce523a3971b2b4341ec94ce1efee11e'){throw 'V631_CONTRACT_SHA_MISMATCH'}
+          if($c.compiler.sha256 -ne '0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f'){throw 'COMPILER_CONTRACT_SHA_MISMATCH'}
+          foreach($k in 'product_runtime_mutation','v6_3_1_byte_or_semantic_mutation','launcher_code_17_weakening','self_hosted_runner','port_1080_lifecycle','port_1081_lifecycle','ruleset_or_security_weakening','force_or_bypass','release','tag','stable_transition'){
+            if($c.authority.$k){throw "FORBIDDEN_AUTHORITY_TRUE_$k"}
+          }
+
+  build-validation-installer:
+    if: github.event_name == 'issues' && github.event.issue.number == 471 && contains(github.event.issue.body, 'PNCC-WU210-INSTALLER-BUILD-EXECUTE')
+    runs-on: windows-2025
+    timeout-minutes: 20
+    concurrency:
+      group: pncc-wu210-one-validation-installer
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      issues: read
+    steps:
+      - name: Verify one-shot execution marker
+        shell: pwsh
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $source='77314fc701eeba26ce068ed532beab1e8ecee251'
+          $pattern='<!--\s*PNCC-WU210-INSTALLER-BUILD-EXECUTE\s+schema=1\s+expected_source='+[Regex]::Escape($source)+'\s*-->'
+          if([Regex]::Matches($env:ISSUE_BODY,$pattern).Count -ne 1){throw 'EXECUTION_MARKER_INVALID'}
+          if([Regex]::Matches($env:ISSUE_BODY,'PNCC-WU210-INSTALLER-BUILD-EXECUTE').Count -ne 1){throw 'EXECUTION_MARKER_AMBIGUOUS'}
+          if($env:RUNNER_ENVIRONMENT -ne 'github-hosted'){throw 'GITHUB_HOSTED_REQUIRED'}
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: 77314fc701eeba26ce068ed532beab1e8ecee251
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify exact authorized source and WU209 closure
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $source='77314fc701eeba26ce068ed532beab1e8ecee251'
+          if((git rev-parse HEAD).Trim() -ne $source){throw 'EXACT_SOURCE_MAIN_MISMATCH'}
+          $p='src/rollback-base/VPS-Control-v6.3.1.ps1'
+          if(-not(Test-Path $p -PathType Leaf)){throw 'V631_MISSING'}
+          if((Get-Item $p).Length -ne 162507){throw 'V631_SIZE_MISMATCH'}
+          $h=(Get-FileHash -Algorithm SHA256 $p).Hash.ToLowerInvariant()
+          if($h -ne '385e5178f10e79b0b234376e6a6671b64ce523a3971b2b4341ec94ce1efee11e'){throw 'V631_SHA256_MISMATCH'}
+          if((git hash-object $p).Trim() -ne 'fbcf80dac2d619c421b8a40b5612cd13d5da4a73'){throw 'V631_GIT_BLOB_MISMATCH'}
+          python .pncc-dev/tests/test_wu209_v631_distribution_closure.py -v
+          $iss=Get-Content 'installer/windows/VPS-Control-PNCC.iss' -Raw
+          $mapping='Source: "..\..\src\rollback-base\VPS-Control-v6.3.1.ps1"; DestDir: "{app}"; DestName: "VPS-Control-v6.3.1.ps1"; Flags: ignoreversion notimestamp'
+          if(([Regex]::Matches($iss,[Regex]::Escape($mapping))).Count -ne 1){throw 'CANONICAL_ROLLBACK_MAPPING_MISMATCH'}
+      - name: Acquire pinned Inno Setup 7.1.0
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $setup=Join-Path $env:RUNNER_TEMP 'innosetup-7.1.0-x64.exe'
+          Invoke-WebRequest -Uri 'https://github.com/jrsoftware/issrc/releases/download/is-7_1_0/innosetup-7.1.0-x64.exe' -OutFile $setup
+          if((Get-Item $setup).Length -ne 14304168){throw 'COMPILER_SIZE_MISMATCH'}
+          $h=(Get-FileHash -Algorithm SHA256 $setup).Hash.ToLowerInvariant()
+          if($h -ne '0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f'){throw 'COMPILER_SHA256_MISMATCH'}
+          $dir=Join-Path $env:RUNNER_TEMP 'pncc-wu210-inno'
+          $p=Start-Process $setup -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-',('/DIR='+$dir)) -Wait -PassThru
+          if($p.ExitCode -ne 0){throw 'COMPILER_INSTALL_FAILED'}
+          "WU210_SETUP=$setup" | Add-Content $env:GITHUB_ENV
+          "WU210_INNO=$dir" | Add-Content $env:GITHUB_ENV
+          "WU210_ISCC=$(Join-Path $dir 'ISCC.exe')" | Add-Content $env:GITHUB_ENV
+      - name: Build two ephemeral byte-identical candidates
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:RUNNER_TEMP 'pncc-wu210-repro'
+          New-Item -ItemType Directory $root | Out-Null
+          $hashes=@(); $sizes=@(); $paths=@()
+          foreach($n in 'a','b'){
+            $out=Join-Path $root $n
+            New-Item -ItemType Directory $out | Out-Null
+            $p=Start-Process $env:WU210_ISCC -ArgumentList @('/Q',('/O'+$out),'/FVPS-Control-PNCC-v7.0.2-setup',(Resolve-Path 'installer/windows/VPS-Control-PNCC.iss').Path) -Wait -PassThru
+            if($p.ExitCode -ne 0){throw "BUILD_FAILED_$n"}
+            $exe=Join-Path $out 'VPS-Control-PNCC-v7.0.2-setup.exe'
+            if(-not(Test-Path $exe -PathType Leaf)){throw "OUTPUT_MISSING_$n"}
+            $paths += $exe
+            $hashes += (Get-FileHash -Algorithm SHA256 $exe).Hash.ToLowerInvariant()
+            $sizes += (Get-Item $exe).Length
+          }
+          if($hashes[0] -ne $hashes[1]){throw "REPRODUCIBILITY_SHA256_MISMATCH $($hashes -join ',')"}
+          if($sizes[0] -ne $sizes[1]){throw "REPRODUCIBILITY_SIZE_MISMATCH $($sizes -join ',')"}
+          $final=Join-Path $env:RUNNER_TEMP 'VPS-Control-PNCC-v7.0.2-setup.exe'
+          Copy-Item $paths[0] $final
+          "WU210_EXE=$final" | Add-Content $env:GITHUB_ENV
+          "WU210_SHA=$($hashes[0])" | Add-Content $env:GITHUB_ENV
+          "WU210_SIZE=$($sizes[0])" | Add-Content $env:GITHUB_ENV
+      - name: Cleanup compiler and record provenance
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Remove-Item $env:WU210_INNO -Recurse -Force
+          Remove-Item $env:WU210_SETUP -Force
+          if(git status --porcelain){throw 'SOURCE_CHECKOUT_MUTATED'}
+          @"
+          ## PIPE-WU-210 Windows validation installer
+          - authorized source main: 77314fc701eeba26ce068ed532beab1e8ecee251
+          - V6.3.1 SHA-256: 385e5178f10e79b0b234376e6a6671b64ce523a3971b2b4341ec94ce1efee11e
+          - V6.3.1 Git blob: fbcf80dac2d619c421b8a40b5612cd13d5da4a73
+          - compiler: Inno Setup 7.1.0
+          - compiler SHA-256: 0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f
+          - output SHA-256: $env:WU210_SHA
+          - output bytes: $env:WU210_SIZE
+          - two candidates byte-identical: true
+          - uploaded artifact count: 1
+          - purpose: manual Windows 10 validation only
+          "@ | Add-Content $env:GITHUB_STEP_SUMMARY
+      - name: Upload exactly one validation installer artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: VPS-Control-PNCC-v7.0.2-setup.exe
+          path: ${{ env.WU210_EXE }}
+          if-no-files-found: error
+          retention-days: 2
+          compression-level: 0
