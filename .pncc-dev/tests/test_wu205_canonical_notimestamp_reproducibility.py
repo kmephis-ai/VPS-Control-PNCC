@@ -6,6 +6,7 @@ import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 BASE = "8149979a977ae3412d6742150c4f15886d66eb45"
+WU205_HEAD = "abb10fb7d3e7caa2ad2dd6a9e789cb64135e57c9"
 PRE_BLOB = "d30a158aef3535a9066608495b45abcf41112926"
 POST_BLOB = "b744a7446e86b34b4be1df01349e7c033da81644"
 ISS = ROOT / "installer/windows/VPS-Control-PNCC.iss"
@@ -27,11 +28,14 @@ EXPECTED_PATHS = sorted([
 def git(*args):
     return subprocess.check_output(["git", *args], cwd=ROOT, text=True, stderr=subprocess.DEVNULL).strip()
 
-def ensure_base():
+def ensure_commit(sha):
     try:
-        subprocess.check_call(["git", "cat-file", "-e", f"{BASE}^{{commit}}"], cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.check_call(["git", "cat-file", "-e", f"{sha}^{{commit}}"], cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except subprocess.CalledProcessError:
-        subprocess.check_call(["git", "fetch", "--no-tags", "--depth=1", "origin", BASE], cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.check_call(["git", "fetch", "--no-tags", "--depth=1", "origin", sha], cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+def ensure_base():
+    ensure_commit(BASE)
 
 class WU205Tests(unittest.TestCase):
     def test_contract_is_exact_and_least_authority(self):
@@ -73,10 +77,12 @@ class WU205Tests(unittest.TestCase):
         for forbidden in ["self" + "-hosted", "actions/" + "upload-artifact", "actions/" + "cache", "contents: write", "security-events: write"]:
             self.assertNotIn(forbidden, text)
 
-    def test_branch_diff_is_exactly_seven_paths(self):
-        ensure_base()
-        actual = sorted(x for x in git("diff", "--name-only", BASE, "HEAD").splitlines() if x)
+    def test_historical_wu205_diff_is_exactly_seven_paths(self):
+        ensure_commit(BASE)
+        ensure_commit(WU205_HEAD)
+        actual = sorted(x for x in git("diff", "--name-only", BASE, WU205_HEAD).splitlines() if x)
         self.assertEqual(actual, EXPECTED_PATHS)
+        self.assertEqual(git("rev-parse", f"{WU205_HEAD}:installer/windows/VPS-Control-PNCC.iss"), POST_BLOB)
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
