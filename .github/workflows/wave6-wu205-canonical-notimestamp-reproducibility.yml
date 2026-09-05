@@ -8,6 +8,7 @@ on:
       - '.github/workflows/wave6-wu205-canonical-notimestamp-reproducibility.yml'
       - '.pncc-dev/contracts/wave6-wu205-canonical-notimestamp-reproducibility.json'
       - '.pncc-dev/scripts/wu205_canonical_notimestamp_reproducibility.ps1'
+      - '.pncc-dev/tests/test_wu203_inno_reproducibility_static_root_cause.py'
       - '.pncc-dev/tests/test_wu205_canonical_notimestamp_reproducibility.py'
   issues:
     types: [edited]
@@ -41,10 +42,12 @@ jobs:
           $errors = $null
           [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path '.pncc-dev/scripts/wu205_canonical_notimestamp_reproducibility.ps1'), [ref]$tokens, [ref]$errors)
           if (@($errors).Count -ne 0) { $errors | Out-String | Write-Error; exit 1 }
-      - name: Run WU205 regression tests
+      - name: Run WU205 and reconciled WU203 regression tests
         shell: pwsh
-        run: python .pncc-dev/tests/test_wu205_canonical_notimestamp_reproducibility.py -v
-      - name: Verify exact five-path bounded diff and single product mutation
+        run: |
+          python .pncc-dev/tests/test_wu203_inno_reproducibility_static_root_cause.py -v
+          python .pncc-dev/tests/test_wu205_canonical_notimestamp_reproducibility.py -v
+      - name: Verify exact six-path bounded diff and single product mutation
         shell: pwsh
         run: |
           git fetch --no-tags origin '${{ github.event.pull_request.base.sha }}'
@@ -53,6 +56,7 @@ jobs:
             '.github/workflows/wave6-wu205-canonical-notimestamp-reproducibility.yml',
             '.pncc-dev/contracts/wave6-wu205-canonical-notimestamp-reproducibility.json',
             '.pncc-dev/scripts/wu205_canonical_notimestamp_reproducibility.ps1',
+            '.pncc-dev/tests/test_wu203_inno_reproducibility_static_root_cause.py',
             '.pncc-dev/tests/test_wu205_canonical_notimestamp_reproducibility.py',
             'installer/windows/VPS-Control-PNCC.iss'
           ) | Sort-Object
