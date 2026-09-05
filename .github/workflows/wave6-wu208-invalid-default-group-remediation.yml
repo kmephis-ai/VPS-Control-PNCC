@@ -25,17 +25,28 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Verify exact base and four-path bounded diff
+      - name: Verify bounded remediation or gate-repair diff
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
-          if ('${{ github.event.pull_request.base.sha }}' -ne '66772cee01d60489730039b0da8ad76bb290d4f2') { throw 'EXACT_BASE_MISMATCH' }
-          git fetch --no-tags --depth=1 origin '66772cee01d60489730039b0da8ad76bb290d4f2'
-          $actual=@(git diff --name-only '66772cee01d60489730039b0da8ad76bb290d4f2...HEAD' | Sort-Object)
-          $expected=@('.github/workflows/wave6-wu208-invalid-default-group-remediation.yml','.pncc-dev/contracts/wave6-wu208-invalid-default-group-remediation.json','.pncc-dev/tests/test_wu208_invalid_default_group_remediation.py','installer/windows/VPS-Control-PNCC.iss') | Sort-Object
+          $base='${{ github.event.pull_request.base.sha }}'
+          if ($base -eq '66772cee01d60489730039b0da8ad76bb290d4f2') {
+            $expected=@('.github/workflows/wave6-wu208-invalid-default-group-remediation.yml','.pncc-dev/contracts/wave6-wu208-invalid-default-group-remediation.json','.pncc-dev/tests/test_wu208_invalid_default_group_remediation.py','installer/windows/VPS-Control-PNCC.iss') | Sort-Object
+            $expectedProduct='installer/windows/VPS-Control-PNCC.iss'
+          } elseif ($base -eq '7839d0ada6b12e6492dbb81e30eaaa9eeb40fac4') {
+            $expected=@('.github/workflows/wave6-wu208-invalid-default-group-remediation.yml')
+            $expectedProduct=$null
+          } else {
+            throw "EXACT_BASE_MISMATCH base=$base"
+          }
+          $actual=@(git diff --name-only "$base...HEAD" | Sort-Object)
           if (($actual -join "`n") -ne ($expected -join "`n")) { throw "BOUNDED_DIFF_MISMATCH actual=$($actual -join ',')" }
           $product=@($actual | Where-Object { $_ -match '^(installer/|src/|legacy/|tools/runtime-agent/)' })
-          if ($product.Count -ne 1 -or $product[0] -ne 'installer/windows/VPS-Control-PNCC.iss') { throw 'PRODUCT_SCOPE_MISMATCH' }
+          if ($expectedProduct) {
+            if ($product.Count -ne 1 -or $product[0] -ne $expectedProduct) { throw 'PRODUCT_SCOPE_MISMATCH' }
+          } elseif ($product.Count -ne 0) {
+            throw 'CONTROL_PLANE_REPAIR_PRODUCT_SCOPE_MISMATCH'
+          }
       - name: Run WU208 regression
         shell: pwsh
         run: python .pncc-dev/tests/test_wu208_invalid_default_group_remediation.py -v
@@ -54,7 +65,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ github.sha }}
-          fetch-depth: 1
+          fetch-depth: 0
           persist-credentials: false
       - name: Verify exact post-merge authority
         shell: pwsh
