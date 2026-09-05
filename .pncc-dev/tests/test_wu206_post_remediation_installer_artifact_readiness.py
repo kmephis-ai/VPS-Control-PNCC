@@ -92,3 +92,21 @@ def test_workflow_is_validation_only_and_least_authority():
     )
     for token in forbidden:
         assert token not in wf, token
+
+
+def main():
+    tests = [
+        test_exact_current_identity_and_reference_candidate,
+        test_wu200_authority_is_explicitly_non_transferable,
+        test_wu206_has_zero_build_upload_or_product_authority,
+        test_future_grant_shape_is_fail_closed_and_exactly_bound,
+        test_workflow_is_validation_only_and_least_authority,
+    ]
+    for test in tests:
+        test()
+        print(f"PASS {test.__name__}")
+    print(f"PASS total={len(tests)}")
+
+
+if __name__ == "__main__":
+    main()
