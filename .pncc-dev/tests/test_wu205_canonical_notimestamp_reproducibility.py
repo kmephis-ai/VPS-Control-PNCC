@@ -75,7 +75,7 @@ class WU205Tests(unittest.TestCase):
 
     def test_branch_diff_is_exactly_seven_paths(self):
         ensure_base()
-        actual = sorted(x for x in git("diff", "--name-only", f"{BASE}...HEAD").splitlines() if x)
+        actual = sorted(x for x in git("diff", "--name-only", BASE, "HEAD").splitlines() if x)
         self.assertEqual(actual, EXPECTED_PATHS)
 
 if __name__ == "__main__":
