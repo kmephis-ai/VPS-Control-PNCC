@@ -1,0 +1,121 @@
+name: wave6-wu205-canonical-notimestamp-reproducibility
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'installer/windows/VPS-Control-PNCC.iss'
+      - '.github/workflows/wave6-wu203-inno-reproducibility-static-root-cause.yml'
+      - '.github/workflows/wave6-wu205-canonical-notimestamp-reproducibility.yml'
+      - '.pncc-dev/contracts/wave6-wu205-canonical-notimestamp-reproducibility.json'
+      - '.pncc-dev/scripts/wu205_canonical_notimestamp_reproducibility.ps1'
+      - '.pncc-dev/tests/test_wu203_inno_reproducibility_static_root_cause.py'
+      - '.pncc-dev/tests/test_wu205_canonical_notimestamp_reproducibility.py'
+  issues:
+    types: [edited]
+
+permissions:
+  contents: read
+
+jobs:
+  validate-wu205:
+    if: github.event_name == 'pull_request'
+    runs-on: windows-2025
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify exact PR head and base
+        shell: pwsh
+        run: |
+          if ((git rev-parse HEAD).Trim() -ne '${{ github.event.pull_request.head.sha }}') { throw 'EXACT_HEAD_MISMATCH' }
+          if ('${{ github.event.pull_request.base.sha }}' -ne '8149979a977ae3412d6742150c4f15886d66eb45') { throw 'EXACT_BASE_MISMATCH' }
+      - name: Parse WU205 executor under Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path '.pncc-dev/scripts/wu205_canonical_notimestamp_reproducibility.ps1'), [ref]$tokens, [ref]$errors)
+          if (@($errors).Count -ne 0) { $errors | Out-String | Write-Error; exit 1 }
+      - name: Run WU205 and reconciled WU203 regression tests
+        shell: pwsh
+        run: |
+          python .pncc-dev/tests/test_wu203_inno_reproducibility_static_root_cause.py -v
+          python .pncc-dev/tests/test_wu205_canonical_notimestamp_reproducibility.py -v
+      - name: Verify exact seven-path bounded diff and single product mutation
+        shell: pwsh
+        run: |
+          git fetch --no-tags origin '${{ github.event.pull_request.base.sha }}'
+          $actual = @(git diff --name-only '${{ github.event.pull_request.base.sha }}...HEAD' | Sort-Object)
+          $expected = @(
+            '.github/workflows/wave6-wu203-inno-reproducibility-static-root-cause.yml',
+            '.github/workflows/wave6-wu205-canonical-notimestamp-reproducibility.yml',
+            '.pncc-dev/contracts/wave6-wu205-canonical-notimestamp-reproducibility.json',
+            '.pncc-dev/scripts/wu205_canonical_notimestamp_reproducibility.ps1',
+            '.pncc-dev/tests/test_wu203_inno_reproducibility_static_root_cause.py',
+            '.pncc-dev/tests/test_wu205_canonical_notimestamp_reproducibility.py',
+            'installer/windows/VPS-Control-PNCC.iss'
+          ) | Sort-Object
+          if (($actual -join "`n") -ne ($expected -join "`n")) { throw "BOUNDED_DIFF_MISMATCH`nactual=$($actual -join ',')" }
+          $product = @($actual | Where-Object { $_ -match '^(installer/|src/|legacy/|tools/runtime-agent/)' })
+          if ($product.Count -ne 1 -or $product[0] -ne 'installer/windows/VPS-Control-PNCC.iss') { throw 'PRODUCT_MUTATION_SCOPE_MISMATCH' }
+          if ((git rev-parse '8149979a977ae3412d6742150c4f15886d66eb45:installer/windows/VPS-Control-PNCC.iss').Trim() -ne 'd30a158aef3535a9066608495b45abcf41112926') { throw 'PRE_REMEDIATION_BLOB_MISMATCH' }
+          if ((git hash-object 'installer/windows/VPS-Control-PNCC.iss').Trim() -ne 'b744a7446e86b34b4be1df01349e7c033da81644') { throw 'POST_REMEDIATION_BLOB_MISMATCH' }
+          $current = Get-Content -Raw 'installer/windows/VPS-Control-PNCC.iss'
+          $old = git show '8149979a977ae3412d6742150c4f15886d66eb45:installer/windows/VPS-Control-PNCC.iss' | Out-String
+          $newLine = 'Source: "..\..\src\windows-v7\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs notimestamp'
+          $oldLine = 'Source: "..\..\src\windows-v7\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs'
+          if ([regex]::Matches($current,[regex]::Escape($newLine)).Count -ne 1) { throw 'NOTIMESTAMP_REMEDIATION_LINE_INVALID' }
+          if ($current.Replace($newLine,$oldLine).TrimEnd() -ne $old.TrimEnd()) { throw 'EXTRA_INSTALLER_SEMANTIC_CHANGE' }
+          if (git status --porcelain) { throw 'DIRTY_CHECKOUT' }
+
+  run-repro-qualification:
+    if: github.event_name == 'issues' && github.event.issue.number == 460 && contains(github.event.issue.body, 'PNCC-WU205-REPRO-EXECUTE')
+    runs-on: windows-2025
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      issues: read
+    concurrency:
+      group: pncc-wu205-canonical-notimestamp-reproducibility
+      cancel-in-progress: false
+    steps:
+      - name: Checkout exact default-branch revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Verify exact main, execution marker and canonical blob
+        shell: pwsh
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ((git rev-parse HEAD).Trim() -ne '${{ github.sha }}') { throw 'EXACT_MAIN_MISMATCH' }
+          $pattern = '<!--\s*PNCC-WU205-REPRO-EXECUTE\s+schema=1\s+expected_main=' + [Regex]::Escape('${{ github.sha }}') + '\s*-->'
+          if ([Regex]::Matches($env:ISSUE_BODY, $pattern).Count -ne 1) { throw 'EXACT_MAIN_EXECUTION_MARKER_INVALID' }
+          if ([Regex]::Matches($env:ISSUE_BODY, 'PNCC-WU205-REPRO-EXECUTE').Count -ne 1) { throw 'EXECUTION_MARKER_AMBIGUOUS' }
+          if ((git rev-parse ('${{ github.sha }}:installer/windows/VPS-Control-PNCC.iss')).Trim() -ne 'b744a7446e86b34b4be1df01349e7c033da81644') { throw 'INSTALLER_DEFINITION_BLOB_MISMATCH' }
+      - name: Execute canonical reproducibility qualification
+        shell: powershell
+        env:
+          PNCC_ISSUE_BODY: ${{ github.event.issue.body }}
+          PNCC_MAIN_SHA: ${{ github.sha }}
+        run: .\.pncc-dev\scripts\wu205_canonical_notimestamp_reproducibility.ps1
+      - name: Prove zero qualification persistence and clean checkout
+        if: always()
+        shell: pwsh
+        run: |
+          foreach ($path in @(
+            (Join-Path $env:RUNNER_TEMP 'innosetup-7.1.0-x64.exe'),
+            (Join-Path $env:RUNNER_TEMP 'pncc-wu205-inno-7.1.0'),
+            (Join-Path $env:RUNNER_TEMP 'pncc-wu205-repro')
+          )) { if (Test-Path -LiteralPath $path) { throw "EPHEMERAL_PATH_PERSISTED:$path" } }
+          if (git status --porcelain) { throw 'CHECKOUT_NOT_CLEAN' }

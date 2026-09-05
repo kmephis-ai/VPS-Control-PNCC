@@ -30,21 +30,28 @@ jobs:
         run: |
           python .pncc-dev/tests/test_wu203_inno_reproducibility_static_root_cause.py -v
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Verify exact bounded diff and least authority
+      - name: Verify historical bounded diff lineage and least authority
         shell: pwsh
         run: |
           git fetch --no-tags origin '${{ github.event.pull_request.base.sha }}'
           $actual = @(git diff --name-only '${{ github.event.pull_request.base.sha }}...HEAD' | Sort-Object)
-          $expected = @(
-            '.github/workflows/wave6-wu203-inno-reproducibility-static-root-cause.yml',
-            '.pncc-dev/contracts/wave6-wu203-inno-reproducibility-static-root-cause.json',
-            '.pncc-dev/tests/test_wu203_inno_reproducibility_static_root_cause.py'
-          ) | Sort-Object
-          if (($actual -join "`n") -ne ($expected -join "`n")) { throw "WU203_BOUNDED_DIFF_MISMATCH`nactual=$($actual -join ',')" }
-          if ($actual | Where-Object { $_ -match '^(src/|legacy/|tools/runtime-agent/|tools/release/|\.pncc-state/|installer/windows/)' }) { throw 'FORBIDDEN_PATH_MUTATION' }
+          if ('${{ github.head_ref }}' -eq 'agent/PIPE-WU-203-inno-reproducibility-static-root-cause') {
+            $expected = @(
+              '.github/workflows/wave6-wu203-inno-reproducibility-static-root-cause.yml',
+              '.pncc-dev/contracts/wave6-wu203-inno-reproducibility-static-root-cause.json',
+              '.pncc-dev/tests/test_wu203_inno_reproducibility_static_root_cause.py'
+            ) | Sort-Object
+            if (($actual -join "`n") -ne ($expected -join "`n")) { throw "WU203_BOUNDED_DIFF_MISMATCH`nactual=$($actual -join ',')" }
+            if ($actual | Where-Object { $_ -match '^(src/|legacy/|tools/runtime-agent/|tools/release/|\.pncc-state/|installer/windows/)' }) { throw 'FORBIDDEN_PATH_MUTATION' }
+          } else {
+            $contract = Get-Content -Raw '.pncc-dev/contracts/wave6-wu203-inno-reproducibility-static-root-cause.json' | ConvertFrom-Json
+            if ($contract.work_unit_id -ne 'PIPE-WU-203') { throw 'WU203_HISTORICAL_CONTRACT_IDENTITY_DRIFT' }
+            if ($contract.canonical_installer_definition.git_blob_sha -ne 'd30a158aef3535a9066608495b45abcf41112926') { throw 'WU203_HISTORICAL_DEFINITION_IDENTITY_DRIFT' }
+            if ($contract.static_causal_chain.execution_proven -ne $false) { throw 'WU203_HISTORICAL_CLASSIFICATION_DRIFT' }
+          }
           $wf = Get-Content -Raw '.github/workflows/wave6-wu203-inno-reproducibility-static-root-cause.yml'
           foreach ($token in @('self' + '-hosted','actions/' + 'upload-' + 'artifact@','actions/' + 'cache@','Invoke-' + 'WebRequest','Start-' + 'Process','ISCC' + '.exe')) {
             if ($wf.Contains($token)) { throw 'WU203_AUTHORITY_EXPANSION' }
           }
-          if ($wf -match '(?m)^\s*(contents|issues|pull-requests|security-events):\s*write\s*$') { throw 'WU203_WRITE_PERMISSION_EXPANSION' }
+          if ($wf -match '(?m)^\s*(contents|issues|pull-requests|security-events):\s+write\s*$') { throw 'WU203_WRITE_PERMISSION_EXPANSION' }
           if (git status --porcelain) { throw 'DIRTY_CHECKOUT' }

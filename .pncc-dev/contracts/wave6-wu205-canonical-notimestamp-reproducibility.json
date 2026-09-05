@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "role": "DURABLE_CANONICAL_INNO_NOTIMESTAMP_REMEDIATION_REPRODUCIBILITY_QUALIFICATION",
+  "work_unit_id": "PIPE-WU-205",
+  "source_main_sha": "8149979a977ae3412d6742150c4f15886d66eb45",
+  "runner_class": "GITHUB_HOSTED_WINDOWS",
+  "compiler": {
+    "repository": "jrsoftware/issrc",
+    "tag": "is-7_1_0",
+    "release_id": 369110765,
+    "asset_id": 511336600,
+    "asset_name": "innosetup-7.1.0-x64.exe",
+    "size_bytes": 14304168,
+    "sha256": "0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f"
+  },
+  "installer_definition": {
+    "path": "installer/windows/VPS-Control-PNCC.iss",
+    "pre_remediation_git_blob_sha": "d30a158aef3535a9066608495b45abcf41112926",
+    "post_remediation_git_blob_sha": "b744a7446e86b34b4be1df01349e7c033da81644",
+    "only_semantic_change": "ADD_NOTIMESTAMP_TO_EXISTING_FILES_FLAGS",
+    "required_files_line": "Source: \"..\\..\\src\\windows-v7\\*\"; DestDir: \"{app}\"; Flags: ignoreversion recursesubdirs createallsubdirs notimestamp"
+  },
+  "qualification": {
+    "source_mtime_a_utc": "2001-01-01T01:01:02Z",
+    "source_mtime_b_utc": "2025-12-30T23:58:57Z",
+    "builds": ["canonical_a", "canonical_b"],
+    "required_evidence": ["source_file_count", "source_mtime_utc", "candidate_size_bytes", "candidate_sha256"],
+    "success_requires": "DISTINCT_SOURCE_MTIMES_AND_BYTE_IDENTICAL_CANDIDATES"
+  },
+  "authority": {
+    "canonical_installer_definition_mutation": true,
+    "network_acquisition": true,
+    "compiler_ephemeral_installation": true,
+    "compiler_execution": true,
+    "installer_candidate_build": true,
+    "controlled_source_mtime_mutation_in_runner_temp": true,
+    "artifact_upload": false,
+    "artifact_publication": false,
+    "artifact_persistence": false,
+    "other_product_runtime_mutation": false,
+    "release": false,
+    "tag": false,
+    "stable_transition": false,
+    "self_hosted_runner": false,
+    "port_1080_lifecycle": false,
+    "port_1081_lifecycle": false,
+    "v6_3_1_mutation": false,
+    "ruleset_or_security_weakening": false,
+    "force_or_bypass": false
+  }
+}
