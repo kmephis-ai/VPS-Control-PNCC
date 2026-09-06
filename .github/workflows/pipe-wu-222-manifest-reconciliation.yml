@@ -1,0 +1,25 @@
+name: PIPE-WU-222 canonical manifest reconciliation
+
+on:
+  pull_request:
+    paths:
+      - 'src/windows-v7/VPS-Control-v7-SHA256.txt'
+      - '.gitattributes'
+      - 'tests/pipe-wu-222-manifest-reconciliation.py'
+      - '.github/workflows/pipe-wu-222-manifest-reconciliation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-manifest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate canonical manifest against exact checkout bytes
+        run: python tests/pipe-wu-222-manifest-reconciliation.py
