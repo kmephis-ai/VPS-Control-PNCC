@@ -1,0 +1,169 @@
+name: pipe-wu-221-post-wu218-installer-build
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.pncc-dev/contracts/pipe-wu-221-post-wu218-installer-build.json'
+      - '.github/workflows/pipe-wu-221-post-wu218-installer-build.yml'
+  issues:
+    types: [edited]
+
+permissions:
+  contents: read
+
+jobs:
+  validate-control-plane:
+    if: github.event_name == 'pull_request'
+    runs-on: windows-2025
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify bounded control-plane diff
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $base='0ef5d99549145130c532b7e7e6057f672ef41eb3'
+          if('${{ github.event.pull_request.base.sha }}' -ne $base){throw 'CONTROL_PLANE_BASE_MISMATCH'}
+          $expected=@(
+            '.github/workflows/pipe-wu-221-post-wu218-installer-build.yml',
+            '.pncc-dev/contracts/pipe-wu-221-post-wu218-installer-build.json'
+          ) | Sort-Object
+          $actual=@(git diff --name-only "$base...HEAD" | Sort-Object)
+          if(($actual -join "`n") -ne ($expected -join "`n")){throw "BOUNDED_DIFF_MISMATCH actual=$($actual -join ',')"}
+          if(@($actual | Where-Object {$_ -match '^(src/|installer/|legacy/|tools/runtime-agent/)'}).Count){throw 'PRODUCT_RUNTIME_MUTATION_FORBIDDEN'}
+      - name: Verify WU221 contract
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $c=Get-Content '.pncc-dev/contracts/pipe-wu-221-post-wu218-installer-build.json' -Raw | ConvertFrom-Json
+          if($c.work_unit -ne 'PIPE-WU-221'){throw 'WORK_UNIT_MISMATCH'}
+          if($c.authorized_source_main -ne '4528fbcb2341c047e633e207364fb2b8d8d0ad49'){throw 'AUTHORIZED_SOURCE_MISMATCH'}
+          if($c.wu218_engine.git_blob -ne '9c5f991b6f215961aead21152a715ac242d833ff'){throw 'WU218_ENGINE_BINDING_MISMATCH'}
+          if($c.immutable_v631.sha256 -ne '385e5178f10e79b0b234376e6a6671b64ce523a3971b2b4341ec94ce1efee11e'){throw 'V631_BINDING_MISMATCH'}
+          if($c.compiler.sha256 -ne '0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f'){throw 'COMPILER_BINDING_MISMATCH'}
+          if([bool]$c.runtime_launch_allowed -or [bool]$c.primary_1081_launch_allowed){throw 'RUNTIME_AUTHORITY_FORBIDDEN'}
+          if($c.reserve_1080_policy -ne 'OBSERVATION_ONLY'){throw 'RESERVE_POLICY_MISMATCH'}
+
+  build-installer:
+    if: github.event_name == 'issues' && github.event.issue.number == 488 && contains(github.event.issue.body, 'PNCC-WU221-INSTALLER-BUILD-EXECUTE')
+    runs-on: windows-2025
+    timeout-minutes: 20
+    concurrency:
+      group: pncc-wu221-one-installer
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      issues: read
+    steps:
+      - name: Verify one-shot execution marker
+        shell: pwsh
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $source='4528fbcb2341c047e633e207364fb2b8d8d0ad49'
+          $pattern='<!--\s*PNCC-WU221-INSTALLER-BUILD-EXECUTE\s+schema=1\s+expected_source='+[Regex]::Escape($source)+'\s*-->'
+          if([Regex]::Matches($env:ISSUE_BODY,$pattern).Count -ne 1){throw 'EXECUTION_MARKER_INVALID'}
+          if([Regex]::Matches($env:ISSUE_BODY,'PNCC-WU221-INSTALLER-BUILD-EXECUTE').Count -ne 1){throw 'EXECUTION_MARKER_AMBIGUOUS'}
+          if($env:RUNNER_ENVIRONMENT -ne 'github-hosted'){throw 'GITHUB_HOSTED_REQUIRED'}
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          ref: 4528fbcb2341c047e633e207364fb2b8d8d0ad49
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify exact post-WU218 source lineage
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $source='4528fbcb2341c047e633e207364fb2b8d8d0ad49'
+          if((git rev-parse HEAD).Trim() -ne $source){throw 'EXACT_SOURCE_MISMATCH'}
+          $checks=@{
+            'installer/windows/VPS-Control-PNCC.iss'='611b4aa94a6091d669a291bf40c5f1079fc95ec6'
+            'src/windows-v7/VPS-Control-v7-engine-upgrade.ps1'='9c5f991b6f215961aead21152a715ac242d833ff'
+            'src/windows-v7/VPS-Control-v7-SHA256.txt'='941c9755f9c9515f968baa2b9d604d1f1b223ecc'
+            'src/rollback-base/VPS-Control-v6.3.1.ps1'='fbcf80dac2d619c421b8a40b5612cd13d5da4a73'
+          }
+          foreach($p in $checks.Keys){
+            if(-not(Test-Path $p -PathType Leaf)){throw "MISSING_$p"}
+            $blob=(git hash-object $p).Trim()
+            if($blob -ne $checks[$p]){throw "BLOB_MISMATCH path=$p actual=$blob expected=$($checks[$p])"}
+          }
+          $v='src/rollback-base/VPS-Control-v6.3.1.ps1'
+          if((Get-Item $v).Length -ne 162507){throw 'V631_SIZE_MISMATCH'}
+          if((Get-FileHash -Algorithm SHA256 $v).Hash.ToLowerInvariant() -ne '385e5178f10e79b0b234376e6a6671b64ce523a3971b2b4341ec94ce1efee11e'){throw 'V631_SHA256_MISMATCH'}
+          $engine=Get-Content 'src/windows-v7/VPS-Control-v7-engine-upgrade.ps1' -Raw
+          foreach($marker in 'WU218_SAVEDSESSION_FALLBACK_V1','Get-V7ObservedReservePuttyExecutableCandidates','PORTABLE_RESERVE_1080_OBSERVED','Ensure-V7OfficialPuttyHostKeyTrust','-pwfile'){
+            if(-not $engine.Contains($marker)){throw "WU218_MARKER_MISSING_$marker"}
+          }
+      - name: Acquire pinned Inno Setup 7.1.0
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $setup=Join-Path $env:RUNNER_TEMP 'innosetup-7.1.0-x64.exe'
+          Invoke-WebRequest -Uri 'https://github.com/jrsoftware/issrc/releases/download/is-7_1_0/innosetup-7.1.0-x64.exe' -OutFile $setup
+          if((Get-Item $setup).Length -ne 14304168){throw 'COMPILER_SIZE_MISMATCH'}
+          if((Get-FileHash -Algorithm SHA256 $setup).Hash.ToLowerInvariant() -ne '0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f'){throw 'COMPILER_SHA256_MISMATCH'}
+          $dir=Join-Path $env:RUNNER_TEMP 'pncc-wu221-inno'
+          $p=Start-Process $setup -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-',('/DIR='+$dir)) -Wait -PassThru
+          if($p.ExitCode -ne 0){throw 'COMPILER_INSTALL_FAILED'}
+          "WU221_SETUP=$setup" | Add-Content $env:GITHUB_ENV
+          "WU221_INNO=$dir" | Add-Content $env:GITHUB_ENV
+          "WU221_ISCC=$(Join-Path $dir 'ISCC.exe')" | Add-Content $env:GITHUB_ENV
+      - name: Build two byte-identical ephemeral candidates
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:RUNNER_TEMP 'pncc-wu221-repro'
+          New-Item -ItemType Directory $root | Out-Null
+          $hashes=@();$sizes=@();$paths=@()
+          foreach($n in 'a','b'){
+            $out=Join-Path $root $n
+            New-Item -ItemType Directory $out | Out-Null
+            $p=Start-Process $env:WU221_ISCC -ArgumentList @('/Q',('/O'+$out),'/FVPS-Control-PNCC-v7.0.2-setup',(Resolve-Path 'installer/windows/VPS-Control-PNCC.iss').Path) -Wait -PassThru
+            if($p.ExitCode -ne 0){throw "BUILD_FAILED_$n"}
+            $exe=Join-Path $out 'VPS-Control-PNCC-v7.0.2-setup.exe'
+            if(-not(Test-Path $exe -PathType Leaf)){throw "OUTPUT_MISSING_$n"}
+            $paths+=$exe
+            $hashes+=(Get-FileHash -Algorithm SHA256 $exe).Hash.ToLowerInvariant()
+            $sizes+=(Get-Item $exe).Length
+          }
+          if($hashes[0] -ne $hashes[1]){throw "REPRODUCIBILITY_SHA256_MISMATCH $($hashes -join ',')"}
+          if($sizes[0] -ne $sizes[1]){throw "REPRODUCIBILITY_SIZE_MISMATCH $($sizes -join ',')"}
+          $final=Join-Path $env:RUNNER_TEMP 'VPS-Control-PNCC-v7.0.2-setup.exe'
+          Copy-Item $paths[0] $final
+          "WU221_EXE=$final" | Add-Content $env:GITHUB_ENV
+          "WU221_SHA=$($hashes[0])" | Add-Content $env:GITHUB_ENV
+          "WU221_SIZE=$($sizes[0])" | Add-Content $env:GITHUB_ENV
+      - name: Cleanup compiler and record provenance
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Remove-Item $env:WU221_INNO -Recurse -Force
+          Remove-Item $env:WU221_SETUP -Force
+          if(git status --porcelain){throw 'SOURCE_CHECKOUT_MUTATED'}
+          @"
+          ## PIPE-WU-221 exact post-WU218 installer
+          - authorized source main: 4528fbcb2341c047e633e207364fb2b8d8d0ad49
+          - WU218 engine Git blob: 9c5f991b6f215961aead21152a715ac242d833ff
+          - immutable V6.3.1 SHA-256: 385e5178f10e79b0b234376e6a6671b64ce523a3971b2b4341ec94ce1efee11e
+          - compiler: Inno Setup 7.1.0
+          - compiler SHA-256: 0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f
+          - output SHA-256: $env:WU221_SHA
+          - output bytes: $env:WU221_SIZE
+          - two candidates byte-identical: true
+          - uploaded artifact count: 1
+          - runtime launch: false
+          "@ | Add-Content $env:GITHUB_STEP_SUMMARY
+      - name: Upload exactly one installer artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: VPS-Control-PNCC-v7.0.2-setup.exe
+          path: ${{ env.WU221_EXE }}
+          if-no-files-found: error
+          retention-days: 2
+          compression-level: 0
