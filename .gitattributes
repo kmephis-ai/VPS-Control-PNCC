@@ -16,3 +16,30 @@
 *.jpg binary
 *.jpeg binary
 src/rollback-base/VPS-Control-v6.3.1.ps1 -text
+src/windows-v7/VPS-Control-v7-README.txt text eol=lf
+src/windows-v7/VPS-Control-v7-browser-strict.ps1 text eol=lf
+src/windows-v7/VPS-Control-v7-demo.cmd text eol=lf
+src/windows-v7/VPS-Control-v7-engine-upgrade.ps1 text eol=lf
+src/windows-v7/VPS-Control-v7-evidence-worker.ps1 text eol=lf
+src/windows-v7/VPS-Control-v7-keenetic.ps1 text eol=lf
+src/windows-v7/VPS-Control-v7-launch.ps1 text eol=lf
+src/windows-v7/VPS-Control-v7-tunnel-manager.ps1 text eol=lf
+src/windows-v7/VPS-Control-v7-vm-gateway.ps1 text eol=lf
+src/windows-v7/VPS-Control-v7-vps-manager.ps1 text eol=lf
+src/windows-v7/VPS-Control-v7.cmd text eol=lf
+src/windows-v7/VPS-Control-v7.ps1 text eol=lf
+src/windows-v7/VPS-Control-v7.vbs text eol=lf
+src/windows-v7/modules/V7-Consistency.ps1 text eol=lf
+src/windows-v7/modules/V7-Core.ps1 text eol=lf
+src/windows-v7/modules/V7-DeepTelemetry.ps1 text eol=lf
+src/windows-v7/modules/V7-Demo.ps1 text eol=lf
+src/windows-v7/modules/V7-Events.ps1 text eol=lf
+src/windows-v7/modules/V7-KeeneticModel.ps1 text eol=lf
+src/windows-v7/modules/V7-Maintenance.ps1 text eol=lf
+src/windows-v7/modules/V7-Observability.ps1 text eol=lf
+src/windows-v7/modules/V7-Readiness.ps1 text eol=lf
+src/windows-v7/modules/V7-Runtime.ps1 text eol=lf
+src/windows-v7/modules/V7-StatusCenter.ps1 text eol=lf
+src/windows-v7/modules/V7-Storage.ps1 text eol=lf
+src/windows-v7/modules/V7-Tunnels.ps1 text eol=lf
+src/windows-v7/modules/V7-UiCommon.ps1 text eol=lf
