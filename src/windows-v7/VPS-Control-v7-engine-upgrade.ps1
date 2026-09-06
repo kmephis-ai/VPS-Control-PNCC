@@ -368,11 +368,11 @@ function Test-SavedPuttySessionHasNonPasswordAuth($Info) {
 # WU218_SAVEDSESSION_FALLBACK_V1
 function Test-V7SavedSessionEndpointInfo($Info) {
     if(-not $Info){return $false}
-    $host=[string]$Info.HostName
+    $remoteHost=[string]$Info.HostName
     $protocol=[string]$Info.Protocol
     $port=0
     try{$port=[int]$Info.PortNumber}catch{}
-    return [bool]($host -and $protocol -and $protocol -ieq 'ssh' -and $port -ge 1 -and $port -le 65535)
+    return [bool]($remoteHost -and $protocol -and $protocol -ieq 'ssh' -and $port -ge 1 -and $port -le 65535)
 }
 function Get-V7ObservedReservePuttyExecutableCandidates {
     $paths=New-Object Collections.Generic.List[string]
