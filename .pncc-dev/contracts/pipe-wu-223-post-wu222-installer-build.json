@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "work_unit": "PIPE-WU-223",
+  "authorized_source_main": "53f5584edd589529f7182c77d980aa6b1a1fd12c",
+  "installer_definition": {
+    "path": "installer/windows/VPS-Control-PNCC.iss",
+    "git_blob": "611b4aa94a6091d669a291bf40c5f1079fc95ec6"
+  },
+  "launcher_cmd": {
+    "path": "src/windows-v7/VPS-Control-v7.cmd",
+    "git_blob": "a1863caae0fd0ca3a9205b55f7474ba962d828bb"
+  },
+  "launch_ps1": {
+    "path": "src/windows-v7/VPS-Control-v7-launch.ps1",
+    "git_blob": "036b5a1ffbb7d7ace85d4ecf9a5130bfd284cd54"
+  },
+  "wu218_engine": {
+    "path": "src/windows-v7/VPS-Control-v7-engine-upgrade.ps1",
+    "git_blob": "9c5f991b6f215961aead21152a715ac242d833ff",
+    "sha256": "e636658b31683d89c28289ba785c6cdbf0142bdf371540df331cb36e8a065461"
+  },
+  "reconciled_manifest": {
+    "path": "src/windows-v7/VPS-Control-v7-SHA256.txt",
+    "git_blob": "895a321e4f3f2317836558938e6150cf454a23cf"
+  },
+  "immutable_v631": {
+    "path": "src/rollback-base/VPS-Control-v6.3.1.ps1",
+    "git_blob": "fbcf80dac2d619c421b8a40b5612cd13d5da4a73",
+    "size": 162507,
+    "sha256": "385e5178f10e79b0b234376e6a6671b64ce523a3971b2b4341ec94ce1efee11e"
+  },
+  "compiler": {
+    "name": "Inno Setup",
+    "version": "7.1.0",
+    "size": 14304168,
+    "sha256": "0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f"
+  },
+  "artifact": {
+    "name": "VPS-Control-PNCC-v7.0.2-setup.exe",
+    "retention_days": 2,
+    "reproducibility_candidates": 2
+  },
+  "runtime_launch_allowed": false,
+  "primary_1081_launch_allowed": false,
+  "reserve_1080_policy": "OBSERVATION_ONLY",
+  "release_tag_stable_allowed": false,
+  "self_hosted_runner_allowed": false,
+  "ruleset_weakening_allowed": false,
+  "force_bypass_allowed": false
+}
