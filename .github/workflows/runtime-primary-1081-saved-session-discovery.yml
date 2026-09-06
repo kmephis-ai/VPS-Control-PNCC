@@ -1,0 +1,52 @@
+name: runtime-primary-1081-saved-session-discovery
+on:
+  pull_request:
+    paths:
+      - 'src/windows-v7/VPS-Control-v7-engine-upgrade.ps1'
+      - 'tests/runtime-primary-1081-saved-session-discovery.ps1'
+      - '.github/workflows/runtime-primary-1081-saved-session-discovery.yml'
+  push:
+    branches:
+      - pipe-wu-218-putty-saved-session-discovery
+    paths:
+      - 'src/windows-v7/VPS-Control-v7-engine-upgrade.ps1'
+      - 'tests/runtime-primary-1081-saved-session-discovery.ps1'
+      - '.github/workflows/runtime-primary-1081-saved-session-discovery.yml'
+permissions:
+  contents: read
+jobs:
+  contract:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: PowerShell 5.1 AST and encoding preflight
+        shell: powershell
+        run: |
+          foreach($p in @('src/windows-v7/VPS-Control-v7-engine-upgrade.ps1','tests/runtime-primary-1081-saved-session-discovery.ps1')){
+            $t=$null;$e=$null
+            [void][Management.Automation.Language.Parser]::ParseFile((Resolve-Path $p),[ref]$t,[ref]$e)
+            if($e.Count){$e|ForEach-Object{Write-Error ("${p}: "+$_.Message)};exit 1}
+          }
+          $g=[IO.File]::ReadAllBytes('src/windows-v7/VPS-Control-v7-engine-upgrade.ps1')
+          if($g.Length -lt 3 -or $g[0] -ne 0xEF -or $g[1] -ne 0xBB -or $g[2] -ne 0xBF){throw 'generator UTF-8 BOM contract changed'}
+          if($PSVersionTable.PSVersion.Major -ne 5){throw 'Windows PowerShell 5.1 required'}
+      - name: Execute WU218 regression suite
+        shell: powershell
+        run: |
+          & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File 'tests/runtime-primary-1081-saved-session-discovery.ps1'
+          if($LASTEXITCODE -ne 0){throw "WU218 regression rc=$LASTEXITCODE"}
+      - name: Assert bounded security/source scope
+        shell: powershell
+        run: |
+          $r=Get-Content 'src/windows-v7/VPS-Control-v7-engine-upgrade.ps1' -Raw
+          foreach($m in @('WU218_SAVEDSESSION_FALLBACK_V1','Get-V7ObservedReservePuttyExecutableCandidates','PORTABLE_RESERVE_1080_OBSERVED','Ensure-V7OfficialPuttyHostKeyTrust','-pwfile')){if($r -notlike "*$m*"){throw "missing contract marker: $m"}}
+          $h=[regex]::Match($r,'(?s)function Get-V7ObservedReservePuttyExecutableCandidates \{.*?\n\}').Value
+          if($h -match '(?i)CommandLine'){throw '1080 command-line read forbidden'}
+          if($h -match '(?i)Stop-Process|Start-Process|Restart|\.Kill\('){throw '1080 lifecycle mutation forbidden'}
+          & git diff --exit-code HEAD -- 'src/windows-v7/VPS-Control-v6.3.1.ps1'
+          if($LASTEXITCODE -ne 0){throw 'V6.3.1 mutation forbidden'}
+          Write-Host 'V6.3.1 immutable path unchanged'
+      - name: Assert repository remains clean
+        shell: powershell
+        run: |
+          if(git status --porcelain){git status --short;throw 'tests mutated repository'}
