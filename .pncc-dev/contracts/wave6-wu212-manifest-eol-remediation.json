@@ -4,11 +4,12 @@
   "authorized_base_main_sha": "c725ab82465a0a094fde00359c4a78fd18cd3f3c",
   "failure_class": "INSTALLER_PACKAGE_INPUT_NORMALIZATION_DEFECT",
   "remediation": {
-    "path": "src/windows-v7/VPS-Control-v7-README.txt",
-    "gitattributes_rule": "src/windows-v7/VPS-Control-v7-README.txt text eol=lf",
+    "scope": "all manifest-covered text inputs in src/windows-v7 susceptible to Windows EOL normalization",
+    "mechanism": "exact-path .gitattributes text eol=lf overrides only",
     "manifest_path": "src/windows-v7/VPS-Control-v7-SHA256.txt",
-    "manifest_expected_sha256": "530241a9ab4853f95a6a528cdac94bda615c4b505cb688e8b31d51dadcf7908a",
-    "semantic_content_mutation": false
+    "canonical_manifest_mutation": false,
+    "semantic_content_mutation": false,
+    "launcher_code_14_or_17_mutation": false
   },
   "immutable_v6_3_1": {
     "path": "src/rollback-base/VPS-Control-v6.3.1.ps1",
