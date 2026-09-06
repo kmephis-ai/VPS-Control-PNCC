@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "work_unit": "PIPE-WU-220",
+  "issue": 486,
+  "state": "DEVELOPMENT_INFRASTRUCTURE_ONLY",
+  "exact_base_main": "4528fbcb2341c047e633e207364fb2b8d8d0ad49",
+  "purpose": "Materialize an exact provider-read GitHub SHA into a real local Git workspace when direct Git DNS/HTTPS egress is unavailable.",
+  "direct_git_preferred": true,
+  "transport": {
+    "disposable_branch_required": true,
+    "github_hosted_runner_only": true,
+    "preferred_contents_permission": "read",
+    "artifact_retention_days": 1,
+    "exact_source_sha_required": true
+  },
+  "verification": [
+    "safe ZIP extraction",
+    "manifest exact source SHA and branch",
+    "SHA-256 manifest and checksum file",
+    "git bundle verify",
+    "requested commit exists",
+    "final HEAD equals exact source SHA",
+    "git fsck --full --no-dangling"
+  ],
+  "allowed_paths": [
+    "tools/local-git-mirror/README.md",
+    "tools/local-git-mirror/materialize_bundle.py",
+    "tools/local-git-mirror/bootstrap-workflow.yml.template",
+    "tools/local-git-mirror/bootstrap-workflow-fallback.yml.template",
+    ".pncc-dev/contracts/pipe-wu-220-local-git-mirror.json",
+    "tests/pipe-wu-220-local-git-mirror.py",
+    ".github/workflows/pipe-wu-220-local-git-mirror-contract.yml"
+  ],
+  "forbidden": [
+    "product/runtime source mutation",
+    "1080 lifecycle mutation",
+    "1081 runtime execution",
+    "V6.3.1 mutation",
+    "credentials or secrets in transport artifacts or logs",
+    "self-hosted runner",
+    "release/tag/Stable",
+    "ruleset/security weakening",
+    "force/bypass"
+  ]
+}
