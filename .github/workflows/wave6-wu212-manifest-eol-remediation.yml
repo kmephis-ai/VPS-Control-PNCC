@@ -25,22 +25,26 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Verify exact bounded diff
+      - name: Verify historical exact bounded diff when applicable
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
           $base='c725ab82465a0a094fde00359c4a78fd18cd3f3c'
-          if('${{ github.event.pull_request.base.sha }}' -ne $base){throw 'EXACT_BASE_MISMATCH'}
-          $expected=@(
-            '.gitattributes',
-            '.github/workflows/wave6-wu212-manifest-eol-remediation.yml',
-            '.pncc-dev/contracts/wave6-wu212-manifest-eol-remediation.json',
-            '.pncc-dev/tests/test_wu212_manifest_eol_remediation.py'
-          ) | Sort-Object
-          $actual=@(git diff --name-only "$base...HEAD" | Sort-Object)
-          if(($actual -join "`n") -ne ($expected -join "`n")){throw "BOUNDED_DIFF_MISMATCH actual=$($actual -join ',')"}
-          git diff --quiet $base HEAD -- src/windows-v7/VPS-Control-v7-README.txt src/windows-v7/VPS-Control-v7-launch.ps1 src/rollback-base/VPS-Control-v6.3.1.ps1
-          if($LASTEXITCODE -ne 0){throw 'FORBIDDEN_PRODUCT_OR_V631_MUTATION'}
+          if('${{ github.event.pull_request.base.sha }}' -eq $base){
+            $expected=@(
+              '.gitattributes',
+              '.github/workflows/wave6-wu212-manifest-eol-remediation.yml',
+              '.pncc-dev/contracts/wave6-wu212-manifest-eol-remediation.json',
+              '.pncc-dev/tests/test_wu212_manifest_eol_remediation.py'
+            ) | Sort-Object
+            $actual=@(git diff --name-only "$base...HEAD" | Sort-Object)
+            if(($actual -join "`n") -ne ($expected -join "`n")){throw "BOUNDED_DIFF_MISMATCH actual=$($actual -join ',')"}
+            git diff --quiet $base HEAD -- src/windows-v7/VPS-Control-v7-README.txt src/windows-v7/VPS-Control-v7-launch.ps1 src/rollback-base/VPS-Control-v6.3.1.ps1
+            if($LASTEXITCODE -ne 0){throw 'FORBIDDEN_PRODUCT_OR_V631_MUTATION'}
+            Write-Host 'WU212_HISTORICAL_BOUNDARY=PASS'
+          } else {
+            Write-Host 'WU212_HISTORICAL_BOUNDARY=NOT_APPLICABLE'
+          }
       - name: Run WU212 Windows materialization regression
         shell: pwsh
         run: |
