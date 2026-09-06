@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "work_unit": "PIPE-WU-221",
+  "issue": 488,
+  "state": "AUTHORIZED_BUILD_CONTROL_PLANE",
+  "control_plane_base_main": "0ef5d99549145130c532b7e7e6057f672ef41eb3",
+  "authorized_source_main": "4528fbcb2341c047e633e207364fb2b8d8d0ad49",
+  "installer_definition": {
+    "path": "installer/windows/VPS-Control-PNCC.iss",
+    "git_blob": "611b4aa94a6091d669a291bf40c5f1079fc95ec6"
+  },
+  "wu218_engine": {
+    "path": "src/windows-v7/VPS-Control-v7-engine-upgrade.ps1",
+    "git_blob": "9c5f991b6f215961aead21152a715ac242d833ff"
+  },
+  "manifest": {
+    "path": "src/windows-v7/VPS-Control-v7-SHA256.txt",
+    "git_blob": "941c9755f9c9515f968baa2b9d604d1f1b223ecc"
+  },
+  "immutable_v631": {
+    "path": "src/rollback-base/VPS-Control-v6.3.1.ps1",
+    "git_blob": "fbcf80dac2d619c421b8a40b5612cd13d5da4a73",
+    "sha256": "385e5178f10e79b0b234376e6a6671b64ce523a3971b2b4341ec94ce1efee11e",
+    "size": 162507
+  },
+  "compiler": {
+    "name": "Inno Setup",
+    "version": "7.1.0",
+    "sha256": "0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f",
+    "size": 14304168
+  },
+  "artifact": {
+    "filename": "VPS-Control-PNCC-v7.0.2-setup.exe",
+    "retention_days": 2,
+    "upload_count": 1,
+    "two_ephemeral_candidates_byte_identical_required": true
+  },
+  "installation_target": "M:\\YandexDisk\\VPS-Control-PNCC",
+  "runtime_launch_allowed": false,
+  "reserve_1080_policy": "OBSERVATION_ONLY",
+  "primary_1081_launch_allowed": false,
+  "forbidden": [
+    "source/product code mutation",
+    "V6.3.1 mutation",
+    "1080 lifecycle mutation",
+    "1081 runtime execution",
+    "self-hosted runner",
+    "release/tag/Stable",
+    "ruleset/security weakening",
+    "force/bypass"
+  ]
+}
