@@ -1,0 +1,53 @@
+name: pipe-wu-220-local-git-mirror-contract
+
+on:
+  pull_request:
+    paths:
+      - 'tools/local-git-mirror/**'
+      - '.pncc-dev/contracts/pipe-wu-220-local-git-mirror.json'
+      - 'tests/pipe-wu-220-local-git-mirror.py'
+      - '.github/workflows/pipe-wu-220-local-git-mirror-contract.yml'
+  push:
+    branches:
+      - pipe-wu-220-local-git-mirror
+    paths:
+      - 'tools/local-git-mirror/**'
+      - '.pncc-dev/contracts/pipe-wu-220-local-git-mirror.json'
+      - 'tests/pipe-wu-220-local-git-mirror.py'
+      - '.github/workflows/pipe-wu-220-local-git-mirror-contract.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  local-git-mirror-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Run fail-closed Local Git Mirror regression
+        run: python tests/pipe-wu-220-local-git-mirror.py -v
+      - name: Assert bounded PIPE-WU-220 surface
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          contract=json.loads(Path('.pncc-dev/contracts/pipe-wu-220-local-git-mirror.json').read_text())
+          base=contract['exact_base_main']
+          subprocess.run(['git','cat-file','-e',base+'^{commit}'],check=True)
+          changed=subprocess.run(['git','diff','--name-only',base,'HEAD'],check=True,text=True,stdout=subprocess.PIPE).stdout.splitlines()
+          allowed=set(contract['allowed_paths'])
+          extra=sorted(set(changed)-allowed)
+          missing=sorted(allowed-set(changed))
+          if extra: raise SystemExit('out-of-scope PIPE-WU-220 paths: '+', '.join(extra))
+          if missing: raise SystemExit('expected PIPE-WU-220 paths absent: '+', '.join(missing))
+          if contract['state'] != 'DEVELOPMENT_INFRASTRUCTURE_ONLY': raise SystemExit('wrong WU state')
+          required={'1080 lifecycle mutation','1081 runtime execution','V6.3.1 mutation','self-hosted runner','release/tag/Stable','force/bypass'}
+          if not required.issubset(set(contract['forbidden'])): raise SystemExit('forbidden invariant missing')
+          print('PIPE-WU-220 bounded surface PASS')
+          PY
