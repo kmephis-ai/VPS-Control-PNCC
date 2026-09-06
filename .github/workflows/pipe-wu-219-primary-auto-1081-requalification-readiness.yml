@@ -1,0 +1,44 @@
+name: pipe-wu-219-primary-auto-1081-requalification-readiness
+on:
+  pull_request:
+    paths:
+      - '.pncc-dev/contracts/pipe-wu-219-primary-auto-1081-requalification-readiness.json'
+      - 'tests/pipe-wu-219-primary-auto-1081-requalification-readiness.ps1'
+      - '.github/workflows/pipe-wu-219-primary-auto-1081-requalification-readiness.yml'
+  push:
+    branches:
+      - pipe-wu-219-primary-auto-1081-requalification-readiness
+    paths:
+      - '.pncc-dev/contracts/pipe-wu-219-primary-auto-1081-requalification-readiness.json'
+      - 'tests/pipe-wu-219-primary-auto-1081-requalification-readiness.ps1'
+      - '.github/workflows/pipe-wu-219-primary-auto-1081-requalification-readiness.yml'
+permissions:
+  contents: read
+jobs:
+  readiness-contract:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+      - name: Assert Windows PowerShell 5.1 and AST
+        shell: powershell
+        run: |
+          if($PSVersionTable.PSVersion.Major -ne 5){throw 'Windows PowerShell 5.1 required'}
+          $tokens=$null;$errors=$null
+          [void][Management.Automation.Language.Parser]::ParseFile((Resolve-Path 'tests/pipe-wu-219-primary-auto-1081-requalification-readiness.ps1'),[ref]$tokens,[ref]$errors)
+          if($errors.Count){$errors|ForEach-Object{Write-Error $_.Message};exit 1}
+      - name: Execute fail-closed WU219 readiness regression
+        shell: powershell
+        run: |
+          & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File 'tests/pipe-wu-219-primary-auto-1081-requalification-readiness.ps1'
+          if($LASTEXITCODE -ne 0){throw "WU219 regression rc=$LASTEXITCODE"}
+      - name: Assert no runtime executor was introduced
+        shell: powershell
+        run: |
+          $w=Get-Content '.github/workflows/pipe-wu-219-primary-auto-1081-requalification-readiness.yml' -Raw
+          $c=Get-Content '.pncc-dev/contracts/pipe-wu-219-primary-auto-1081-requalification-readiness.json' -Raw | ConvertFrom-Json
+          if([bool]$c.runtime_authorized){throw 'runtime authority unexpectedly armed'}
+          if($w -match '(?im)^\s*runs-on:\s*self-hosted\s*$'){throw 'self-hosted runner forbidden'}
+          if($w -match '(?im)^\s*(workflow_dispatch|repository_dispatch|issue_comment)\s*:'){throw 'WU219 must not expose an execution trigger'}
+          if(git status --porcelain){git status --short;throw 'workflow mutated repository'}

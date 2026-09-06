@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "work_unit": "PIPE-WU-219",
+  "issue": 483,
+  "state": "READINESS_ONLY",
+  "exact_base_main": "ee39986227964198ab2e22fae63f2cd64f43b398",
+  "runtime_required": false,
+  "runtime_authorized": false,
+  "future_runtime_target": {
+    "channel": "PRIMARY_AUTO",
+    "host": "127.0.0.1",
+    "port": 1081,
+    "launch_path": "installed VPS-Control-v7.cmd",
+    "platform": "Windows 10",
+    "powershell": "5.1",
+    "requires_fresh_explicit_owner_runtime_authorization": true,
+    "generic_continue_is_runtime_authorization": false
+  },
+  "reserve_manual": {
+    "host": "127.0.0.1",
+    "port": 1080,
+    "policy": "OBSERVATION_ONLY",
+    "lifecycle_mutation_allowed": false
+  },
+  "wu218_binding": {
+    "engine_path": "src/windows-v7/VPS-Control-v7-engine-upgrade.ps1",
+    "engine_git_blob": "9c5f991b6f215961aead21152a715ac242d833ff",
+    "required_markers": [
+      "WU218_SAVEDSESSION_FALLBACK_V1",
+      "Get-V7ObservedReservePuttyExecutableCandidates",
+      "PORTABLE_RESERVE_1080_OBSERVED",
+      "reserve-1080-observed",
+      "Ensure-V7OfficialPuttyHostKeyTrust",
+      "-pwfile"
+    ]
+  },
+  "immutable_v631": {
+    "path": "src/rollback-base/VPS-Control-v6.3.1.ps1",
+    "git_blob": "fbcf80dac2d619c421b8a40b5612cd13d5da4a73",
+    "sha256": "385e5178f10e79b0b234376e6a6671b64ce523a3971b2b4341ec94ce1efee11e",
+    "mutation_allowed": false
+  },
+  "future_runtime_evidence_minimum": [
+    "exact qualified source/artifact identity",
+    "canonical installed VPS-Control-v7.cmd launch lineage",
+    "1080 listener/process identity preserved before/during/after",
+    "SavedSession endpoint source classification without credential disclosure",
+    "physical 127.0.0.1:1081 listener establishment or explicit fail-closed reason",
+    "PRIMARY_AUTO process ownership attributable to PNCC when 1081 establishes",
+    "normal cleanup with no residual PNCC-owned PRIMARY_AUTO process",
+    "no manufactured listener and no bypass"
+  ],
+  "forbidden": [
+    "product/runtime source mutation",
+    "1080 lifecycle mutation",
+    "1081 runtime execution in PIPE-WU-219",
+    "V6.3.1 mutation",
+    "host-key verification weakening",
+    "DPAPI weakening",
+    "plaintext -pw",
+    "self-hosted runner",
+    "release/tag/Stable",
+    "ruleset/security weakening",
+    "force/bypass"
+  ]
+}
