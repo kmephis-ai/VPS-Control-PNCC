@@ -1,0 +1,182 @@
+name: pipe-wu-218-bootstrap
+on:
+  push:
+    branches:
+      - pipe-wu-218-putty-saved-session-discovery
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+      - name: Apply bounded SavedSession discovery remediation
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+          p=Path('src/windows-v7/VPS-Control-v7-engine-upgrade.ps1')
+          s=p.read_text(encoding='utf-8-sig')
+          marker='WU218_SAVEDSESSION_FALLBACK_V1'
+          if marker not in s:
+              old="""$V7PuttyDiscoveryCandidates = @(
+              (Join-Path $PSScriptRoot 'PuTTY PORTABLE\\putty_portable.exe'),
+              (Join-Path $PSScriptRoot 'PuTTY PORTABLE\\putty.exe'),
+              (Join-Path $PSScriptRoot 'putty_portable.exe'),
+              (Join-Path $PSScriptRoot 'putty.exe'),
+              $V7LegacyPuttyPath
+          )"""
+              new="""$V7PuttyDiscoveryCandidates = @(
+              $V7LegacyPuttyPath,
+              (Join-Path $PSScriptRoot 'PuTTY PORTABLE\\putty_portable.exe'),
+              (Join-Path $PSScriptRoot 'PuTTY PORTABLE\\putty.exe'),
+              (Join-Path $PSScriptRoot 'putty_portable.exe'),
+              (Join-Path $PSScriptRoot 'putty.exe')
+          )"""
+              if s.count(old)!=1: raise SystemExit('candidate-order anchor mismatch')
+              s=s.replace(old,new)
+
+              pattern=r"function Test-V7PortablePuttyLauncher \{.*?\n\}\nfunction ConvertFrom-V7PortableRegEscaped"
+              repl="""function Test-V7PortablePuttyLauncherPath([string]$CandidatePuttyPath) {
+              try {
+                  if(-not $CandidatePuttyPath){return $false}
+                  $leaf=[IO.Path]::GetFileName([string]$CandidatePuttyPath)
+                  if($leaf -match '(?i)portable'){return $true}
+                  $dir=Split-Path -Parent $CandidatePuttyPath
+                  if($dir -and $dir -match '(?i)portable'){return $true}
+              } catch { }
+              return $false
+          }
+          function Test-V7PortablePuttyLauncher {
+              return (Test-V7PortablePuttyLauncherPath -CandidatePuttyPath $PuttyPath)
+          }
+          function ConvertFrom-V7PortableRegEscaped"""
+              s,n=re.subn(pattern,repl,s,count=1,flags=re.S)
+              if n!=1: raise SystemExit('portable-launcher anchor mismatch')
+
+              old='function Get-V7PortablePuttySessionInfo {\n    $result=[ordered]@{Found=$false;Source=\'\';HostName=\'\';PortNumber=22;Protocol=\'ssh\';PublicKeyFile=\'\';KeyConfigured=$false;PageantRunning=$false}\n    try {\n        $dir=Split-Path -Parent $PuttyPath'
+              new='function Get-V7PortablePuttySessionInfo([string]$CandidatePuttyPath=$PuttyPath) {\n    $result=[ordered]@{Found=$false;Source=\'\';HostName=\'\';PortNumber=22;Protocol=\'ssh\';PublicKeyFile=\'\';KeyConfigured=$false;PageantRunning=$false}\n    try {\n        $dir=Split-Path -Parent $CandidatePuttyPath'
+              if s.count(old)!=1: raise SystemExit('portable-session parameter anchor mismatch')
+              s=s.replace(old,new)
+
+              pattern=r"function Get-V7SavedSessionEndpoint \{.*?\n\}\nfunction Test-PuttyConfigured \{"
+              repl=r'''# WU218_SAVEDSESSION_FALLBACK_V1
+          function Test-V7SavedSessionEndpointInfo($Info) {
+              if(-not $Info){return $false}
+              $host=[string]$Info.HostName
+              $protocol=[string]$Info.Protocol
+              $port=0
+              try{$port=[int]$Info.PortNumber}catch{}
+              return [bool]($host -and $protocol -and $protocol -ieq 'ssh' -and $port -ge 1 -and $port -le 65535)
+          }
+          function Get-V7ObservedReservePuttyExecutableCandidates {
+              $paths=New-Object Collections.Generic.List[string]
+              try {
+                  foreach($listener in @(Get-NetTCPConnection -State Listen -LocalPort 1080 -ErrorAction SilentlyContinue)){
+                      try {
+                          $processInfo=Get-CimInstance Win32_Process -Filter ('ProcessId='+[int]$listener.OwningProcess) -ErrorAction Stop
+                          $name=[string]$processInfo.Name
+                          $exe=[string]$processInfo.ExecutablePath
+                          if(-not $exe -or -not $name){continue}
+                          if($name -notmatch '(?i)^putty(?:_portable)?\.exe$'){continue}
+                          if(-not(Test-V7PortablePuttyLauncherPath -CandidatePuttyPath $exe)){continue}
+                          if(-not(Test-Path -LiteralPath $exe -PathType Leaf)){continue}
+                          if(-not $paths.Contains($exe)){[void]$paths.Add($exe)}
+                      } catch { }
+                  }
+              } catch { }
+              return @($paths | Sort-Object)
+          }
+          function Get-V7SavedSessionEndpoint {
+              $info=Get-SavedPuttySessionInfo
+              if(Test-V7SavedSessionEndpointInfo $info){
+                  return [pscustomobject]@{Info=$info;Source='HKCU';Host=[string]$info.HostName;Port=[int]$info.PortNumber;Protocol=[string]$info.Protocol;PuttyPath=$PuttyPath}
+              }
+
+              $configuredPuttyPath=[string]$PuttyPath
+              if(Test-V7PortablePuttyLauncherPath -CandidatePuttyPath $configuredPuttyPath){
+                  $configuredInfo=Get-V7PortablePuttySessionInfo -CandidatePuttyPath $configuredPuttyPath
+                  if(Test-V7SavedSessionEndpointInfo $configuredInfo){
+                      return [pscustomobject]@{Info=$configuredInfo;Source='PORTABLE_CONFIGURED';Host=[string]$configuredInfo.HostName;Port=[int]$configuredInfo.PortNumber;Protocol=[string]$configuredInfo.Protocol;PuttyPath=$configuredPuttyPath}
+                  }
+              }
+
+              $fallbacks=New-Object Collections.Generic.List[object]
+              foreach($candidatePath in @(Get-V7ObservedReservePuttyExecutableCandidates)){
+                  if(-not $candidatePath -or $candidatePath -eq $configuredPuttyPath){continue}
+                  $candidateInfo=Get-V7PortablePuttySessionInfo -CandidatePuttyPath $candidatePath
+                  if(-not(Test-V7SavedSessionEndpointInfo $candidateInfo)){continue}
+                  [void]$fallbacks.Add([pscustomobject]@{Info=$candidateInfo;Source='PORTABLE_RESERVE_1080_OBSERVED';Host=[string]$candidateInfo.HostName;Port=[int]$candidateInfo.PortNumber;Protocol=[string]$candidateInfo.Protocol;PuttyPath=[string]$candidatePath})
+              }
+              if($fallbacks.Count -eq 0){
+                  Write-V7SocksEngineTrace 'SESSION_METADATA' 'fallback=RESERVE_1080; result=NO_VALID_ENDPOINT'
+                  return $null
+              }
+              if($fallbacks.Count -ne 1){
+                  Write-V7SocksEngineTrace 'SESSION_METADATA' ("fallback=RESERVE_1080; result=AMBIGUOUS; candidates="+$fallbacks.Count)
+                  return $null
+              }
+              $selected=$fallbacks[0]
+              $script:PuttyPath=[string]$selected.PuttyPath
+              $script:V7PuttyDiscoverySource='reserve-1080-observed'
+              Write-V7SocksEngineTrace 'SESSION_METADATA' ("fallback=RESERVE_1080; result=SELECTED; path="+$script:PuttyPath+"; host="+$selected.Host+"; port="+$selected.Port+"; protocol="+$selected.Protocol)
+              return $selected
+          }
+          function Test-PuttyConfigured {'''
+              s,n=re.subn(pattern,repl,s,count=1,flags=re.S)
+              if n!=1: raise SystemExit('saved-session endpoint anchor mismatch')
+
+              old='''    if(-not(Test-Path -LiteralPath $PuttyPath)){Write-Fail "PuTTY не найден: $PuttyPath";return $false}
+              if($VpsAuthMode -eq 'SavedSession'){'''
+              new='''    if($VpsAuthMode -ne 'SavedSession' -and -not(Test-Path -LiteralPath $PuttyPath)){Write-Fail "PuTTY не найден: $PuttyPath";return $false}
+              if($VpsAuthMode -eq 'SavedSession'){'''
+              if s.count(old)!=1: raise SystemExit('Test-PuttyConfigured path-gate anchor mismatch')
+              s=s.replace(old,new)
+
+              old='''        if(-not $endpoint){
+                      Write-V7SocksEngineTrace 'CONFIG_CHECK' 'FAIL SAVED_SESSION_ENDPOINT_UNRESOLVED'
+                      Write-Fail "SavedSession '$PuttySession': VCC не смог прочитать SSH host/port. VCC SOCKS $SocksPort не запущен."
+                      return $false
+                  }
+                  $password=Get-EffectivePuttyPassword'''
+              new='''        if(-not $endpoint){
+                      Write-V7SocksEngineTrace 'CONFIG_CHECK' 'FAIL SAVED_SESSION_ENDPOINT_UNRESOLVED'
+                      Write-Fail "SavedSession '$PuttySession': VCC не смог прочитать SSH host/port. VCC SOCKS $SocksPort не запущен."
+                      return $false
+                  }
+                  if(-not(Test-Path -LiteralPath $PuttyPath -PathType Leaf)){Write-Fail "PuTTY не найден после SavedSession endpoint resolution: $PuttyPath";return $false}
+                  $password=Get-EffectivePuttyPassword'''
+              if s.count(old)!=1: raise SystemExit('endpoint post-resolution path-gate anchor mismatch')
+              s=s.replace(old,new)
+
+              p.write_text(s,encoding='utf-8-sig',newline='\n')
+          else:
+              print('marker already present; no source patch required')
+      - name: Validate bounded source contract
+        shell: powershell
+        run: |
+          $p='src/windows-v7/VPS-Control-v7-engine-upgrade.ps1'
+          $t=$null;$e=$null
+          [void][Management.Automation.Language.Parser]::ParseFile((Resolve-Path $p),[ref]$t,[ref]$e)
+          if($e.Count){$e|ForEach-Object{Write-Error $_.Message};exit 1}
+          $r=Get-Content $p -Raw
+          foreach($m in @('WU218_SAVEDSESSION_FALLBACK_V1','Get-V7ObservedReservePuttyExecutableCandidates','PORTABLE_RESERVE_1080_OBSERVED','$script:V7PuttyDiscoverySource=''reserve-1080-observed''','Get-NetTCPConnection -State Listen -LocalPort 1080')){if($r -notlike "*$m*"){throw "missing marker: $m"}}
+          $helper=[regex]::Match($r,'(?s)function Get-V7ObservedReservePuttyExecutableCandidates \{.*?\n\}').Value
+          if(-not $helper){throw 'observer helper missing'}
+          if($helper -match '(?i)CommandLine'){throw 'observer helper must not read process CommandLine'}
+          if($helper -match '(?i)Stop-Process|Start-Process|Kill\(|Restart|\-D\s+1080'){throw '1080 lifecycle mutation forbidden'}
+          if($r -notmatch '(?s)if\(\$fallbacks\.Count -ne 1\).*?return \$null'){throw 'ambiguous fallback fail-closed missing'}
+          if($r -notmatch '(?s)if\(\$fallbacks\.Count -eq 0\).*?return \$null'){throw 'zero fallback fail-closed missing'}
+      - name: Commit generator remediation to feature branch
+        shell: powershell
+        run: |
+          if(-not (git status --porcelain)){Write-Host 'No source changes to commit';exit 0}
+          $changed=@(git diff --name-only)
+          foreach($f in $changed){if($f -ne 'src/windows-v7/VPS-Control-v7-engine-upgrade.ps1'){throw "unexpected mutation: $f"}}
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- 'src/windows-v7/VPS-Control-v7-engine-upgrade.ps1'
+          git commit -m 'PIPE-WU-218: reconcile SavedSession PuTTY discovery path'
+          git push origin HEAD:pipe-wu-218-putty-saved-session-discovery
