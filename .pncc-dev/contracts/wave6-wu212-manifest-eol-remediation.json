@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "work_unit_id": "PIPE-WU-212",
+  "authorized_base_main_sha": "c725ab82465a0a094fde00359c4a78fd18cd3f3c",
+  "failure_class": "INSTALLER_PACKAGE_INPUT_NORMALIZATION_DEFECT",
+  "remediation": {
+    "path": "src/windows-v7/VPS-Control-v7-README.txt",
+    "gitattributes_rule": "src/windows-v7/VPS-Control-v7-README.txt text eol=lf",
+    "manifest_path": "src/windows-v7/VPS-Control-v7-SHA256.txt",
+    "manifest_expected_sha256": "530241a9ab4853f95a6a528cdac94bda615c4b505cb688e8b31d51dadcf7908a",
+    "semantic_content_mutation": false
+  },
+  "immutable_v6_3_1": {
+    "path": "src/rollback-base/VPS-Control-v6.3.1.ps1",
+    "bytes": 162507,
+    "sha256": "385e5178f10e79b0b234376e6a6671b64ce523a3971b2b4341ec94ce1efee11e",
+    "git_blob": "fbcf80dac2d619c421b8a40b5612cd13d5da4a73"
+  },
+  "compiler": {
+    "name": "Inno Setup",
+    "version": "7.1.0",
+    "bytes": 14304168,
+    "sha256": "0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f"
+  },
+  "build_authority_after_merge": {
+    "github_hosted_windows_only": true,
+    "two_ephemeral_byte_identical_candidates": true,
+    "uploaded_artifact_count": 1,
+    "purpose": "repeat Windows 10 qualification"
+  },
+  "authority": {
+    "gitattributes_manifest_materialization_fix": true,
+    "regression_static_validation": true,
+    "github_hosted_ci": true,
+    "post_merge_compiler_execution": true,
+    "post_merge_artifact_build_or_upload": true,
+    "product_runtime_source_mutation": false,
+    "v6_3_1_byte_or_semantic_mutation": false,
+    "port_1080_lifecycle": false,
+    "port_1080_or_1081_semantics_change": false,
+    "launcher_code_14_or_17_weakening": false,
+    "host_key_dpapi_or_pwfile_weakening": false,
+    "self_hosted_runner": false,
+    "ruleset_or_security_weakening": false,
+    "force_or_bypass": false,
+    "release": false,
+    "tag": false,
+    "stable_transition": false
+  }
+}
