@@ -13,9 +13,10 @@ $tokens=$null;$parseErrors=$null
 [void][Management.Automation.Language.Parser]::ParseFile($Generator,[ref]$tokens,[ref]$parseErrors)
 if($parseErrors.Count){throw ('generator parse failed: '+(($parseErrors|ForEach-Object Message)-join '; '))}
 
-$match=[regex]::Match($raw,"(?s)\$replacements\['Test-PuttyConfigured'\]\s*=\s*@'\r?\n(.*?)\r?\n'@")
-if(-not $match.Success){throw 'Test-PuttyConfigured replacement body not found'}
-Invoke-Expression $match.Groups[1].Value
+$replacementPattern='(?s)\$replacements\[''Test-PuttyConfigured''\]\s*=\s*@''\r?\n(.*?)\r?\n''@'
+$replacementMatch=[regex]::Match($raw,$replacementPattern)
+if(-not $replacementMatch.Success){throw 'Test-PuttyConfigured replacement body not found'}
+Invoke-Expression $replacementMatch.Groups[1].Value
 
 function Write-V7SocksEngineTrace { param([string]$Phase,[string]$Message) $script:Trace += [pscustomobject]@{Phase=$Phase;Message=$Message} }
 function Write-Fail { param([string]$Message) $script:Failures += $Message }
@@ -64,7 +65,6 @@ function Add-Observed1080([int]$ProcessId,[string]$Exe){
 $temp=Join-Path $env:RUNNER_TEMP ('pncc-wu218-'+[guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $temp -Force|Out-Null
 try{
-    # Case 1: stale configured backend + exactly one readable observed 1080 backend.
     Reset-Fixture
     $staleDir=Join-Path $temp 'case1-stale-portable';$fallbackDir=Join-Path $temp 'case1-fallback-portable'
     $script:PuttyPath=New-PortableBackend $staleDir ''
@@ -78,7 +78,6 @@ try{
     Assert ([string]$endpoint.Protocol -eq 'ssh') 'fallback Protocol'
     Assert ([string]$script:PuttyPath -eq $fallbackExe) 'selected fallback must replace runtime PuttyPath'
 
-    # Case 2: configured backend is valid; observed 1080 must not be consulted.
     Reset-Fixture
     $configuredDir=Join-Path $temp 'case2-configured-portable';$otherDir=Join-Path $temp 'case2-other-portable'
     $configuredExe=New-PortableBackend $configuredDir '89.125.63.46' 22 'ssh'
@@ -91,7 +90,6 @@ try{
     Assert ([string]$script:PuttyPath -eq $configuredExe) 'configured PuttyPath must remain selected'
     Assert ($script:ObserverCalls -eq 0) '1080 observer must not run when configured endpoint is valid'
 
-    # Case 3: configured backend invalid and no 1080 listener -> fail closed.
     Reset-Fixture
     $case3Dir=Join-Path $temp 'case3-stale-portable'
     $case3Exe=New-PortableBackend $case3Dir ''
@@ -100,7 +98,6 @@ try{
     Assert ($null-eq$endpoint) 'no fallback must fail closed'
     Assert ([string]$script:PuttyPath -eq $case3Exe) 'failed resolution must not mutate PuttyPath'
 
-    # Case 4: two observed fallback backends with conflicting endpoints -> fail closed ambiguous.
     Reset-Fixture
     $case4Dir=Join-Path $temp 'case4-stale-portable'
     $case4Exe=New-PortableBackend $case4Dir ''
@@ -114,7 +111,6 @@ try{
     Assert ([string]$script:PuttyPath -eq $case4Exe) 'ambiguous resolution must not mutate PuttyPath'
     Assert (@($script:Trace|Where-Object{$_.Message -like '*result=AMBIGUOUS*'}).Count -gt 0) 'ambiguity trace required'
 
-    # Static least-authority/security contract.
     $observer=[regex]::Match($raw,'(?s)function Get-V7ObservedReservePuttyExecutableCandidates \{.*?\n\}').Value
     Assert ([bool]$observer) 'observer helper exists'
     Assert (-not($observer -match '(?i)CommandLine')) 'observer must not read process CommandLine'
@@ -123,7 +119,7 @@ try{
     Assert ($raw -match 'Ensure-V7OfficialPuttyHostKeyTrust') 'host-key fail-closed helper preserved'
     Assert ($raw -match "'-pwfile'") 'pwfile security path preserved'
     Assert ($raw -match 'WU218_SAVEDSESSION_FALLBACK_V1') 'WU218 marker present'
-    Assert ($raw -match "\$V7PuttyDiscoveryCandidates\s*=\s*@\(\s*\$V7LegacyPuttyPath,") 'legacy/configured candidate must be first'
+    Assert ($raw -match '\$V7PuttyDiscoveryCandidates\s*=\s*@\(\s*\$V7LegacyPuttyPath,') 'legacy/configured candidate must be first'
 
     Write-Host 'PNCC_WU218_REGRESSION=PASS runtime_mutation=false reserve_1080_mutation=false primary_1081_runtime=false'
     exit 0
