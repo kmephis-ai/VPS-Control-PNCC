@@ -25,7 +25,7 @@ jobs:
           foreach($p in @('src/windows-v7/VPS-Control-v7-engine-upgrade.ps1','tests/runtime-primary-1081-saved-session-discovery.ps1')){
             $t=$null;$e=$null
             [void][Management.Automation.Language.Parser]::ParseFile((Resolve-Path $p),[ref]$t,[ref]$e)
-            if($e.Count){$e|ForEach-Object{Write-Error ("$p: "+$_.Message)};exit 1}
+            if($e.Count){$e|ForEach-Object{Write-Error ("${p}: "+$_.Message)};exit 1}
           }
           $g=[IO.File]::ReadAllBytes('src/windows-v7/VPS-Control-v7-engine-upgrade.ps1')
           if($g.Length -lt 3 -or $g[0] -ne 0xEF -or $g[1] -ne 0xBB -or $g[2] -ne 0xBF){throw 'generator UTF-8 BOM contract changed'}
