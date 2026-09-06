@@ -41,13 +41,13 @@ function Get-CimInstance {
 }
 
 function Assert([bool]$Condition,[string]$Message){if(-not $Condition){throw "ASSERT: $Message"}}
-function New-PortableBackend([string]$Root,[string]$Host,[int]$Port=22,[string]$Protocol='ssh'){
+function New-PortableBackend([string]$Root,[string]$EndpointHost,[int]$Port=22,[string]$Protocol='ssh'){
     New-Item -ItemType Directory -Path (Join-Path $Root 'Sessions') -Force|Out-Null
     $exe=Join-Path $Root 'putty_portable.exe'
     [IO.File]::WriteAllBytes($exe,[byte[]](1,2,3))
-    if($Host){
+    if($EndpointHost){
         $session=Join-Path (Join-Path $Root 'Sessions') 'AdminVPS'
-        $text="HostName\$Host\`r`nPortNumber\$Port\`r`nProtocol\$Protocol\`r`n"
+        $text="HostName\$EndpointHost\`r`nPortNumber\$Port\`r`nProtocol\$Protocol\`r`n"
         [IO.File]::WriteAllText($session,$text,(New-Object Text.UTF8Encoding($false)))
     }
     return $exe
@@ -120,6 +120,7 @@ try{
     Assert ($raw -match "'-pwfile'") 'pwfile security path preserved'
     Assert ($raw -match 'WU218_SAVEDSESSION_FALLBACK_V1') 'WU218 marker present'
     Assert ($raw -match '\$V7PuttyDiscoveryCandidates\s*=\s*@\(\s*\$V7LegacyPuttyPath,') 'legacy/configured candidate must be first'
+    Assert (-not($raw -match '(?m)^\s*\$host\s*=')) 'automatic Host variable collision forbidden'
 
     Write-Host 'PNCC_WU218_REGRESSION=PASS runtime_mutation=false reserve_1080_mutation=false primary_1081_runtime=false'
     exit 0
