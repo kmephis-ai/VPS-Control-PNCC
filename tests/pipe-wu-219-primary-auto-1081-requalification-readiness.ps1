@@ -11,9 +11,9 @@ $expectedV631Blob='fbcf80dac2d619c421b8a40b5612cd13d5da4a73'
 $expectedEngineBlob='9c5f991b6f215961aead21152a715ac242d833ff'
 
 function Assert-True([bool]$Condition,[string]$Message){if(-not $Condition){throw $Message}}
-function Git-One([string[]]$Args){
-    $value=& git @Args
-    if($LASTEXITCODE -ne 0){throw ('git '+($Args -join ' ')+' failed')}
+function Git-One([string[]]$GitArgs){
+    $value=& git @GitArgs
+    if($LASTEXITCODE -ne 0){throw ('git '+($GitArgs -join ' ')+' failed')}
     return ([string]($value | Select-Object -First 1)).Trim()
 }
 
@@ -34,7 +34,7 @@ Assert-True ([int]$contract.reserve_manual.port -eq 1080) 'reserve port must rem
 Assert-True ($contract.reserve_manual.policy -eq 'OBSERVATION_ONLY') '1080 must remain observation-only'
 Assert-True (-not [bool]$contract.reserve_manual.lifecycle_mutation_allowed) '1080 lifecycle mutation must remain forbidden'
 
-$engineBlob=Git-One @('rev-parse',('HEAD:'+$enginePath))
+$engineBlob=Git-One -GitArgs @('rev-parse',('HEAD:'+$enginePath))
 Assert-True ($engineBlob -eq $expectedEngineBlob) ('WU218 engine blob drifted: '+$engineBlob)
 $engine=Get-Content -LiteralPath $enginePath -Raw
 foreach($marker in @('WU218_SAVEDSESSION_FALLBACK_V1','Get-V7ObservedReservePuttyExecutableCandidates','PORTABLE_RESERVE_1080_OBSERVED','reserve-1080-observed','Ensure-V7OfficialPuttyHostKeyTrust','-pwfile')){
@@ -46,7 +46,7 @@ Assert-True ($helper -notmatch '(?i)CommandLine') '1080 process command-line rea
 Assert-True ($helper -notmatch '(?i)Stop-Process|Start-Process|Restart-Computer|\.Kill\(') '1080 lifecycle mutation is forbidden'
 Assert-True ($helper -match 'Get-NetTCPConnection') '1080 fallback must remain listener-observation based'
 
-$v631Blob=Git-One @('rev-parse',('HEAD:'+$v631Path))
+$v631Blob=Git-One -GitArgs @('rev-parse',('HEAD:'+$v631Path))
 Assert-True ($v631Blob -eq $expectedV631Blob) ('V6.3.1 git blob drifted: '+$v631Blob)
 $v631Sha=(Get-FileHash -LiteralPath $v631Path -Algorithm SHA256).Hash.ToLowerInvariant()
 Assert-True ($v631Sha -eq $expectedV631Sha) ('V6.3.1 SHA-256 drifted: '+$v631Sha)
