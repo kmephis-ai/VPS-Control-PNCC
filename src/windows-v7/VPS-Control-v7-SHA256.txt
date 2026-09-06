@@ -6,7 +6,7 @@
 850892ab0660b04003a84f3998a0f43bf9675ada68da4e3d8d3fa1e50af09420  VPS-Control-v7-TUNNEL-CONTRACT.json
 4e0ff527838cdb29da8195200a95471aa290cf8bd830024ee11cefeccb875828  VPS-Control-v7-browser-strict.ps1
 f477250bd07abd95f78b82354d336b4614f220e1809589d7bf5995f1be8b5a91  VPS-Control-v7-demo.cmd
-7f8bc5caafcf7581a53e40500d4d2161ced60d43c3766f899fc5d4e1ec679345  VPS-Control-v7-engine-upgrade.ps1
+e636658b31683d89c28289ba785c6cdbf0142bdf371540df331cb36e8a065461  VPS-Control-v7-engine-upgrade.ps1
 accc535655dbb9d1c9f56c0c9c6ffe6d3ba6e1fdfdbc6aef4d43d251568ab576  VPS-Control-v7-evidence-worker.ps1
 9621754a5decb0f2991e479f3fcb52b7049847f36c75c89394c6ba33a3105933  VPS-Control-v7-keenetic.ps1
 5fa101bb4ac27f21b4738b2bc0b6f68f7ceec24a0537a8a8372ed34a20e79eaf  VPS-Control-v7-launch.ps1
