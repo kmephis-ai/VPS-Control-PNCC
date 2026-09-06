@@ -244,14 +244,18 @@ function Get-SavedPuttySessionInfo {
         return $null
     }
 }
-function Test-V7PortablePuttyLauncher {
+function Test-V7PortablePuttyLauncherPath([string]$CandidatePuttyPath) {
     try {
-        $leaf=[IO.Path]::GetFileName([string]$PuttyPath)
+        if(-not $CandidatePuttyPath){return $false}
+        $leaf=[IO.Path]::GetFileName([string]$CandidatePuttyPath)
         if($leaf -match '(?i)portable'){return $true}
-        $dir=Split-Path -Parent $PuttyPath
+        $dir=Split-Path -Parent $CandidatePuttyPath
         if($dir -and $dir -match '(?i)portable'){return $true}
     } catch { }
     return $false
+}
+function Test-V7PortablePuttyLauncher {
+    return (Test-V7PortablePuttyLauncherPath -CandidatePuttyPath $PuttyPath)
 }
 function ConvertFrom-V7PortableRegEscaped([string]$Value) {
     if($null -eq $Value){return ''}
@@ -274,10 +278,10 @@ function Get-V7PortableSlashValue([string]$Raw,[string]$Name) {
     }catch{}
     return ''
 }
-function Get-V7PortablePuttySessionInfo {
+function Get-V7PortablePuttySessionInfo([string]$CandidatePuttyPath=$PuttyPath) {
     $result=[ordered]@{Found=$false;Source='';HostName='';PortNumber=22;Protocol='ssh';PublicKeyFile='';KeyConfigured=$false;PageantRunning=$false}
     try {
-        $dir=Split-Path -Parent $PuttyPath
+        $dir=Split-Path -Parent $CandidatePuttyPath
         if(-not $dir){return [pscustomobject]$result}
         $raw='';$source=''
         foreach($candidate in @(
@@ -361,23 +365,71 @@ function Test-SavedPuttySessionHasNonPasswordAuth($Info) {
     try{if(Get-Process -Name pageant -ErrorAction SilentlyContinue|Select-Object -First 1){return $true}}catch{}
     return $false
 }
+# WU218_SAVEDSESSION_FALLBACK_V1
+function Test-V7SavedSessionEndpointInfo($Info) {
+    if(-not $Info){return $false}
+    $host=[string]$Info.HostName
+    $protocol=[string]$Info.Protocol
+    $port=0
+    try{$port=[int]$Info.PortNumber}catch{}
+    return [bool]($host -and $protocol -and $protocol -ieq 'ssh' -and $port -ge 1 -and $port -le 65535)
+}
+function Get-V7ObservedReservePuttyExecutableCandidates {
+    $paths=New-Object Collections.Generic.List[string]
+    try {
+        foreach($listener in @(Get-NetTCPConnection -State Listen -LocalPort 1080 -ErrorAction SilentlyContinue)){
+            try {
+                $processInfo=Get-CimInstance Win32_Process -Filter ('ProcessId='+[int]$listener.OwningProcess) -ErrorAction Stop
+                $name=[string]$processInfo.Name
+                $exe=[string]$processInfo.ExecutablePath
+                if(-not $exe -or -not $name){continue}
+                if($name -notmatch '(?i)^putty(?:_portable)?\.exe$'){continue}
+                if(-not(Test-V7PortablePuttyLauncherPath -CandidatePuttyPath $exe)){continue}
+                if(-not(Test-Path -LiteralPath $exe -PathType Leaf)){continue}
+                if(-not $paths.Contains($exe)){[void]$paths.Add($exe)}
+            } catch { }
+        }
+    } catch { }
+    return @($paths | Sort-Object)
+}
 function Get-V7SavedSessionEndpoint {
     $info=Get-SavedPuttySessionInfo
-    $source='HKCU'
-    if(-not $info -and (Test-V7PortablePuttyLauncher)){
-        $info=Get-V7PortablePuttySessionInfo
-        $source='PORTABLE'
+    if(Test-V7SavedSessionEndpointInfo $info){
+        return [pscustomobject]@{Info=$info;Source='HKCU';Host=[string]$info.HostName;Port=[int]$info.PortNumber;Protocol=[string]$info.Protocol;PuttyPath=$PuttyPath}
     }
-    if(-not $info){return $null}
-    $remoteHost=[string]$info.HostName
-    $remotePort=22
-    try{if([int]$info.PortNumber -gt 0){$remotePort=[int]$info.PortNumber}}catch{}
-    if(-not $remoteHost){return $null}
-    return [pscustomobject]@{Info=$info;Source=$source;Host=$remoteHost;Port=$remotePort}
+
+    $configuredPuttyPath=[string]$PuttyPath
+    if(Test-V7PortablePuttyLauncherPath -CandidatePuttyPath $configuredPuttyPath){
+        $configuredInfo=Get-V7PortablePuttySessionInfo -CandidatePuttyPath $configuredPuttyPath
+        if(Test-V7SavedSessionEndpointInfo $configuredInfo){
+            return [pscustomobject]@{Info=$configuredInfo;Source='PORTABLE_CONFIGURED';Host=[string]$configuredInfo.HostName;Port=[int]$configuredInfo.PortNumber;Protocol=[string]$configuredInfo.Protocol;PuttyPath=$configuredPuttyPath}
+        }
+    }
+
+    $fallbacks=New-Object Collections.Generic.List[object]
+    foreach($candidatePath in @(Get-V7ObservedReservePuttyExecutableCandidates)){
+        if(-not $candidatePath -or $candidatePath -eq $configuredPuttyPath){continue}
+        $candidateInfo=Get-V7PortablePuttySessionInfo -CandidatePuttyPath $candidatePath
+        if(-not(Test-V7SavedSessionEndpointInfo $candidateInfo)){continue}
+        [void]$fallbacks.Add([pscustomobject]@{Info=$candidateInfo;Source='PORTABLE_RESERVE_1080_OBSERVED';Host=[string]$candidateInfo.HostName;Port=[int]$candidateInfo.PortNumber;Protocol=[string]$candidateInfo.Protocol;PuttyPath=[string]$candidatePath})
+    }
+    if($fallbacks.Count -eq 0){
+        Write-V7SocksEngineTrace 'SESSION_METADATA' 'fallback=RESERVE_1080; result=NO_VALID_ENDPOINT'
+        return $null
+    }
+    if($fallbacks.Count -ne 1){
+        Write-V7SocksEngineTrace 'SESSION_METADATA' ("fallback=RESERVE_1080; result=AMBIGUOUS; candidates="+$fallbacks.Count)
+        return $null
+    }
+    $selected=$fallbacks[0]
+    $script:PuttyPath=[string]$selected.PuttyPath
+    $script:V7PuttyDiscoverySource='reserve-1080-observed'
+    Write-V7SocksEngineTrace 'SESSION_METADATA' ("fallback=RESERVE_1080; result=SELECTED; path="+$script:PuttyPath+"; host="+$selected.Host+"; port="+$selected.Port+"; protocol="+$selected.Protocol)
+    return $selected
 }
 function Test-PuttyConfigured {
     Write-V7SocksEngineTrace 'CONFIG_CHECK' ("begin auth=$VpsAuthMode; session=$PuttySession; vccSocks=${SocksHost}:$SocksPort")
-    if(-not(Test-Path -LiteralPath $PuttyPath)){Write-Fail "PuTTY не найден: $PuttyPath";return $false}
+    if($VpsAuthMode -ne 'SavedSession' -and -not(Test-Path -LiteralPath $PuttyPath)){Write-Fail "PuTTY не найден: $PuttyPath";return $false}
     if($VpsAuthMode -eq 'SavedSession'){
         if(-not $PuttySession){Write-Fail 'Не указана SavedSession активного VPS.';return $false}
         $endpoint=Get-V7SavedSessionEndpoint
@@ -386,6 +438,7 @@ function Test-PuttyConfigured {
             Write-Fail "SavedSession '$PuttySession': VCC не смог прочитать SSH host/port. VCC SOCKS $SocksPort не запущен."
             return $false
         }
+        if(-not(Test-Path -LiteralPath $PuttyPath -PathType Leaf)){Write-Fail "PuTTY не найден после SavedSession endpoint resolution: $PuttyPath";return $false}
         $password=Get-EffectivePuttyPassword
         $nonPassword=Test-SavedPuttySessionHasNonPasswordAuth $endpoint.Info
         if(-not $password -and -not $nonPassword){
@@ -1323,11 +1376,11 @@ $ReusePasswordFromSiblingV6 = $true
 $V7LegacyPuttyPath = [string]$PuttyPath
 $V7PuttyDiscoverySource = 'legacy-config'
 $V7PuttyDiscoveryCandidates = @(
+    $V7LegacyPuttyPath,
     (Join-Path $PSScriptRoot 'PuTTY PORTABLE\putty_portable.exe'),
     (Join-Path $PSScriptRoot 'PuTTY PORTABLE\putty.exe'),
     (Join-Path $PSScriptRoot 'putty_portable.exe'),
-    (Join-Path $PSScriptRoot 'putty.exe'),
-    $V7LegacyPuttyPath
+    (Join-Path $PSScriptRoot 'putty.exe')
 )
 foreach($candidate in @($V7PuttyDiscoveryCandidates)){
     try{if($candidate -and (Test-Path -LiteralPath $candidate -PathType Leaf)){$PuttyPath=[string]$candidate;$V7PuttyDiscoverySource=$(if($candidate -eq $V7LegacyPuttyPath){'legacy-config'}else{'colocated'});break}}catch{}
