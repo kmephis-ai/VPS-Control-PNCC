@@ -39,7 +39,8 @@ jobs:
           ) | Sort-Object
           $actual=@(git diff --name-only "$base...HEAD" | Sort-Object)
           if(($actual -join "`n") -ne ($expected -join "`n")){throw "BOUNDED_DIFF_MISMATCH actual=$($actual -join ',')"}
-          if(git diff --quiet $base HEAD -- src/windows-v7/VPS-Control-v7-README.txt src/windows-v7/VPS-Control-v7-launch.ps1 src/rollback-base/VPS-Control-v6.3.1.ps1){ } else { throw 'FORBIDDEN_PRODUCT_OR_V631_MUTATION' }
+          git diff --quiet $base HEAD -- src/windows-v7/VPS-Control-v7-README.txt src/windows-v7/VPS-Control-v7-launch.ps1 src/rollback-base/VPS-Control-v6.3.1.ps1
+          if($LASTEXITCODE -ne 0){throw 'FORBIDDEN_PRODUCT_OR_V631_MUTATION'}
       - name: Run WU212 Windows materialization regression
         shell: pwsh
         run: |
