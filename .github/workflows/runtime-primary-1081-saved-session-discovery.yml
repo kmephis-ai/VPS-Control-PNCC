@@ -43,7 +43,9 @@ jobs:
           $h=[regex]::Match($r,'(?s)function Get-V7ObservedReservePuttyExecutableCandidates \{.*?\n\}').Value
           if($h -match '(?i)CommandLine'){throw '1080 command-line read forbidden'}
           if($h -match '(?i)Stop-Process|Start-Process|Restart|\.Kill\('){throw '1080 lifecycle mutation forbidden'}
-          if(git diff --exit-code HEAD -- 'src/windows-v7/VPS-Control-v6.3.1.ps1'){Write-Host 'V6.3.1 immutable path unchanged'}else{throw 'V6.3.1 mutation forbidden'}
+          & git diff --exit-code HEAD -- 'src/windows-v7/VPS-Control-v6.3.1.ps1'
+          if($LASTEXITCODE -ne 0){throw 'V6.3.1 mutation forbidden'}
+          Write-Host 'V6.3.1 immutable path unchanged'
       - name: Assert repository remains clean
         shell: powershell
         run: |
