@@ -16,6 +16,7 @@
 *.jpg binary
 *.jpeg binary
 src/rollback-base/VPS-Control-v6.3.1.ps1 -text
+src/windows-v7/VPS-Control-v7-SHA256.txt text eol=lf
 src/windows-v7/VPS-Control-v7-README.txt text eol=lf
 src/windows-v7/VPS-Control-v7-browser-strict.ps1 text eol=lf
 src/windows-v7/VPS-Control-v7-demo.cmd text eol=lf
